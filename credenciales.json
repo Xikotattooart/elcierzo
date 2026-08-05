@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "el-cierzo-app",
+  "private_key_id": "783f007057b4c287edc51af4f520189232297691",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCdNO8Xn1Lq4afP\neLihS9PcTCIwM/NLhpvBMe+ZBC3PqWRDl30XJx16O1VloZ4tsWTnTGPorLIyY/Di\nHHcklhEBwqVdFjc67uBgDQzlmdLlyQImseVMt3xWo73QSFOc+K2Y6wGd0zBnbbAB\nHbbWxgIPv6T38qu0Qvr7+VPnD9kqtooE6Fu9AcZDtbNvGGkPgmQDMEDWC0fLSZos\nBKVOO1ZUPpKBXxnAT0h5J0NtetMWXHEYnoJ0DpwApZ9yv+3GkMjbjQqIKL3L3YDg\nAFjDQjQshpjBpU2Lfhze2ALed7NnplqEGXX98YiHPW0VvEvPMFuRuoK7OEwZ+OH8\nvu7QPJjhAgMBAAECggEALN5b00Es+E75h1SsVZT/3eN46osZSJgdwlFPUjwIGzn8\nnPISyNXoKufeYshzDhWQeBeseE85+PnfWZnIQ4/1QKxeaCgcEVz2e1OeN7XkpKLv\nUz349SF1goDvfw/1lVrAqWGBr5sEOLDsyBTEB56yHe6T1hTT/voTCnHKCavTTsYi\nLc/FOfgQ5B3+zzGJALBgcHdVx0f8QHBM2kC3C3StCr+mxttgmD8dbx2+mMp6NtGh\nY4n26Npx+yQgXGthmShODYjmkk8o96lq0N5a2xEK8Zjq3dqJZbri0S0HWwPFvepF\nnLpPJCxvfBlgt9SY4dXu4gxiSTl/wC9IwLarNRIXVQKBgQDLW8g8SQZkVvoJ8lx9\nm8dnR+cerDtfFyIj0B5zeAPpuPuTHUbVzutSg+qvxl/1jCdgV5DV+9XtQha1dbpU\nkEEEI5DakUhP+q6rF09NvXQkxup5giCzqFmciSUU/JrkPVKNWnCC+oroZz7KPS8K\nAr0kn/gL5yth7ISSCBf9EUfXMwKBgQDF5sFKceXNI8fJ/UUbeUul/aAsmPJ5Fk3L\nGKM13zLOIN7SPzxdBWrV6lqKLLHZ7DPUsmQDgKWx/mAdNVEQV82RpOE84ZksyGej\nz9HaREiiKKPLLVLSMEYl7EpDhB/Hb9pbUjMSbh4pbl0WQjRsiN7HNe1FHJ4Vm66v\nSyuehhl/mwKBgCrt7kBjvhiyj8hHxKSznQ29jRnZjBMP5CIhTjxcCp9tcJZm6Mw8\nCUt7E7EVtK42bx2UfrvdlRSoDfkyqCov5bnE9FBfuR9BMVxm6FPl+b3FzDvob5Td\npkU4Yn6isOQb2fCDNhtAXtCe8w9oiSSY3Wr85jVFENB0SKw3TzEaU8snAoGAJ+e6\n7CcBXpcrbyh56etQfL0isjt5ET+VGjHynydNmFD6fUyxAFTaUR47eYc/qaC+ZtI9\n5pLnVnfjq6AXo4MA+bBUlrEq8OPMOjTqrOd9+ezV8l9GRwni6zy1UN3whoegcS+n\nCr1XqaUOcjGRXp1Oxr6yBHCb0+GbnM88kW+a7qcCgYEAtHVQRxLWhMhTUTArQ+O/\niRr8mHpriYBqv0Zu5P8//yNW64ocE+0shGWef1eak3m6KilQPpezjVn2oJ0JEQ/g\nW6kosvoC5fwTvvFMh4p4yAvnfMyDcmz9Bo1R2/7TBcL8au/EBAg+suALLWluJtNC\n/CgV16+X+sh23dGizZJUE7g=\n-----END PRIVATE KEY-----\n",
+  "client_email": "python-calendar@el-cierzo-app.iam.gserviceaccount.com",
+  "client_id": "113252835948289432810",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/python-calendar%40el-cierzo-app.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

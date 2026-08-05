@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>el cierzo tattoo barbershop</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background: url("{{ url_for('static', filename='fondo.jpg') }}") no-repeat center center fixed; 
+            background-size: cover; 
+            font-family: 'Helvetica Neue', Arial, sans-serif; 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            overflow-x: hidden; 
+        }
+        .capa-oscura { 
+            background: rgba(0, 0, 0, 0.85); 
+            min-height: 100vh; 
+            width: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 20px 25px; 
+            box-sizing: border-box; 
+        }
+        .logo { width: 85%; max-width: 320px; margin-top: 40px; margin-bottom: 30px; transition: 0.4s ease-in-out; }
+        .logo-pequeno { width: 120px; margin-top: 20px; margin-bottom: 10px; }
+        
+        .contenedor-botones { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
+        .btn-servicio { padding: 22px; background: rgba(255, 255, 255, 0.05); border: 2px solid #d4af37; border-radius: 18px; color: #d4af37; font-weight: bold; font-size: 1.1rem; text-transform: uppercase; cursor: pointer; }
+        
+        #formulario-cita { display: none; width: 100%; max-width: 400px; background: rgba(10, 10, 10, 0.98); padding: 20px; border-radius: 20px; border: 1px solid #d4af37; box-sizing: border-box; }
+        .fila-doble { display: flex; gap: 10px; width: 100%; }
+        input, select, textarea { width: 100%; height: 50px; padding: 0 15px; margin: 8px 0; background: #111; border: 1px solid #333; border-radius: 12px; color: white; font-size: 1rem; box-sizing: border-box; text-align: center; }
+        textarea {
+    text-align: center;
+    padding-top: 15px; /* Empuja el texto hacia el centro */
+    line-height: 1.5;
+    height: 80px;      /* Le damos un poco más de altura para que respire */
+    resize: none;      /* Evita que el usuario lo deforme */
+}
+        .grid-horas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 15px 0; }
+        .hora-btn { height: 45px; border: 1px solid #d4af37; background: none; color: #d4af37; border-radius: 10px; font-weight: bold; }
+        .hora-btn:disabled { border-color: #444; color: #444; opacity: 0.4; }
+        .hora-seleccionada { background: #d4af37 !important; color: black !important; }
+        
+        label { color: #d4af37; font-size: 0.7rem; text-transform: uppercase; font-weight: bold; margin-top: 10px; display: block; text-align: center; }
+        .btn-final { background: #d4af37; color: black; border: none; height: 60px; border-radius: 15px; width: 100%; font-weight: bold; font-size: 1.1rem; text-transform: uppercase; margin-top: 15px; cursor: pointer; }
+        
+        #pantalla-exito { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+        .tarjeta-exito { border: 2px solid #d4af37; padding: 25px; border-radius: 25px; background: #000; width: 90%; max-width: 350px; text-align: center; }
+
+        #game-container { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 50%;
+            transform: translateX(-50%); 
+            width: 100vw; 
+            max-width: 500px; 
+            height: 100vh; 
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("{{ url_for('static', filename='fondo_game.jpg') }}") no-repeat center center; 
+            background-size: cover; 
+            overflow: hidden; 
+            touch-action: none; 
+            z-index: 10000; 
+            border-left: 1px solid rgba(212, 175, 55, 0.3);
+            border-right: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        #player { 
+            position: absolute; 
+            width: 85px; 
+            height: 85px; 
+            background: url("{{ url_for('static', filename='nave.png') }}") no-repeat center; 
+            background-size: contain; 
+            z-index: 5000; 
+        }
+
+        .support-ship {
+            position: absolute;
+            width: 45px;
+            height: 45px;
+            background: url("{{ url_for('static', filename='nave.png') }}") no-repeat center;
+            background-size: contain;
+            z-index: 4900;
+            opacity: 0.8;
+            filter: sepia(1) hue-rotate(10deg) saturate(2);
+            pointer-events: none;
+        }
+
+        .bubble-active {
+            box-shadow: 0 0 0 45px rgba(0, 150, 255, 0.4), inset 0 0 20px rgba(0, 150, 255, 0.6);
+            border-radius: 50%;
+        }
+        .bomb-bullet { 
+            position: absolute; width: 14px; height: 14px; background: #ff0000; 
+            border-radius: 50%; box-shadow: 0 0 10px #ff0000; z-index: 2000; 
+        }
+        
+        .enemy { position: absolute; background-size: contain; background-repeat: no-repeat; background-position: center; z-index: 1000; filter: drop-shadow(0 0 10px #d4af37); }
+        .coin { position: absolute; background: url("{{ url_for('static', filename='moneda.png') }}") no-repeat center; background-size: contain; width: 50px; height: 50px; z-index: 1500; filter: drop-shadow(0 0 15px #ffd700); }
+        .coin-2 { position: absolute; background: url("{{ url_for('static', filename='moneda_2.png') }}") no-repeat center; background-size: contain; width: 50px; height: 50px; z-index: 1500; filter: drop-shadow(0 0 15px #00ff00); }
+        .vida-item { position: absolute; background: url("{{ url_for('static', filename='vida.png') }}") no-repeat center; background-size: contain; width: 40px; height: 40px; z-index: 1550; }
+        .bullet { position: absolute; width: 4px; height: 12px; background: #d4af37; border-radius: 5px; box-shadow: 0 0 10px #d4af37; z-index: 2000; }
+        
+        /* estilos nave poderosa modificado */
+        .boss-ship {
+            position: absolute;
+            width: 212px; /* reducido a la mitad */
+            height: 212px;
+            background: url("{{ url_for('static', filename='nave_poderosa.png') }}") no-repeat center;
+            background-size: contain;
+            z-index: 4500;
+            filter: drop-shadow(0 0 30px #ff0000);
+        }
+        .boss-fireball {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle, #ffcc00, #ff6600, #ff0000);
+            border-radius: 50%;
+            box-shadow: 0 0 40px #ff3300;
+            z-index: 4600;
+        }
+
+        #header-game { 
+            position: absolute; 
+            top: 15px; 
+            width: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            z-index: 8000; 
+        }
+        .ui-top-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            color: #d4af37;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .timer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #timer-display { 
+            background: rgba(0,0,0,0.6); 
+            padding: 5px 15px; 
+            border-radius: 15px; 
+            border: 1px solid #d4af37; 
+            color: #d4af37; 
+            font-weight: bold; 
+            font-family: monospace; 
+            font-size: 1.1rem; 
+        }
+        #ui-lives {
+            margin-top: 4px;
+            color: #d4af37;
+            font-weight: bold;
+            font-size: 0.8rem;
+            text-shadow: 1px 1px black;
+        }
+        #boss-ui {
+            display: none;
+            color: #ff0000;
+            font-size: 0.8rem;
+            margin-top: 2px;
+            text-shadow: 1px 1px black;
+        }
+        
+        #start-overlay, #game-over-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9000; }
+        #game-over-overlay { display: none; z-index: 10001; }
+        
+        .pixel-title { font-family: 'Courier New', Courier, monospace; font-size: 3.5rem; color: #ff0000; text-shadow: 4px 4px #550000; font-weight: 900; margin-bottom: 20px; letter-spacing: -2px; }
+        .btn-restart { padding: 15px 40px; background: #d4af37; color: black; font-size: 1.5rem; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; }
+        .btn-exit-game { margin-top: 20px; padding: 8px 20px; background: #ff4444; color: white; border: none; border-radius: 20px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
+
+        #btn-start-game { padding: 20px 50px; background: #d4af37; color: black; font-size: 2rem; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 0 20px #d4af37; margin-bottom: 30px; }
+
+        .btn-juego-mini { background: none; border: 1px solid #d4af37; color: #d4af37; padding: 8px 15px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; cursor: pointer; margin-top: 10px; }
+        .exp-part { position: absolute; background: #d4af37; border-radius: 50%; z-index: 3000; animation: flyout 0.4s ease-out forwards; }
+        @keyframes flyout { from { transform: translate(0, 0) scale(1); opacity: 1; } to { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div class="capa-oscura">
+        <img src="{{ url_for('static', filename='logo.png') }}" class="logo" id="main-logo">
+        <div id="menu-servicios" class="contenedor-botones">
+            <button class="btn-servicio" onclick="mostrarForm('barberia')">reservar barbería 💈</button>
+            <button class="btn-servicio" onclick="mostrarForm('tatuaje')">reservar tatuaje 💉</button>
+            <button class="btn-servicio" onclick="mostrarRedes()">redes sociales 📱</button>
+        </div>
+        <div id="menu-redes" class="contenedor-botones" style="display: none;">
+    <h2 style="color:#d4af37; text-align:center; font-size: 1.2rem; margin-bottom: 20px; text-transform: uppercase;">nuestras redes</h2>
+    
+    <button class="btn-servicio" onclick="abrirInstagram('edgarfr91')">
+        Instagram estudio 💈💉
+    </button>
+    
+    <button class="btn-servicio" onclick="abrirInstagram('xikotattooart')">
+        instagram tattoos💉
+    </button>
+    
+    <button type="button" onclick="volverAlMenu()" style="background:none; border:none; color:white; width:100%; margin-top:10px; opacity:0.6; font-size: 0.8rem;">← volver atrás</button>
+</div>
+
+        <div id="formulario-cita">
+            <h2 id="titulo-dinamico" style="color:#d4af37; text-align:center; font-size: 1.2rem; margin-bottom: 20px;"></h2>
+            <form id="reserva-form">
+                <input type="hidden" name="categoria" id="input-categoria">
+                <div class="fila-doble">
+                    <input type="text" name="Nombre" placeholder="Nombre" required>
+                    <input type="text" name="Apellidos" placeholder="Apellidos" required>
+                </div>
+                <input type="tel" name="Telefono" placeholder="Teléfono" required>
+                
+                <div id="campos-tatuaje" style="display:none;">
+                    <label>¿qué fecha tienes pensada?</label>
+                    <input type="text" name="fecha_tatuaje" placeholder="Ej: Próximo lunes...">
+                    <label>cuéntanos tu idea</label>
+                    <textarea name="descripcion" placeholder="Estilo, tamaño, zona..." rows="3"></textarea>
+                </div>
+
+                <div id="campos-barberia" style="display:none;">
+                    <label>servicio</label>
+                    <select name="servicio_barberia">
+                        {% for s in barberia %}<option value="{{ s.nombre }}">{{ s.nombre }}</option>{% endfor %}
+                    </select>
+                    <label>fecha</label>
+                    <select name="fecha_barberia" id="select-fecha" onchange="cargarHoras()">
+                        {% for d in dias %}<option value="{{ d.valor }}">{{ d.texto }}</option>{% endfor %}
+                    </select>
+                    <label>hora disponible</label>
+                    <input type="hidden" name="hora" id="input-hora">
+                    <div id="grid-horas" class="grid-horas"></div>
+                </div>
+
+                <button type="submit" class="btn-final" id="btn-submit">confirmar reserva</button>
+                <button type="button" onclick="location.reload()" style="background:none; border:none; color:white; width:100%; margin-top:10px; opacity:0.6; font-size: 0.8rem;">← volver atrás</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="pantalla-exito">
+        <div class="tarjeta-exito" id="contenido-exito"></div>
+    </div>
+
+    <div id="game-container">
+        <div id="start-overlay">
+            <button id="btn-start-game" onclick="comenzarCiclos()">START</button>
+        </div>
+
+        <div id="game-over-overlay">
+            <div class="pixel-title">GAME OVER</div>
+            <button class="btn-restart" onclick="reiniciarPartida()">RESTART</button>
+            <button class="btn-exit-game" onclick="location.reload()">EXIT</button>
+        </div>
+        
+        <div id="header-game">
+            <div class="ui-top-row">
+                <div style="text-align: center;">
+                    BARBER POINTS: <span id="game-score">0</span>
+                    <div id="boss-ui">BOSS HP: <span id="boss-hp-count">0</span>/2000</div>
+                </div>
+                <div class="timer-container">
+                    <div id="timer-display">00:00</div>
+                    <div id="ui-lives">VIDAS: <span id="game-lives">0/3</span></div>
+                </div>
+                <div>RECORD: <span id="best-score">0</span></div>
+            </div>
+        </div>
+
+        <div id="player"></div>
+        <div id="support-l" class="support-ship" style="display:none;"></div>
+        <div id="support-r" class="support-ship" style="display:none;"></div>
+    </div>
+
+    <script>
+        let audioCtx = null;
+        function playShootSound() {
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        }
+// COPIA ESTO DENTRO DEL <script>
+function mostrarRedes() {
+    document.getElementById('menu-servicios').style.display = 'none';
+    document.getElementById('menu-redes').style.display = 'flex';
+    document.getElementById('main-logo').classList.add('logo-pequeno');
+}
+
+function volverAlMenu() {
+    document.getElementById('menu-redes').style.display = 'none';
+    document.getElementById('menu-servicios').style.display = 'flex';
+    document.getElementById('main-logo').classList.remove('logo-pequeno');
+}
+
+function abrirInstagram(usuario) {
+    const uri = `instagram://user?username=${usuario}`;
+    const webUrl = `https://www.instagram.com/${usuario}`;
+    
+    // Guardamos el tiempo de inicio
+    const start = Date.now();
+    
+    // Intentamos abrir la App
+    window.location.href = uri;
+
+    // Ponemos un temporizador para la web
+    setTimeout(() => {
+        // Si el usuario sigue en nuestra página y han pasado menos de 2 segundos,
+        // intentamos abrir la web como plan B.
+        if (!document.hidden && (Date.now() - start) < 2000) {
+            window.location.href = webUrl;
+        }
+    }, 1000);
+}
+        function mostrarForm(tipo) {
+            document.getElementById('menu-servicios').style.display = 'none';
+            document.getElementById('formulario-cita').style.display = 'block';
+            document.getElementById('input-categoria').value = tipo;
+            document.getElementById('titulo-dinamico').innerText = tipo === 'barberia' ? 'RESERVAR BARBERÍA' : 'RESERVAR TATUAJE';
+            document.getElementById('main-logo').classList.add('logo-pequeno');
+            if(tipo === 'tatuaje') {
+                document.getElementById('campos-tatuaje').style.display = 'block';
+                document.getElementById('campos-barberia').style.display = 'none';
+                document.getElementById('input-hora').value = "a convenir";
+            } else {
+                document.getElementById('campos-tatuaje').style.display = 'none';
+                document.getElementById('campos-barberia').style.display = 'block';
+                cargarHoras();
+            }
+        }
+
+        async function cargarHoras() {
+            const fecha = document.getElementById('select-fecha').value;
+            const res = await fetch(`/obtener_estado_horas/${fecha}`);
+            const horas = await res.json();
+            const grid = document.getElementById('grid-horas');
+            grid.innerHTML = '';
+            horas.forEach(h => {
+                const btn = document.createElement('button');
+                btn.type = 'button'; btn.className = 'hora-btn'; btn.innerText = h.hora; btn.disabled = !h.libre;
+                btn.onclick = () => {
+                    document.querySelectorAll('.hora-btn').forEach(b => b.classList.remove('hora-seleccionada'));
+                    btn.classList.add('hora-seleccionada');
+                    document.getElementById('input-hora').value = h.hora;
+                };
+                grid.appendChild(btn);
+            });
+        }
+
+        document.getElementById('reserva-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit');
+            btn.innerText = 'PROCESANDO...'; btn.disabled = true;
+            const formData = new FormData(this);
+            try {
+                const response = await fetch('/reservar', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    document.getElementById('contenido-exito').innerHTML = `
+                        <div style="font-size: 2.5rem;">✅</div>
+                        <p style="font-size: 0.9rem; line-height: 1.4;">${data.message}</p>
+                        <button onclick="location.reload()" class="btn-final" style="width:100%; margin-bottom: 10px;">ACEPTAR</button>
+                    `;
+                    document.getElementById('pantalla-exito').style.display = 'flex';
+                }
+            } catch (error) { alert('error en el servidor'); }
+        };
+
+        let gameActive = false;
+        let score = 0;
+        let lives = 0;
+        let seconds = 0;
+        let timerInterval;
+        let gameIntervals = [];
+        
+        let tripleShotActive = false;
+        let bombPowerActive = false;
+        let shieldActive = false;
+        let supportActive = false;
+        let bulletCounter = 0;
+        let lastCoinType = 2;
+
+        let bossActive = false;
+        let bossDamage = 0;
+        const bossMaxHP = 2000;
+
+        let playerX = 0;
+        let playerY = 0;
+        const imagenesMarcianos = [
+            "{{ url_for('static', filename='marcianito_1.png') }}",
+            "{{ url_for('static', filename='marcianito_2.png') }}",
+            "{{ url_for('static', filename='marcianito_3.png') }}",
+            "{{ url_for('static', filename='marcianito_4.png') }}"
+        ];
+
+        function prepararJuego() {
+            document.getElementById('game-container').style.display = 'block';
+            document.getElementById('start-overlay').style.display = 'flex';
+            document.getElementById('game-over-overlay').style.display = 'none';
+            document.getElementById('boss-ui').style.display = 'none';
+            score = 0;
+            lives = 0;
+            seconds = 0;
+            tripleShotActive = false;
+            bombPowerActive = false;
+            shieldActive = false;
+            supportActive = false;
+            bossActive = false;
+            bossDamage = 0;
+            lastCoinType = 2;
+            document.getElementById('player').classList.remove('bubble-active');
+            document.getElementById('support-l').style.display = 'none';
+            document.getElementById('support-r').style.display = 'none';
+            
+            document.getElementById('game-score').innerText = "0";
+            document.getElementById('game-lives').innerText = "0/3";
+            document.getElementById('timer-display').innerText = "00:00";
+            document.getElementById('best-score').innerText = localStorage.getItem('tattoo_record') || 0;
+            
+            const player = document.getElementById('player');
+            const container = document.getElementById('game-container');
+            const btnStart = document.getElementById('btn-start-game');
+            const rectBtn = btnStart.getBoundingClientRect();
+            
+            playerX = (container.offsetWidth / 2) - 42;
+            playerY = (rectBtn.bottom - container.getBoundingClientRect().top) + 40; 
+            
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+
+            const moveHandler = (e) => {
+                const rect = container.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                let relativeX = clientX - rect.left;
+                let relativeY = clientY - rect.top;
+
+                if (relativeY > window.innerHeight / 2.5) {
+                    playerX = relativeX - 42;
+                    playerY = relativeY - 42;
+
+                    if(playerX < 0) playerX = 0;
+                    if(playerX > container.offsetWidth - 85) playerX = container.offsetWidth - 85;
+                    if(playerY < 0) playerY = 0;
+                    if(playerY > container.offsetHeight - 85) playerY = container.offsetHeight - 85;
+
+                    player.style.left = playerX + 'px';
+                    player.style.top = playerY + 'px';
+
+                    if(supportActive) {
+                        const sL = document.getElementById('support-l');
+                        const sR = document.getElementById('support-r');
+                        sL.style.left = (playerX - 60) + 'px';
+                        sL.style.top = (playerY + 40) + 'px';
+                        sR.style.left = (playerX + 100) + 'px';
+                        sR.style.top = (playerY + 40) + 'px';
+                    }
+                }
+            };
+
+            container.addEventListener('touchmove', (e) => { if(gameActive) e.preventDefault(); moveHandler(e); }, {passive: false});
+            container.addEventListener('mousemove', (e) => { if(gameActive) moveHandler(e); });
+        }
+
+        function comenzarCiclos() {
+            document.getElementById('start-overlay').style.display = 'none';
+            gameActive = true;
+
+            timerInterval = setInterval(() => {
+                if(gameActive) {
+                    seconds++;
+                    let mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+                    let secs = (seconds % 60).toString().padStart(2, '0');
+                    document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+                    
+                    if (seconds === 40) {
+                        crearBoss();
+                    }
+
+                    if (seconds > 0 && seconds % 30 === 0) {
+                        if (lastCoinType === 2) {
+                            crearMoneda();
+                            lastCoinType = 1;
+                        } else {
+                            crearMoneda2();
+                            lastCoinType = 2;
+                        }
+                    }
+
+                    if (seconds > 0 && seconds % 65 === 0) {
+                        crearVidaItem();
+                    }
+                }
+            }, 1000);
+
+            gameIntervals.push(setInterval(() => {
+                if(gameActive) {
+                    const spawnY = playerY;
+                    const spawnX = playerX;
+                    bulletCounter++;
+
+                    if(bombPowerActive) {
+                        if(bulletCounter % 2 === 0) {
+                            crearBala(spawnX + 38, spawnY, 0, -8, true);
+                        }
+                    } else {
+                        crearBala(spawnX + 38, spawnY, 0, -10); 
+                        crearBala(spawnX + 44, spawnY, 0, -10); 
+                        if(tripleShotActive) {
+                            crearBala(spawnX + 15, spawnY, -3, -10); 
+                            crearBala(spawnX + 65, spawnY, 3, -10);
+                        }
+                        if(supportActive) {
+                            crearBala(spawnX - 40, spawnY + 40, 0, -12);
+                            crearBala(spawnX + 120, spawnY + 40, 0, -12);
+                        }
+                    }
+                    playShootSound();
+                }
+            }, 250));
+
+            gameIntervals.push(setInterval(() => { if(gameActive && !bossActive) crearEnemigo(); }, 200));
+        }
+
+        function crearBoss() {
+            bossActive = true;
+            bossDamage = 0;
+            document.getElementById('boss-ui').style.display = 'block';
+            document.getElementById('boss-hp-count').innerText = "0";
+            
+            const boss = document.createElement('div');
+            boss.className = 'boss-ship';
+            const containerW = document.getElementById('game-container').offsetWidth;
+            
+            boss.style.left = (containerW / 2 - 106) + 'px';
+            boss.style.top = '-250px';
+            document.getElementById('game-container').appendChild(boss);
+
+            let entry = setInterval(() => {
+                if (!gameActive) { clearInterval(entry); return; }
+                let y = parseInt(boss.style.top);
+                if (y < 85) {
+                    boss.style.top = (y + 3) + 'px';
+                } else {
+                    clearInterval(entry);
+                    iniciarMovimientoBoss(boss, containerW);
+                }
+            }, 20);
+        }
+
+        function iniciarMovimientoBoss(boss, containerW) {
+            let bossDir = Math.random() < 0.5 ? 1 : -1;
+            let currentSpeed = 4;
+            
+            let moveBoss = setInterval(() => {
+                if (!gameActive || !bossActive) { clearInterval(moveBoss); return; }
+                
+                let x = parseInt(boss.style.left);
+                
+                // probabilidad de cambio de dirección o pausa aleatoria
+                if (Math.random() < 0.02) { 
+                    bossDir *= -1; 
+                }
+                if (Math.random() < 0.01) {
+                    currentSpeed = 0; // se frena un momento
+                    setTimeout(() => { if(gameActive) currentSpeed = 4; }, 800);
+                }
+
+                if (x < -20 || x > containerW - 190) {
+                    bossDir *= -1;
+                }
+                
+                boss.style.left = (x + (currentSpeed * bossDir)) + 'px';
+            }, 30);
+
+            let fireInterval = setInterval(() => {
+                if (!gameActive || !bossActive) { clearInterval(fireInterval); return; }
+                crearBolaFuego(parseInt(boss.style.left) + 106, parseInt(boss.style.top) + 190);
+            }, 3000);
+        }
+
+        function crearBolaFuego(x, y) {
+            const f = document.createElement('div');
+            f.className = 'boss-fireball';
+            f.style.left = (x - 35) + 'px';
+            f.style.top = y + 'px';
+            document.getElementById('game-container').appendChild(f);
+            
+            let moveF = setInterval(() => {
+                if (!gameActive) { f.remove(); clearInterval(moveF); return; }
+                let currY = parseInt(f.style.top);
+                
+                if (currY > window.innerHeight) { 
+                    f.remove(); 
+                    clearInterval(moveF); 
+                } else {
+                    f.style.top = (currY + 8) + 'px';
+                    if (checkCollision(f, document.getElementById('player'))) {
+                        if (!shieldActive) {
+                            lives -= 2; 
+                            document.getElementById('game-lives').innerText = Math.max(0, lives) + "/3";
+                            if (lives < 0) gameOver();
+                        }
+                        f.remove(); 
+                        clearInterval(moveF);
+                    }
+                }
+            }, 20);
+        }
+
+        function crearBala(x, y, speedX, speedY, esBomba = false) {
+            const b = document.createElement('div');
+            b.className = esBomba ? 'bomb-bullet' : 'bullet';
+            b.style.left = x + 'px';
+            b.style.top = y + 'px';
+            document.getElementById('game-container').appendChild(b);
+
+            let moveB = setInterval(() => {
+                let currY = parseInt(b.style.top);
+                let currX = parseInt(b.style.left);
+                if(currY < -20 || !gameActive) {
+                    clearInterval(moveB); b.remove();
+                } else {
+                    b.style.top = (currY + speedY) + 'px';
+                    b.style.left = (currX + speedX) + 'px';
+                    
+                    if (bossActive) {
+                        const boss = document.querySelector('.boss-ship');
+                        if (boss && checkCollision(b, boss)) {
+                            // cada bala suma daño (bombas hacen más)
+                            const damagePoints = esBomba ? 100 : 10;
+                            bossDamage += damagePoints;
+                            document.getElementById('boss-hp-count').innerText = Math.min(bossDamage, bossMaxHP);
+                            
+                            explosion(currX, currY, "#ffcc00", 5);
+                            if (bossDamage >= bossMaxHP) {
+                                bossActive = false;
+                                score += 5000;
+                                actualizarScore();
+                                explosion(parseInt(boss.style.left)+106, parseInt(boss.style.top)+106, "#ff0000", 60);
+                                boss.remove();
+                                document.getElementById('boss-ui').style.display = 'none';
+                            }
+                            b.remove(); 
+                            clearInterval(moveB); 
+                            return;
+                        }
+                    }
+
+                    document.querySelectorAll('.enemy').forEach(en => {
+                        if(checkCollision(b, en)) {
+                            if(esBomba) ejecutarExplosionBomba(currX, currY);
+                            else eliminarEnemigo(en);
+                            b.remove(); clearInterval(moveB);
+                        }
+                    });
+                }
+            }, 20);
+        }
+
+        function ejecutarExplosionBomba(x, y) {
+            explosion(x, y, "#ff0000", 25);
+            document.querySelectorAll('.enemy').forEach(en => {
+                const rect = en.getBoundingClientRect();
+                const containerRect = document.getElementById('game-container').getBoundingClientRect();
+                const enX = rect.left - containerRect.left + (rect.width/2);
+                const enY = rect.top - containerRect.top + (rect.height/2);
+                const dist = Math.sqrt(Math.pow(x - enX, 2) + Math.pow(y - enY, 2));
+                if(dist < 100) eliminarEnemigo(en);
+            });
+        }
+
+        function eliminarEnemigo(en) {
+            score += 10;
+            actualizarScore();
+            explosion(en.offsetLeft + (en.offsetWidth/2), en.offsetTop + (en.offsetHeight/2), "#d4af37");
+            en.remove();
+        }
+
+        function crearEnemigo() {
+            const en = document.createElement('div');
+            en.className = 'enemy';
+            en.style.backgroundImage = `url(${imagenesMarcianos[Math.floor(Math.random() * imagenesMarcianos.length)]})`;
+            const containerW = document.getElementById('game-container').offsetWidth;
+            const size = Math.floor(Math.random() * 30) + 40;
+            en.style.width = size + 'px'; en.style.height = size + 'px';
+            en.style.left = Math.random() * (containerW - size) + 'px';
+            en.style.top = '-50px';
+            document.getElementById('game-container').appendChild(en);
+            
+            let speedY = 4 + (score / 800); 
+            let speedX = (Math.random() - 0.5) * 3;
+            let moveEn = setInterval(() => {
+                if(!gameActive) { clearInterval(moveEn); en.remove(); return; }
+                let y = parseInt(en.style.top);
+                let x = parseInt(en.style.left);
+                if(x <= 0 || x >= containerW - size) speedX *= -1;
+                
+                if(y > window.innerHeight) { clearInterval(moveEn); en.remove(); } 
+                else { 
+                    en.style.top = (y + speedY) + 'px'; 
+                    en.style.left = (x + speedX) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), en)) {
+                        if(!shieldActive) {
+                            lives--;
+                            document.getElementById('game-lives').innerText = Math.max(0, lives) + "/3";
+                            explosion(en.offsetLeft + size/2, en.offsetTop + size/2, "#ff4444");
+                            if(lives < 0) gameOver();
+                        } else explosion(en.offsetLeft + size/2, en.offsetTop + size/2, "#0096ff");
+                        en.remove(); clearInterval(moveEn);
+                    }
+                }
+            }, 30);
+        }
+
+        function crearVidaItem() {
+            const v = document.createElement('div');
+            v.className = 'vida-item';
+            v.style.left = Math.random() * (document.getElementById('game-container').offsetWidth - 40) + 'px';
+            v.style.top = '-50px';
+            document.getElementById('game-container').appendChild(v);
+            let moveV = setInterval(() => {
+                if(!gameActive) { clearInterval(moveV); v.remove(); return; }
+                let y = parseInt(v.style.top);
+                if(y > window.innerHeight) { clearInterval(moveV); v.remove(); }
+                else {
+                    v.style.top = (y + 6) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), v)) {
+                        if(lives < 3) lives++;
+                        document.getElementById('game-lives').innerText = lives + "/3";
+                        v.remove(); clearInterval(moveV);
+                    }
+                }
+            }, 20);
+        }
+
+        function crearMoneda() {
+            const c = document.createElement('div');
+            c.className = 'coin';
+            c.style.left = Math.random() * (document.getElementById('game-container').offsetWidth - 50) + 'px';
+            c.style.top = '-60px';
+            document.getElementById('game-container').appendChild(c);
+            let moveC = setInterval(() => {
+                if(!gameActive) { clearInterval(moveC); c.remove(); return; }
+                let y = parseInt(c.style.top);
+                if(y > window.innerHeight) { clearInterval(moveC); c.remove(); }
+                else { 
+                    c.style.top = (y + 4) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), c)) {
+                        c.remove(); clearInterval(moveC);
+                        activarPowerUpAleatorio();
+                    }
+                }
+            }, 30);
+        }
+
+        function crearMoneda2() {
+            const c = document.createElement('div');
+            c.className = 'coin-2';
+            c.style.left = Math.random() * (document.getElementById('game-container').offsetWidth - 50) + 'px';
+            c.style.top = '-60px';
+            document.getElementById('game-container').appendChild(c);
+            let moveC = setInterval(() => {
+                if(!gameActive) { clearInterval(moveC); c.remove(); return; }
+                let y = parseInt(c.style.top);
+                if(y > window.innerHeight) { clearInterval(moveC); c.remove(); }
+                else { 
+                    c.style.top = (y + 5) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), c)) {
+                        c.remove(); clearInterval(moveC);
+                        activarRefuerzos();
+                    }
+                }
+            }, 30);
+        }
+
+        function activarRefuerzos() {
+            score += 75;
+            actualizarScore();
+            supportActive = true;
+            document.getElementById('support-l').style.display = 'block';
+            document.getElementById('support-r').style.display = 'block';
+            setTimeout(() => {
+                supportActive = false;
+                document.getElementById('support-l').style.display = 'none';
+                document.getElementById('support-r').style.display = 'none';
+            }, 10000);
+        }
+
+        function activarPowerUpAleatorio() {
+            const rand = Math.random();
+            score += 50;
+            actualizarScore();
+            if (rand < 0.33) {
+                tripleShotActive = true; bombPowerActive = false;
+                setTimeout(() => { tripleShotActive = false; }, 10000); 
+            } else if (rand < 0.66) {
+                bombPowerActive = true; tripleShotActive = false;
+                setTimeout(() => { bombPowerActive = false; }, 10000);
+            } else {
+                shieldActive = true;
+                document.getElementById('player').classList.add('bubble-active');
+                setTimeout(() => { shieldActive = false; document.getElementById('player').classList.remove('bubble-active'); }, 10000);
+            }
+        }
+
+        function gameOver() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            gameIntervals.forEach(clearInterval);
+            document.getElementById('game-over-overlay').style.display = 'flex';
+        }
+
+        function reiniciarPartida() {
+            document.querySelectorAll('.enemy, .bullet, .bomb-bullet, .coin, .coin-2, .vida-item, .boss-ship, .boss-fireball').forEach(el => el.remove());
+            prepararJuego();
+            comenzarCiclos();
+        }
+
+        function checkCollision(a, b) {
+            const rA = a.getBoundingClientRect();
+            const rB = b.getBoundingClientRect();
+            return !(rA.right < rB.left || rA.left > rB.right || rA.bottom < rB.top || rA.top > rB.bottom);
+        }
+
+        function actualizarScore() {
+            document.getElementById('game-score').innerText = score;
+            if(score > (localStorage.getItem('tattoo_record') || 0)) {
+                localStorage.setItem('tattoo_record', score);
+                document.getElementById('best-score').innerText = score;
+            }
+        }
+
+        function explosion(x, y, color, num = 10) {
+            for(let i=0; i<num; i++) {
+                const p = document.createElement('div');
+                p.className = 'exp-part';
+                p.style.background = color;
+                p.style.width = '5px'; p.style.height = '5px';
+                p.style.left = x + 'px'; p.style.top = y + 'px';
+                p.style.setProperty('--tx', (Math.random()-0.5)*180+'px');
+                p.style.setProperty('--ty', (Math.random()-0.5)*180+'px');
+                document.getElementById('game-container').appendChild(p);
+                setTimeout(() => p.remove(), 400);
+            }
+        }
+    </script>
+</body>
+</html>
