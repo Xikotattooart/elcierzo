@@ -77,7 +77,18 @@ def index():
 
 @app.route('/obtener_estado_horas/<fecha>')
 def obtener_estado_horas(fecha):
-    horas_posibles = ["10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00"]
+    # Averiguar el día de la semana (0 = Lunes, ..., 6 = Domingo)
+    dia_semana = datetime.strptime(fecha, '%Y-%m-%d').weekday()
+    
+    # Asignar horas según el día
+    if dia_semana in [0, 1, 2]: # Lunes, Martes, Miércoles
+        horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"]
+    elif dia_semana in [3, 4]: # Jueves y Viernes
+        horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30"]
+    elif dia_semana == 5: # Sábado
+        horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30"]
+    else: # Domingo (Cerrado)
+        horas_posibles = []
     conn = sqlite3.connect(ruta_db)
     cursor = conn.cursor()
     cursor.execute("select hora from citas where fecha = ?", (fecha,))
