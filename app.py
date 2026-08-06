@@ -20,12 +20,14 @@ id_calendario = "edgarfa46@gmail.com"
 
 def agregar_a_calendar(reserva):
     try:
-        if not os.path.exists(ruta_credenciales):
-            print(f"❌ ERROR: No se encuentra el archivo en: {ruta_credenciales}")
-            return False
-            
         scopes = ['https://www.googleapis.com/auth/calendar']
-        creds = service_account.Credentials.from_service_account_file(ruta_credenciales, scopes=scopes)
+        creds_json = os.environ.get('google_credentials')
+
+        if creds_json:
+            creds_dict = json.loads(creds_json)
+            creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        else:
+            creds = service_account.Credentials.from_service_account_file(ruta_credenciales, scopes=scopes)
         service = build('calendar', 'v3', credentials=creds)
         
         inicio = f"{reserva['fecha']}T{reserva['hora']}:00"
