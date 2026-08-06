@@ -134,24 +134,12 @@ def obtener_estado_horas(fecha):
             if 'T' in start:
                 hora = start.split('T')[1][:5]
                 horas_ocupadas.append(hora)
-
-        # Quedan libres las horas que NO están en Google Calendar
-        horas_libres = [h for h in todas_las_horas if h not in horas_ocupadas]
-
-        # Devolvemos la estructura de diccionario y la lista directa para compatibilidad
-        return jsonify({
-            'ocupadas': horas_ocupadas,
-            'libres': horas_libres,
-            'horas': horas_libres
-        })
+                horas_libres = [h for h in todas_las_horas if h not in horas_ocupadas]
+        return jsonify(horas_libres)
 
     except Exception as e:
         print(f"Error consultando Calendar: {e}")
-        return jsonify({
-            'ocupadas': [],
-            'libres': todas_las_horas,
-            'horas': todas_las_horas
-        })
+        return jsonify(todas_las_horas)
 def recuperar():
     try:
         # CORRECCIÓN: Los campos del HTML empiezan por Mayúscula
