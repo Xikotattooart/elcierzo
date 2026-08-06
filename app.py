@@ -78,31 +78,25 @@ def index():
             dias.append({'valor': dia.strftime('%Y-%m-%d'), 'texto': texto_dia})
     return render_template('index.html', barberia=barberia_servicios, dias=dias)
 
-@app.route('/obtener_estado_horas/<fecha>')
-@app.route('/obtener_estado_horas', methods=['GET'])
-@app.route('/obtener_estado_horas', methods=['GET'])
-@app.route('/obtener_estado_horas/<fecha>', methods=['GET'])
-@app.route('/obtener_estado_horas/<fecha>', methods=['GET'])
-@app.route('/obtener_estado_horas/<fecha>', methods=['GET'])
 @app.route('/obtener_estado_horas/<fecha>', methods=['GET'])
 def obtener_estado_horas(fecha):
     if not fecha:
         return jsonify([])
 
-    # 1. Definir horarios del local según el día de la semana
+    # 1. Horarios completos de El Cierzo por día de la semana
     fecha_dt = datetime.strptime(fecha, '%Y-%m-%d')
     dia_semana = fecha_dt.weekday()
 
-    if dia_semana == 0:   # Lunes
+    if dia_semana == 0:   # Lunes (Tarde)
         todas_las_horas = ['16:00', '17:00', '18:00', '19:00', '20:00']
-    elif dia_semana in [1, 2, 3, 4]: # Martes a Viernes
+    elif dia_semana in [1, 2, 3, 4]: # Martes a Viernes (Mañana y Tarde)
         todas_las_horas = ['09:30', '10:30', '11:30', '12:30', '16:00', '17:00', '18:00', '19:00', '20:00']
-    elif dia_semana == 5: # Sábados
+    elif dia_semana == 5: # Sábados (Mañana)
         todas_las_horas = ['09:00', '10:00', '11:00', '12:00', '13:00']
     else: # Domingos (Cerrado)
         todas_las_horas = []
 
-    # 2. Consultar citas ocupadas en Google Calendar
+    # 2. Consultar citas ocupadas en Google Calendar (Hora local de España UTC+02:00)
     try:
         scopes = ['https://www.googleapis.com/auth/calendar']
         creds_json = os.environ.get('google_credentials')
@@ -115,8 +109,9 @@ def obtener_estado_horas(fecha):
 
         service = build('calendar', 'v3', credentials=creds)
 
-        time_min = f"{fecha}T00:00:00Z"
-        time_max = f"{fecha}T23:59:59Z"
+        # Ajuste exacto para la zona horaria de España
+        time_min = f"{fecha}T00:00:00+02:00"
+        time_max = f"{fecha}T23:59:59+02:00"
 
         events_result = service.events().list(
             calendarId=id_calendario,
@@ -132,14 +127,20 @@ def obtener_estado_horas(fecha):
         for evento in eventos:
             start = evento['start'].get('dateTime', evento['start'].get('date'))
             if 'T' in start:
+                # Extraer HH:MM de la hora de inicio
                 hora = start.split('T')[1][:5]
                 horas_ocupadas.append(hora)
-                horas_libres = [h for h in todas_las_horas if h not in horas_ocupadas]
-        return jsonify(horas_libres)
+
+        horas_libres = [h for h in todas_las_horas if h not in horas_ocupadas]
+
+        # Formato {'hora': 'HH:MM'} que requiere tu JS
+        resultado = [{'hora': h} for h in horas_libres]
+        return jsonify(resultado)
 
     except Exception as e:
         print(f"Error consultando Calendar: {e}")
-        return jsonify(todas_las_horas)
+        resultado_default = [{'hora': h} for h in todas_las_horas]
+        return jsonify(resultado_default)
 def recuperar():
     try:
         # CORRECCIÓN: Los campos del HTML empiezan por Mayúscula
