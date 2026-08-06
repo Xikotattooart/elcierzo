@@ -80,10 +80,11 @@ def index():
 
 @app.route('/obtener_estado_horas/<fecha>')
 @app.route('/obtener_estado_horas', methods=['GET'])
+@app.route('/obtener_estado_horas', methods=['GET'])
 def obtener_estado_horas():
     fecha = request.args.get('fecha')
     if not fecha:
-        return jsonify({'error': 'Falta la fecha'}), 400
+        return jsonify({'ocupadas': []})
 
     try:
         scopes = ['https://www.googleapis.com/auth/calendar']
@@ -97,7 +98,7 @@ def obtener_estado_horas():
 
         service = build('calendar', 'v3', credentials=creds)
 
-        # Consultar eventos directos de Google Calendar para la fecha seleccionada
+        # Rango completo del día seleccionado
         time_min = f"{fecha}T00:00:00Z"
         time_max = f"{fecha}T23:59:59Z"
 
@@ -105,7 +106,8 @@ def obtener_estado_horas():
             calendarId=id_calendario,
             timeMin=time_min,
             timeMax=time_max,
-            singleEvents=True
+            singleEvents=True,
+            orderBy='startTime'
         ).execute()
 
         eventos = events_result.get('items', [])
@@ -114,14 +116,15 @@ def obtener_estado_horas():
         for evento in eventos:
             start = evento['start'].get('dateTime', evento['start'].get('date'))
             if 'T' in start:
-                # Extrae la hora en formato HH:MM
+                # Extraer HH:MM
                 hora = start.split('T')[1][:5]
                 horas_ocupadas.append(hora)
 
         return jsonify({'ocupadas': horas_ocupadas})
 
     except Exception as e:
-        print(f"Error al consultar Google Calendar: {e}")
+        print(f"Error consultando horas en Calendar: {e}")
+        # En caso de error, devolvemos lista vacía para que no se bloquee el frontend
         return jsonify({'ocupadas': []})
 def recuperar():
     try:
