@@ -346,22 +346,34 @@ function abrirInstagram(usuario) {
         }
 
         async function cargarHoras() {
-            const fecha = document.getElementById('select-fecha').value;
-            const res = await fetch(`/obtener_estado_horas/${fecha}`);
-            const horas = await res.json();
-            const grid = document.getElementById('grid-horas');
-            grid.innerHTML = '';
-            horas.forEach(h => {
-                const btn = document.createElement('button');
-                btn.type = 'button'; btn.className = 'hora-btn'; btn.innerText = h.hora; btn.disabled = !h.libre;
-                btn.onclick = () => {
-                    document.querySelectorAll('.hora-btn').forEach(b => b.classList.remove('hora-seleccionada'));
-                    btn.classList.add('hora-seleccionada');
-                    document.getElementById('input-hora').value = h.hora;
-                };
-                grid.appendChild(btn);
-            });
+    const fecha = document.getElementById('select-fecha').value;
+    const res = await fetch(`/obtener_estado_horas/${fecha}`);
+    const horas = await res.json();
+    const grid = document.getElementById('grid-horas');
+    grid.innerHTML = '';
+    horas.forEach(h => {
+        const btn = document.createElement('button');
+        btn.type = 'button'; 
+        btn.className = 'hora-btn'; 
+        btn.innerText = h.hora;
+
+        if (h.libre) {
+            // Si la hora está LIBRE: funciona normal para reservar
+            btn.onclick = () => {
+                document.querySelectorAll('.hora-btn').forEach(b => b.classList.remove('hora-seleccionada'));
+                btn.classList.add('hora-seleccionada');
+                document.getElementById('input-hora').value = h.hora;
+            };
+        } else {
+            // Si la hora está OCUPADA: al hacer clic abre la ventanita de cancelar
+            btn.classList.add('hora-ocupada');
+            btn.onclick = () => {
+                abrirModalCancelar(fecha, h.hora);
+            };
         }
+        grid.appendChild(btn);
+    });
+}
 
         document.getElementById('reserva-form').onsubmit = async function(e) {
             e.preventDefault();
