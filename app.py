@@ -83,7 +83,7 @@ def obtener_estado_horas(fecha):
     if not fecha:
         return jsonify([])
 
-    # 1. Tu configuración original de días y horarios
+    # 1. Definir los horarios por día
     fecha_dt = datetime.strptime(fecha, '%Y-%m-%d')
     dia_semana = fecha_dt.weekday()
 
@@ -96,7 +96,7 @@ def obtener_estado_horas(fecha):
     else: # Domingos
         todas_las_horas = []
 
-    # 2. Consultar Google Calendar
+    # 2. Consultar Google Calendar para filtrar
     try:
         scopes = ['https://www.googleapis.com/auth/calendar']
         creds_json = os.environ.get('google_credentials')
@@ -129,13 +129,19 @@ def obtener_estado_horas(fecha):
                 hora = start.split('T')[1][:5]
                 horas_ocupadas.append(hora)
 
-        horas_libres = [h for h in todas_las_horas if h not in horas_ocupadas]
+        # 3. Formatear la respuesta con la propiedad 'libre' que exige tu index.html
+        resultado = []
+        for h in todas_las_horas:
+            resultado.append({
+                'hora': h,
+                'libre': h not in horas_ocupadas
+            })
 
-        return jsonify(horas_libres)
+        return jsonify(resultado)
 
     except Exception as e:
         print(f"Error consultando Calendar: {e}")
-        return jsonify(todas_las_horas)
+        return jsonify([{'hora': h, 'libre': True} for h in todas_las_horas])
 def recuperar():
     try:
         # CORRECCIÓN: Los campos del HTML empiezan por Mayúscula
