@@ -877,6 +877,50 @@ function abrirInstagram(usuario) {
                 setTimeout(() => p.remove(), 400);
             }
         }
+        let fechaCancelar = "", horaCancelar = "";
+
+function abrirModalCancelar(fecha, hora) {
+    fechaCancelar = fecha;
+    horaCancelar = hora;
+    document.getElementById('pin-cancelar').value = '';
+    document.getElementById('msg-error-modal').style.display = 'none';
+    document.getElementById('modal-cancelar').style.display = 'flex';
+}
+
+function cerrarModalCancelar() {
+    document.getElementById('modal-cancelar').style.display = 'none';
+}
+
+function confirmarCancelacion() {
+    const pin = document.getElementById('pin-cancelar').value;
+    fetch('/cancelar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha: fechaCancelar, hora: horaCancelar, pin: pin })
+    })
+    .then(res => res.json().then(data => ({ status: res.status, body: data })))
+    .then(res => {
+        if (res.status === 200) {
+            cerrarModalCancelar();
+            cargarHoras(fechaCancelar);
+        } else {
+            document.getElementById('msg-error-modal').innerText = res.body.message || "PIN incorrecto";
+            document.getElementById('msg-error-modal').style.display = 'block';
+        }
+    });
+}
     </script>
+    <div id="modal-cancelar" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:9999;">
+    <div style="background:#1a1a1a; border:2px solid #d4af37; padding:25px; border-radius:8px; max-width:400px; width:90%; text-align:center; position:relative; color:#fff;">
+        <span onclick="cerrarModalCancelar()" style="position:absolute; top:10px; right:15px; font-size:26px; color:#d4af37; cursor:pointer;">&times;</span>
+        <h3 style="color:#d4af37; text-transform:uppercase; margin-top:0;">¿Deseas eliminar esta cita?</h3>
+        <p style="font-size:0.95rem; color:#ccc;">Si esta cita es tuya y quieres cancelarla, ponte en contacto con el estudio.</p>
+        <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+        <p style="font-size:0.85rem; color:#d4af37; font-weight:bold;">Si eres el barbero, introduzca el código PIN:</p>
+        <input type="password" id="pin-cancelar" placeholder="Código PIN" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #d4af37; background:#111; color:#fff; text-align:center;">
+        <button onclick="confirmarCancelacion()" style="width:100%; padding:12px; background:#d4af37; color:#000; font-weight:bold; border:none; cursor:pointer;">ELIMINAR CITA</button>
+        <p id="msg-error-modal" style="color:#ff4d4d; margin-top:10px; display:none;"></p>
+    </div>
+</div>
 </body>
 </html>
