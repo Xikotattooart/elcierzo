@@ -83,7 +83,7 @@ def obtener_estado_horas(fecha):
     if not fecha:
         return jsonify([])
 
-    # 1. Horarios completos de El Cierzo por día de la semana
+    # 1. Definir TUS horas exactas según el día
     fecha_dt = datetime.strptime(fecha, '%Y-%m-%d')
     dia_semana = fecha_dt.weekday()
 
@@ -96,7 +96,7 @@ def obtener_estado_horas(fecha):
     else: # Domingos (Cerrado)
         todas_las_horas = []
 
-    # 2. Consultar citas ocupadas en Google Calendar (Hora local de España UTC+02:00)
+    # 2. Consultar Google Calendar
     try:
         scopes = ['https://www.googleapis.com/auth/calendar']
         creds_json = os.environ.get('google_credentials')
@@ -109,9 +109,8 @@ def obtener_estado_horas(fecha):
 
         service = build('calendar', 'v3', credentials=creds)
 
-        # Ajuste exacto para la zona horaria de España
-        time_min = f"{fecha}T00:00:00+02:00"
-        time_max = f"{fecha}T23:59:59+02:00"
+        time_min = f"{fecha}T00:00:00Z"
+        time_max = f"{fecha}T23:59:59Z"
 
         events_result = service.events().list(
             calendarId=id_calendario,
@@ -127,19 +126,18 @@ def obtener_estado_horas(fecha):
         for evento in eventos:
             start = evento['start'].get('dateTime', evento['start'].get('date'))
             if 'T' in start:
-                # Extraer HH:MM de la hora de inicio
                 hora = start.split('T')[1][:5]
                 horas_ocupadas.append(hora)
 
         horas_libres = [h for h in todas_las_horas if h not in horas_ocupadas]
 
-        # Formato {'hora': 'HH:MM'} que requiere tu JS
-        resultado = [{'hora': h} for h in horas_libres]
+        # Enviamos la hora y marcamos disponible: True para que el botón se pueda pulsar
+        resultado = [{'hora': h, 'disponible': True} for h in horas_libres]
         return jsonify(resultado)
 
     except Exception as e:
         print(f"Error consultando Calendar: {e}")
-        resultado_default = [{'hora': h} for h in todas_las_horas]
+        resultado_default = [{'hora': h, 'disponible': True} for h in todas_las_horas]
         return jsonify(resultado_default)
 def recuperar():
     try:
