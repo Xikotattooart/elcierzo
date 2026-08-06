@@ -15,6 +15,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ruta_credenciales = os.path.join(BASE_DIR, 'credenciales.json')
 ruta_db = os.path.join(BASE_DIR, 'reservas.db')
 
+pin_seguridad = "1234"  # Pon aquí los números que quieras usar como PIN
 token_telegram = "8592802702:AAFiF_W7YvJNl20z-5PWL0wsawNKVRvMgoI"
 chat_id = "899109232"
 id_calendario = "edgarfa46@gmail.com"
@@ -158,5 +159,57 @@ def recuperar():
         print(f"error reserva: {e}")
         return jsonify({"status": "error"}), 500
 
+@app.route('/cancelar', methods=['POST'])
+def cancelar_cita():
+    try:
+        datos = request.get_json()
+        fecha = datos.get('fecha')
+        hora = datos.get('hora')
+        pin_ingresado = datos.get('pin')
+
+        if pin_ingresado != pin_seguridad:
+            return jsonify({'status': 'error', 'message': 'PIN incorrecto'}), 400
+
+        # Eliminar de la base de datos local
+        conn = sqlite3.connect(ruta_db)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM citas WHERE fecha = ? AND hora = ?", (fecha, hora))
+        conn.commit()
+        conn.close()
+
+        # Eliminar de Google Calendar
+        try:
+            scopes = ['https://www.googleapis.com/auth/calendar']
+            creds_json = os.environ.get('google_credentials')
+            if creds_json:
+                creds_dict = json.loads(creds_json)
+                creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
+            else:
+                creds = service_account.Credentials.from_service_account_file(ruta_credenciales, scopes=scopes)
+            
+            service = build('calendar', 'v3', credentials=creds)
+            time_min = f"{fecha}T00:00:00Z"
+            time_max = f"{fecha}T23:59:59Z"
+            
+            events_result = service.events().list(
+                calendarId=id_calendario, timeMin=time_min, timeMax=time_max, singleEvents=True
+            ).execute()
+            
+            for evento in events_result.get('items', []):
+                start = evento['start'].get('dateTime', evento['start'].get('date'))
+                if 'T' in start and start.split('T')[1][:5] == hora:
+                    service.events().delete(calendarId=id_calendario, eventId=evento['id']).execute()
+                    break
+        except Exception as e:
+            print(f"Error borrando de Calendar: {e}")
+
+        # Notificar por Telegram
+        msg_cancelacion = f"❌ CITA CANCELADA:\n📅 Fecha: {fecha}\n⏰ Hora: {hora}"
+        requests.post(f"https://api.telegram.org/bot{token_telegram}/sendmessage", data={'chat_id': chat_id, 'text': msg_cancelacion})
+
+        return jsonify({'status': 'success', 'message': 'Cita eliminada correctamente'})
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': 'Error al procesar cancelación'}), 500
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
