@@ -15,7 +15,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ruta_credenciales = os.path.join(BASE_DIR, 'credenciales.json')
 ruta_db = os.path.join(BASE_DIR, 'reservas.db')
 
-pin_seguridad = "1234"  # Pon aquí los números que quieras usar como PIN
+pin_seguridad = "030299"  # Pon aquí los números que quieras usar como PIN
 token_telegram = "8592802702:AAFiF_W7YvJNl20z-5PWL0wsawNKVRvMgoI"
 chat_id = "899109232"
 id_calendario = "edgarfa46@gmail.com"
