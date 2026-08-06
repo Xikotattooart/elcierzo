@@ -83,13 +83,25 @@ def index():
 @app.route('/obtener_estado_horas', methods=['GET'])
 @app.route('/obtener_estado_horas/<fecha>', methods=['GET'])
 @app.route('/obtener_estado_horas/<fecha>', methods=['GET'])
+@app.route('/obtener_estado_horas/<fecha>', methods=['GET'])
 def obtener_estado_horas(fecha):
-    # Lista de todas las horas de trabajo del local
-    todas_las_horas = ['09:00', '10:00', '11:00', '12:00', '13:00', '16:00', '17:00', '18:00', '19:00', '20:00']
-    
     if not fecha:
-        return jsonify({'ocupadas': [], 'libres': todas_las_horas, 'horas': todas_las_horas})
+        return jsonify({'ocupadas': [], 'libres': [], 'horas': []})
 
+    # 1. Tu configuración de días y horarios
+    fecha_dt = datetime.strptime(fecha, '%Y-%m-%d')
+    dia_semana = fecha_dt.weekday()
+
+    if dia_semana == 0:   # Lunes
+        todas_las_horas = ['16:00', '17:00', '18:00', '19:00', '20:00']
+    elif dia_semana in [1, 2, 3, 4]: # Martes a Viernes
+        todas_las_horas = ['09:30', '10:30', '11:30', '12:30', '16:00', '17:00', '18:00', '19:00', '20:00']
+    elif dia_semana == 5: # Sábados
+        todas_las_horas = ['09:00', '10:00', '11:00', '12:00', '13:00']
+    else: # Domingos
+        todas_las_horas = []
+
+    # 2. Consultar Google Calendar en tiempo real
     try:
         scopes = ['https://www.googleapis.com/auth/calendar']
         creds_json = os.environ.get('google_credentials')
@@ -122,10 +134,8 @@ def obtener_estado_horas(fecha):
                 hora = start.split('T')[1][:5]
                 horas_ocupadas.append(hora)
 
-        # Filtrar las horas que no estén ocupadas en Google Calendar
         horas_libres = [h for h in todas_las_horas if h not in horas_ocupadas]
 
-        # Devolvemos todos los formatos posibles para asegurar compatibilidad con la web
         return jsonify({
             'ocupadas': horas_ocupadas,
             'libres': horas_libres,
