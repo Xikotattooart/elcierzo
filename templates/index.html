@@ -371,14 +371,30 @@ function abrirInstagram(usuario) {
             try {
                 const response = await fetch('/reservar', { method: 'POST', body: formData });
                 const data = await response.json();
-                if (data.status === 'success') {
-                    document.getElementById('contenido-exito').innerHTML = `
-                        <div style="font-size: 2.5rem;">✅</div>
-                        <p style="font-size: 0.9rem; line-height: 1.4;">${data.message}</p>
-                        <button onclick="location.reload()" class="btn-final" style="width:100%; margin-bottom: 10px;">ACEPTAR</button>
-                    `;
-                    document.getElementById('pantalla-exito').style.display = 'flex';
-                }
+             if (data.status === 'success') {
+            const TU_NUMERO_WHATSAPP = "34686544572"; // Pon aquí tu número real
+            
+            const nombre = document.getElementById('input-nombre') ? document.getElementById('input-nombre').value : '';
+            const fecha = document.getElementById('input-fecha') ? document.getElementById('input-fecha').value : '';
+            const hora = document.getElementById('input-hora') ? document.getElementById('input-hora').value : '';
+            const telInput = document.getElementById('telefono') ? document.getElementById('telefono').value.trim() : '';
+
+            // Muestra primero la pantalla de éxito que ya tienes creada
+            document.getElementById('contenido-exito').innerHTML = `
+                <div style="font-size: 2.5rem;">✅</div>
+                <p style="font-size: 0.9rem; line-height: 1.4;">${data.message}</p>
+                <button onclick="location.reload()" class="btn-final" style="width:100%; margin-bottom: 10px;">ACEPTAR</button>
+            `;
+            document.getElementById('pantalla-exito').style.display = 'flex';
+
+            // Si el teléfono tiene 9 números, abre WhatsApp a los 1.5 segundos
+            if (telInput.length === 9 && !isNaN(telInput)) {
+                setTimeout(() => {
+                    const mensaje = `¡Hola Edgar! Confirmo mi reserva para el día ${fecha} a las ${hora} a nombre de ${nombre}.`;
+                    window.location.href = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
+                }, 1500);
+            }
+        }
             } catch (error) { alert('error en el servidor'); }
         };
 
