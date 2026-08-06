@@ -79,27 +79,50 @@ def index():
     return render_template('index.html', barberia=barberia_servicios, dias=dias)
 
 @app.route('/obtener_estado_horas/<fecha>')
-def obtener_estado_horas(fecha):
-    # Averiguar el día de la semana (0 = Lunes, ..., 6 = Domingo)
-    dia_semana = datetime.strptime(fecha, '%Y-%m-%d').weekday()
-    
-    # Asignar horas según el día
-    if dia_semana in [0, 1, 2]: # Lunes, Martes, Miércoles
-        horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"]
-    elif dia_semana in [3, 4]: # Jueves y Viernes
-        horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30"]
-    elif dia_semana == 5: # Sábado
-        horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30"]
-    else: # Domingo (Cerrado)
-        horas_posibles = []
-    conn = sqlite3.connect(ruta_db)
-    cursor = conn.cursor()
-    cursor.execute("select hora from citas where fecha = ?", (fecha,))
-    ocupadas = [f[0] for f in cursor.fetchall()]
-    conn.close()
-    return jsonify([{"hora": h, "libre": h not in ocupadas} for h in horas_posibles])
+@app.route('/obtener_estado_horas', methods=['GET'])
+def obtener_estado_horas():
+    fecha = request.args.get('fecha')
+    if not fecha:
+        return jsonify({'error': 'Falta la fecha'}), 400
 
-@app.route('/reservar', methods=['POST'])
+    try:
+        scopes = ['https://www.googleapis.com/auth/calendar']
+        creds_json = os.environ.get('google_credentials')
+
+        if creds_json:
+            creds_dict = json.loads(creds_json)
+            creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        else:
+            creds = service_account.Credentials.from_service_account_file(ruta_credenciales, scopes=scopes)
+
+        service = build('calendar', 'v3', credentials=creds)
+
+        # Consultar eventos directos de Google Calendar para la fecha seleccionada
+        time_min = f"{fecha}T00:00:00Z"
+        time_max = f"{fecha}T23:59:59Z"
+
+        events_result = service.events().list(
+            calendarId=id_calendario,
+            timeMin=time_min,
+            timeMax=time_max,
+            singleEvents=True
+        ).execute()
+
+        eventos = events_result.get('items', [])
+
+        horas_ocupadas = []
+        for evento in eventos:
+            start = evento['start'].get('dateTime', evento['start'].get('date'))
+            if 'T' in start:
+                # Extrae la hora en formato HH:MM
+                hora = start.split('T')[1][:5]
+                horas_ocupadas.append(hora)
+
+        return jsonify({'ocupadas': horas_ocupadas})
+
+    except Exception as e:
+        print(f"Error al consultar Google Calendar: {e}")
+        return jsonify({'ocupadas': []})
 def recuperar():
     try:
         # CORRECCIÓN: Los campos del HTML empiezan por Mayúscula
