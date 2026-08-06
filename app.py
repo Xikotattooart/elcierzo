@@ -82,9 +82,13 @@ def index():
 @app.route('/obtener_estado_horas', methods=['GET'])
 @app.route('/obtener_estado_horas', methods=['GET'])
 @app.route('/obtener_estado_horas/<fecha>', methods=['GET'])
+@app.route('/obtener_estado_horas/<fecha>', methods=['GET'])
 def obtener_estado_horas(fecha):
+    # Lista de todas las horas de trabajo del local
+    todas_las_horas = ['09:00', '10:00', '11:00', '12:00', '13:00', '16:00', '17:00', '18:00', '19:00', '20:00']
+    
     if not fecha:
-        return jsonify({'ocupadas': []})
+        return jsonify({'ocupadas': [], 'libres': todas_las_horas, 'horas': todas_las_horas})
 
     try:
         scopes = ['https://www.googleapis.com/auth/calendar']
@@ -98,7 +102,6 @@ def obtener_estado_horas(fecha):
 
         service = build('calendar', 'v3', credentials=creds)
 
-        # Rango del día seleccionado
         time_min = f"{fecha}T00:00:00Z"
         time_max = f"{fecha}T23:59:59Z"
 
@@ -119,11 +122,19 @@ def obtener_estado_horas(fecha):
                 hora = start.split('T')[1][:5]
                 horas_ocupadas.append(hora)
 
-        return jsonify({'ocupadas': horas_ocupadas})
+        # Filtrar las horas que no estén ocupadas en Google Calendar
+        horas_libres = [h for h in todas_las_horas if h not in horas_ocupadas]
+
+        # Devolvemos todos los formatos posibles para asegurar compatibilidad con la web
+        return jsonify({
+            'ocupadas': horas_ocupadas,
+            'libres': horas_libres,
+            'horas': horas_libres
+        })
 
     except Exception as e:
         print(f"Error consultando horas en Calendar: {e}")
-        return jsonify({'ocupadas': []})
+        return jsonify({'ocupadas': [], 'libres': todas_las_horas, 'horas': todas_las_horas})
 def recuperar():
     try:
         # CORRECCIÓN: Los campos del HTML empiezan por Mayúscula
