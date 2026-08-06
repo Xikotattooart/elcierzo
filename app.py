@@ -83,17 +83,17 @@ def obtener_estado_horas(fecha):
     if not fecha:
         return jsonify([])
 
-    # 1. Definir TUS horas exactas según el día
+    # 1. Tu configuración original de días y horarios
     fecha_dt = datetime.strptime(fecha, '%Y-%m-%d')
     dia_semana = fecha_dt.weekday()
 
-    if dia_semana == 0:   # Lunes (Tarde)
+    if dia_semana == 0:   # Lunes
         todas_las_horas = ['16:00', '17:00', '18:00', '19:00', '20:00']
-    elif dia_semana in [1, 2, 3, 4]: # Martes a Viernes (Mañana y Tarde)
+    elif dia_semana in [1, 2, 3, 4]: # Martes a Viernes
         todas_las_horas = ['09:30', '10:30', '11:30', '12:30', '16:00', '17:00', '18:00', '19:00', '20:00']
-    elif dia_semana == 5: # Sábados (Mañana)
+    elif dia_semana == 5: # Sábados
         todas_las_horas = ['09:00', '10:00', '11:00', '12:00', '13:00']
-    else: # Domingos (Cerrado)
+    else: # Domingos
         todas_las_horas = []
 
     # 2. Consultar Google Calendar
@@ -131,14 +131,11 @@ def obtener_estado_horas(fecha):
 
         horas_libres = [h for h in todas_las_horas if h not in horas_ocupadas]
 
-        # Enviamos la hora y marcamos disponible: True para que el botón se pueda pulsar
-        resultado = [{'hora': h, 'disponible': True} for h in horas_libres]
-        return jsonify(resultado)
+        return jsonify(horas_libres)
 
     except Exception as e:
         print(f"Error consultando Calendar: {e}")
-        resultado_default = [{'hora': h, 'disponible': True} for h in todas_las_horas]
-        return jsonify(resultado_default)
+        return jsonify(todas_las_horas)
 def recuperar():
     try:
         # CORRECCIÓN: Los campos del HTML empiezan por Mayúscula
