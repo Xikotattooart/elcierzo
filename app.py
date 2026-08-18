@@ -81,23 +81,40 @@ def index():
 
 @app.route('/obtener_estado_horas/<fecha>')
 def obtener_estado_horas(fecha):
-    # Averiguar el día de la semana (0 = Lunes, ..., 6 = Domingo)
     dia_semana = datetime.strptime(fecha, '%Y-%m-%d').weekday()
-    
-    # Asignar horas según el día
-    if dia_semana in [0, 1, 2]: # Lunes, Martes, Miércoles
+    if dia_semana in [0, 1, 2]:
         horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"]
-    elif dia_semana in [3, 4]: # Jueves y Viernes
+    elif dia_semana in [3, 4]:
         horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30"]
-    elif dia_semana == 5: # Sábado
+    elif dia_semana == 5:
         horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30"]
-    else: # Domingo (Cerrado)
-        horas_posibles = []
-    conn = sqlite3.connect(ruta_db)
-    cursor = conn.cursor()
-    cursor.execute("select hora from citas where fecha = ?", (fecha,))
-    ocupadas = [f[0] for f in cursor.fetchall()]
-    conn.close()
+    else:
+        return jsonify([])
+
+    try:
+        scopes = ['https://www.googleapis.com/auth/calendar.readonly']
+        creds_json = os.environ.get('google_credentials')
+        if creds_json:
+            creds = service_account.Credentials.from_service_account_info(json.loads(creds_json), scopes=scopes)
+        else:
+            creds = service_account.Credentials.from_service_account_file(ruta_credenciales, scopes=scopes)
+        
+        service = build('calendar', 'v3', credentials=creds)
+        
+        time_min = f"{fecha}T00:00:00Z"
+        time_max = f"{fecha}T23:59:59Z"
+        events_result = service.events().list(calendarId=id_calendario, timeMin=time_min, timeMax=time_max, singleEvents=True).execute()
+        
+        ocupadas = []
+        for e in events_result.get('items', []):
+            start = e['start'].get('dateTime', e['start'].get('date'))
+            if 'T' in start:
+                hora_ocupada = start.split('T')[1][:5]
+                ocupadas.append(hora_ocupada)
+    except Exception as e:
+        print(f"Error consultando Calendar: {e}")
+        ocupadas = []
+
     return jsonify([{"hora": h, "libre": h not in ocupadas} for h in horas_posibles])
 
 @app.route('/reservar', methods=['POST'])
