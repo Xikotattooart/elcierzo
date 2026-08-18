@@ -62,9 +62,22 @@ init_db()
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo  # Para manejar zonas horarias exactas
 
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo  # Asegúrate de tener instalado el paquete si usas Python < 3.9
+
 @app.route('/')
 def index():
-    barberia_servicios = [...]
+    # Lista de servicios completa para que aparezcan en el desplegable
+    barberia_servicios = [
+        {'nombre': 'corte de pelo'}, 
+        {'nombre': 'corte de pelo + barba maquina'},
+        {'nombre': 'corte de pelo + barba navaja'},
+        {'nombre': 'arreglo de barba maquina'},
+        {'nombre': 'arreglo de barba navaja'},
+        {'nombre': 'corte de pelo + barba maquina + peinado'}
+        {'nombre': 'corte de pelo + barba navaja + peinado'}
+    ]
+    
     dias_es = {"Mon": "lun", "Tue": "mar", "Wed": "mié", "Thu": "jue", "Fri": "vie", "Sat": "sáb", "Sun": "dom"}
     dias = []
     
@@ -74,12 +87,14 @@ def index():
     
     for i in range(7):
         dia = hoy + timedelta(days=i)
+        # Filtramos para mostrar solo días hasta el sábado (0-5)
         if dia.weekday() < 6:
             nombre_dia_en = dia.strftime('%a')
             nombre_dia_es = dias_es.get(nombre_dia_en, nombre_dia_en)
             texto_dia = f"{dia.strftime('%d/%m')} ({nombre_dia_es})"
             dias.append({'valor': dia.strftime('%Y-%m-%d'), 'texto': texto_dia})
             
+    # Enviamos ambas variables (barberia y dias) al index.html
     return render_template('index.html', barberia=barberia_servicios, dias=dias)
 
 @app.route('/obtener_estado_horas/<fecha>')
