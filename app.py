@@ -82,13 +82,12 @@ def index():
 @app.route('/obtener_estado_horas/<fecha>')
 def obtener_estado_horas(fecha):
     dia_semana = datetime.strptime(fecha, '%Y-%m-%d').weekday()
-    if dia_semana in [0, 1, 2]:
-        horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"]
-    elif dia_semana in [3, 4]:
+    
+    # 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado
+    if dia_semana in [0, 1, 2, 3, 4, 5]:
         horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30"]
-    elif dia_semana == 5:
-        horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30"]
     else:
+        # Domingo (cerrado)
         return jsonify([])
 
     try:
