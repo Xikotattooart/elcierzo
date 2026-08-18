@@ -69,14 +69,20 @@ def index():
     ]
     dias_es = {"Mon": "lun", "Tue": "mar", "Wed": "mié", "Thu": "jue", "Fri": "vie", "Sat": "sáb", "Sun": "dom"}
     dias = []
+    
+    # IMPORTANTE: Aseguramos que 'hoy' sea el momento exacto de la petición
     hoy = datetime.now()
+    
     for i in range(7):
         dia = hoy + timedelta(days=i)
+        
+        # Filtramos para que no salgan domingos (si es tu día de cierre)
         if dia.weekday() < 6:
             nombre_dia_en = dia.strftime('%a')
             nombre_dia_es = dias_es.get(nombre_dia_en, nombre_dia_en)
             texto_dia = f"{dia.strftime('%d/%m')} ({nombre_dia_es})"
             dias.append({'valor': dia.strftime('%Y-%m-%d'), 'texto': texto_dia})
+            
     return render_template('index.html', barberia=barberia_servicios, dias=dias)
 
 @app.route('/obtener_estado_horas/<fecha>')
