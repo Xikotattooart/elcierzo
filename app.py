@@ -83,11 +83,10 @@ def index():
 def obtener_estado_horas(fecha):
     dia_semana = datetime.strptime(fecha, '%Y-%m-%d').weekday()
     
-    # 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado
+    # Horario uniforme de lunes a sábado
     if dia_semana in [0, 1, 2, 3, 4, 5]:
         horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30"]
     else:
-        # Domingo (cerrado)
         return jsonify([])
 
     try:
@@ -106,10 +105,20 @@ def obtener_estado_horas(fecha):
         
         ocupadas = []
         for e in events_result.get('items', []):
-            start = e['start'].get('dateTime', e['start'].get('date'))
-            if 'T' in start:
-                hora_ocupada = start.split('T')[1][:5]
-                ocupadas.append(hora_ocupada)
+            start_str = e['start'].get('dateTime', e['start'].get('date'))
+            end_str = e['end'].get('dateTime', e['end'].get('date'))
+            
+            if 'T' in start_str and 'T' in end_str:
+                # Extraer solo la parte de la hora (HH:MM)
+                start_time = datetime.strptime(start_str.split('T')[1][:5], '%H:%M')
+                end_time = datetime.strptime(end_str.split('T')[1][:5], '%H:%M')
+                
+                # Bloquear todas las horas dentro del rango del evento
+                for h in horas_posibles:
+                    hora_check = datetime.strptime(h, '%H:%M')
+                    if start_time <= hora_check < end_time:
+                        ocupadas.append(h)
+                        
     except Exception as e:
         print(f"Error consultando Calendar: {e}")
         ocupadas = []
