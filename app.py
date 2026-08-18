@@ -59,24 +59,21 @@ def init_db():
 
 init_db()
 
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo  # Para manejar zonas horarias exactas
+
 @app.route('/')
 def index():
-    barberia_servicios = [
-        {'nombre': 'corte de pelo'}, 
-        {'nombre': 'corte de pelo + barba'}, 
-        {'nombre': 'arreglo de barba'}, 
-        {'nombre': 'corte de pelo + barba + lavado y peinado'}
-    ]
+    barberia_servicios = [...]
     dias_es = {"Mon": "lun", "Tue": "mar", "Wed": "mié", "Thu": "jue", "Fri": "vie", "Sat": "sáb", "Sun": "dom"}
     dias = []
     
-    # IMPORTANTE: Aseguramos que 'hoy' sea el momento exacto de la petición
-    hoy = datetime.now()
+    # Obtenemos la hora actual estrictamente en la zona horaria de Madrid
+    zona_madrid = ZoneInfo("Europe/Madrid")
+    hoy = datetime.now(zona_madrid)
     
     for i in range(7):
         dia = hoy + timedelta(days=i)
-        
-        # Filtramos para que no salgan domingos (si es tu día de cierre)
         if dia.weekday() < 6:
             nombre_dia_en = dia.strftime('%a')
             nombre_dia_es = dias_es.get(nombre_dia_en, nombre_dia_en)
