@@ -62,19 +62,16 @@ init_db()
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo  # Para manejar zonas horarias exactas
 
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo  # Asegúrate de tener instalado el paquete si usas Python < 3.9
-
 @app.route('/')
 def index():
-    # Lista de servicios completa para que aparezcan en el desplegable
+    # Lista de servicios completa con la coma añadida al final de cada elemento
     barberia_servicios = [
         {'nombre': 'corte de pelo'}, 
         {'nombre': 'corte de pelo + barba maquina'},
         {'nombre': 'corte de pelo + barba navaja'},
         {'nombre': 'arreglo de barba maquina'},
         {'nombre': 'arreglo de barba navaja'},
-        {'nombre': 'corte de pelo + barba maquina + peinado'}
+        {'nombre': 'corte de pelo + barba maquina + peinado'}, # <-- Coma añadida aquí
         {'nombre': 'corte de pelo + barba navaja + peinado'}
     ]
     
