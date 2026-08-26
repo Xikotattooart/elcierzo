@@ -471,7 +471,7 @@ function abrirInstagram(usuario) {
                         const startDateTime = `${fechaClean}T${horaClean}`;
                         const endDateTime = `${fechaClean}T${horaFinClean}`;
                         
-                        gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Cita Barbería - El Cierzo')}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent('Cita reservada en El Cierzo Studio & Barber')}&location=${encodeURIComponent('Talayuelas')}`;
+                        gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Cita Barbería - El Cierzo')}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent('Cita reservada en El Cierzo Studio & Barber')}&location=${encodeURIComponent('Talayuelas')}&remindermins=30`;
                     }
 
                     document.getElementById('contenido-exito').innerHTML = `
