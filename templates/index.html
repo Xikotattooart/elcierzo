@@ -246,7 +246,7 @@
                     </select>
                     
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; margin-bottom: 2px;">
-                        <label style="margin-top: 0;">hora disponible <span id="contador-libres" style="color: #888; font-weight: normal; text-transform: none; font-size: 0.75rem;"></span></label>
+                        <label style="margin-top: 0;">horas disponibles <span id="contador-libres" style="color: #888; font-weight: normal; text-transform: none; font-size: 0.75rem;"></span></label>
                     </div>
 
                     <input type="hidden" name="hora" id="input-hora" required>
@@ -358,7 +358,6 @@ function abrirInstagram(usuario) {
         async function cargarHoras(fechaForzada = null) {
             const fecha = fechaForzada || document.getElementById('select-fecha').value;
             
-            // Si nos pasan una fecha forzada, actualizamos el selector visualmente
             if (fechaForzada) {
                 const selectFecha = document.getElementById('select-fecha');
                 if (selectFecha) selectFecha.value = fechaForzada;
@@ -367,11 +366,11 @@ function abrirInstagram(usuario) {
             const res = await fetch(`/obtener_estado_horas/${fecha}`);
             const horas = await res.json();
             
-            // Contamos cuántas horas libres hay y actualizamos el ID correcto
+            // Contamos cuántas horas libres hay y ponemos el texto exacto que pediste
             const libresCount = horas.filter(h => h.libre).length;
             const contadorEl = document.getElementById('contador-libres');
             if (contadorEl) {
-                contadorEl.innerText = `(${libresCount} libres)`;
+                contadorEl.innerText = `(${libresCount} servicios libres)`;
             }
 
             const grid = document.getElementById('grid-horas');
