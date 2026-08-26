@@ -448,21 +448,44 @@ function abrirInstagram(usuario) {
                     const nombre = document.querySelector('input[name="Nombre"]') ? document.querySelector('input[name="Nombre"]').value : '';
                     const fecha = document.getElementById('select-fecha') ? document.getElementById('select-fecha').value : '';
                     const hora = document.getElementById('input-hora') ? document.getElementById('input-hora').value : '';
-                    const telInput = document.querySelector('input[name="Telefono"]') ? document.querySelector('input[name="Telefono"]').value.trim() : '';
+
+                    // Enlace de WhatsApp
+                    const mensajeWhatsApp = `¡Hola Edgar! Confirmo mi reserva para el día ${fecha} a las ${hora} a nombre de ${nombre}.`;
+                    const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
+
+                    // Enlace para Google Calendar (calculando 30 min de duración por defecto)
+                    let gCalUrl = "#";
+                    if (fecha && hora) {
+                        const fechaClean = fecha.replace(/-/g, '');
+                        const horaClean = hora.replace(/:/g, '') + '00';
+                        
+                        let [h, m] = hora.split(':').map(Number);
+                        m += 30;
+                        if (m >= 60) { h += 1; m -= 60; }
+                        const horaFinClean = String(h).padStart(2, '0') + String(m).padStart(2, '0') + '00';
+                        
+                        const startDateTime = `${fechaClean}T${horaClean}`;
+                        const endDateTime = `${fechaClean}T${horaFinClean}`;
+                        
+                        gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Cita Barbería - El Cierzo')}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent('Cita reservada en El Cierzo Studio & Barber')}&location=${encodeURIComponent('Talayuelas')}`;
+                    }
 
                     document.getElementById('contenido-exito').innerHTML = `
-                        <div style="font-size: 2.5rem;">✅</div>
-                        <p style="font-size: 0.9rem; line-height: 1.4;">${data.message}</p>
-                        <button onclick="location.reload()" class="btn-final" style="width:100%; margin-bottom: 10px;">ACEPTAR</button>
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">✅</div>
+                        <p style="font-size: 0.9rem; line-height: 1.4; margin-bottom: 20px;">${data.message}</p>
+                        
+                        <a href="${urlWhatsApp}" target="_blank" style="display: block; background: #25d366; color: white; padding: 12px; border-radius: 12px; font-weight: bold; text-decoration: none; margin-bottom: 10px; font-size: 0.9rem;">
+                            💬 Enviar aviso por WhatsApp
+                        </a>
+
+                        ${fecha && hora ? `
+                        <a href="${gCalUrl}" target="_blank" style="display: block; background: #4285F4; color: white; padding: 12px; border-radius: 12px; font-weight: bold; text-decoration: none; margin-bottom: 15px; font-size: 0.9rem;">
+                            📅 Guardar en Google Calendar
+                        </a>` : ''}
+
+                        <button onclick="location.reload()" class="btn-final" style="width:100%; margin-top: 0;">FINALIZAR</button>
                     `;
                     document.getElementById('pantalla-exito').style.display = 'flex';
-
-                    if (telInput.length === 9 && !isNaN(telInput)) {
-                        setTimeout(() => {
-                            const mensaje = `¡Hola Edgar! Confirmo mi reserva para el día ${fecha} a las ${hora} a nombre de ${nombre}.`;
-                            window.location.href = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
-                        }, 1500);
-                    }
                 }
             } catch (error) { 
                 alert('error en el servidor'); 
