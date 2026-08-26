@@ -244,7 +244,12 @@
                     <select name="fecha_barberia" id="select-fecha" onchange="cargarHoras()">
                         {% for d in dias %}<option value="{{ d.valor }}">{{ d.texto }}</option>{% endfor %}
                     </select>
-                    <label>hora disponible</label>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; margin-bottom: 2px;">
+                        <label style="margin-top: 0;">hora disponible</label>
+                        <span id="contador-horas" style="color: #888; font-size: 0.75rem;"></span>
+                    </div>
+
                     <input type="hidden" name="hora" id="input-hora">
                     <div id="grid-horas" class="grid-horas"></div>
                 </div>
