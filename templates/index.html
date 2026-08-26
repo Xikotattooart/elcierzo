@@ -393,13 +393,27 @@ function abrirInstagram(usuario) {
 
         document.getElementById('reserva-form').onsubmit = async function(e) {
             e.preventDefault();
+            
+            const categoria = document.getElementById('input-categoria').value;
+            const horaSeleccionada = document.getElementById('input-hora').value;
+
+            // Si es barbería y no ha seleccionado hora, no le dejamos avanzar
+            if (categoria === 'barberia' && !horaSeleccionada) {
+                alert('Por favor, selecciona una hora disponible antes de confirmar.');
+                return;
+            }
+
             const btn = document.getElementById('btn-submit');
-            btn.innerText = 'PROCESANDO...'; btn.disabled = true;
+            btn.innerText = 'PROCESANDO...'; 
+            btn.disabled = true;
+            
             const formData = new FormData(this);
             try {
                 const response = await fetch('/reservar', { method: 'POST', body: formData });
                 const data = await response.json();
-             if (data.status === 'success') {
+                
+                if (data.status === 'success') {
+                    // ... el resto de tu código de éxito ...
             const TU_NUMERO_WHATSAPP = "34686544572"; // Pon aquí tu número real
             
             const nombre = document.getElementById('input-nombre') ? document.getElementById('input-nombre').value : '';
