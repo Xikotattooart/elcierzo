@@ -33,6 +33,28 @@
             padding: 20px 25px; 
             box-sizing: border-box; 
         }
+        #popup-aviso-cita {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10005;
+            justify-content: center;
+            align-items: center;
+        }
+        .tarjeta-popup-aviso {
+            border: 2px solid #d4af37;
+            background: #000;
+            padding: 25px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 320px;
+            text-align: center;
+            color: #fff;
+        }
         .logo { width: 85%; max-width: 320px; margin-top: 40px; margin-bottom: 30px; transition: 0.4s ease-in-out; }
         .logo-pequeno { width: 120px; margin-top: 20px; margin-bottom: 10px; }
         
@@ -405,26 +427,11 @@ function abrirInstagram(usuario) {
             const categoria = document.getElementById('input-categoria').value;
             const horaSeleccionada = document.getElementById('input-hora').value;
 
-            // Validación obligatoria de hora para barbería
+            // Validación obligatoria de hora para barbería con pop-up
             if (categoria === 'barberia' && !horaSeleccionada) {
-                let aviso = document.getElementById('aviso-error-hora');
-                if (!aviso) {
-                    aviso = document.createElement('div');
-                    aviso.id = 'aviso-error-hora';
-                    aviso.style.color = '#ff4d4d';
-                    aviso.style.fontWeight = 'bold';
-                    aviso.style.fontSize = '0.85rem';
-                    aviso.style.textAlign = 'center';
-                    aviso.style.marginTop = '10px';
-                    document.getElementById('reserva-form').insertBefore(aviso, document.getElementById('btn-submit'));
-                }
-                aviso.innerText = 'Selecciona una cita antes de confirmarla.';
+                document.getElementById('popup-aviso-cita').style.display = 'flex';
                 return;
             }
-
-            // Si ya seleccionó hora, borramos el aviso rojo si existía
-            const avisoExistente = document.getElementById('aviso-error-hora');
-            if (avisoExistente) avisoExistente.remove();
 
             const btn = document.getElementById('btn-submit');
             btn.innerText = 'PROCESANDO...'; 
@@ -975,6 +982,12 @@ function confirmarCancelacion() {
         }
     });
 }
+            function cerrarPopupAviso() {
+            document.getElementById('popup-aviso-cita').style.display = 'none';
+            const btn = document.getElementById('btn-submit');
+            btn.innerText = 'confirmar reserva';
+            btn.disabled = false;
+        }
     </script>
     <div id="modal-cancelar" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:9999;">
     <div style="background:#1a1a1a; border:2px solid #d4af37; padding:25px; border-radius:8px; max-width:400px; width:90%; text-align:center; position:relative; color:#fff;">
@@ -988,5 +1001,11 @@ function confirmarCancelacion() {
         <p id="msg-error-modal" style="color:#ff4d4d; margin-top:10px; display:none;"></p>
     </div>
 </div>
+    <div id="popup-aviso-cita">
+        <div class="tarjeta-popup-aviso">
+            <p style="font-size: 1rem; color: #fff; margin-bottom: 20px; line-height: 1.4;">Selecciona una cita antes de confirmar</p>
+            <button type="button" onclick="cerrarPopupAviso()" class="btn-final" style="margin-top: 0;">OK</button>
+        </div>
+    </div>
 </body>
 </html>
