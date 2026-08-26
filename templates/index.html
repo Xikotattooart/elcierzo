@@ -360,6 +360,11 @@ function abrirInstagram(usuario) {
     const fecha = document.getElementById('select-fecha').value;
     const res = await fetch(`/obtener_estado_horas/${fecha}`);
     const horas = await res.json();
+    
+    // Contamos cuántas horas libres hay
+    const libresCount = horas.filter(h => h.libre).length;
+    document.getElementById('contador-libres').innerText = `(${libresCount} libres)`;
+
     const grid = document.getElementById('grid-horas');
     grid.innerHTML = '';
     horas.forEach(h => {
