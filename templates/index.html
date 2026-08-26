@@ -246,7 +246,9 @@
                     </select>
                     
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; margin-bottom: 2px;">
-                        <label style="margin-top: 0;">horas disponibles <span id="contador-libres" style="color: #888; font-weight: normal; text-transform: none; font-size: 0.75rem;"></span></label>
+                        <span style="visibility: hidden; font-size: 0.75rem;">placeholder</span>
+                        <label style="margin-top: 0; text-align: center;">horas disponibles</label>
+                        <span id="contador-libres" style="color: #ff4d4d; font-weight: normal; text-transform: none; font-size: 0.75rem;"></span>
                     </div>
 
                     <input type="hidden" name="hora" id="input-hora" required>
@@ -372,7 +374,6 @@ function abrirInstagram(usuario) {
             if (contadorEl) {
                 contadorEl.innerText = `(${libresCount} servicios libres)`;
             }
-
             const grid = document.getElementById('grid-horas');
             grid.innerHTML = '';
             
