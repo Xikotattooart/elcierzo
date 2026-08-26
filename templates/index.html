@@ -454,7 +454,7 @@ function abrirInstagram(usuario) {
                     const partesFecha = fecha.split('-');
                     const fechaBonita = partesFecha.length === 3 ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}` : fecha;
 
-                    const mensajeWhatsApp = `¡Hola Edgar! Confirmo mi reserva para el día ${fechaBonita} a las ${hora} a nombre de ${nombre}.`;
+                    const mensajeWhatsApp = `¡Hola Edgar! Confirmo mi reserva para el día ${fechaBonita} a las ${hora} a nombre de ${nombre}. (Si necesito cancelarla o cambiarla, te aviso por aquí).`;
                     const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
 
                     // Enlace para Google Calendar (calculando 30 min de duración por defecto)
