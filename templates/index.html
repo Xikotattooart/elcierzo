@@ -405,11 +405,26 @@ function abrirInstagram(usuario) {
             const categoria = document.getElementById('input-categoria').value;
             const horaSeleccionada = document.getElementById('input-hora').value;
 
-            // Si es barbería y no ha seleccionado hora, no le dejamos avanzar
+            // Si es barbería y no ha seleccionado hora, mostramos el aviso en rojo y negrita
             if (categoria === 'barberia' && !horaSeleccionada) {
-                alert('Por favor, selecciona una hora disponible antes de confirmar.');
+                let aviso = document.getElementById('aviso-error-hora');
+                if (!aviso) {
+                    aviso = document.createElement('div');
+                    aviso.id = 'aviso-error-hora';
+                    aviso.style.color = '#ff4d4d';
+                    aviso.style.fontWeight = 'bold';
+                    aviso.style.fontSize = '0.85rem';
+                    aviso.style.textAlign = 'center';
+                    aviso.style.marginTop = '10px';
+                    document.getElementById('reserva-form').insertBefore(aviso, document.getElementById('btn-submit'));
+                }
+                aviso.innerText = 'Selecciona una hora disponible antes de confirmar.';
                 return;
             }
+
+            // Si ya hay un aviso de error anterior y ahora sí elige hora, lo borramos
+            const avisoExistente = document.getElementById('aviso-error-hora');
+            if (avisoExistente) avisoExistente.remove();
 
             const btn = document.getElementById('btn-submit');
             btn.innerText = 'PROCESANDO...'; 
@@ -421,30 +436,29 @@ function abrirInstagram(usuario) {
                 const data = await response.json();
                 
                 if (data.status === 'success') {
-                    // ... el resto de tu código de éxito ...
-            const TU_NUMERO_WHATSAPP = "34686544572"; // Pon aquí tu número real
-            
-            const nombre = document.getElementById('input-nombre') ? document.getElementById('input-nombre').value : '';
-            const fecha = document.getElementById('input-fecha') ? document.getElementById('input-fecha').value : '';
-            const hora = document.getElementById('input-hora') ? document.getElementById('input-hora').value : '';
-            const telInput = document.getElementById('telefono') ? document.getElementById('telefono').value.trim() : '';
+                    const TU_NUMERO_WHATSAPP = "34686544572"; 
+                    
+                    const nombre = document.querySelector('input[name="Nombre"]') ? document.querySelector('input[name="Nombre"]').value : '';
+                    const fecha = document.getElementById('select-fecha') ? document.getElementById('select-fecha').value : '';
+                    const hora = document.getElementById('input-hora') ? document.getElementById('input-hora').value : '';
+                    const telInput = document.querySelector('input[name="Telefono"]') ? document.querySelector('input[name="Telefono"]').value.trim() : '';
 
-            // Muestra primero la pantalla de éxito que ya tienes creada
-            document.getElementById('contenido-exito').innerHTML = `
-                <div style="font-size: 2.5rem;">✅</div>
-                <p style="font-size: 0.9rem; line-height: 1.4;">${data.message}</p>
-                <button onclick="location.reload()" class="btn-final" style="width:100%; margin-bottom: 10px;">ACEPTAR</button>
-            `;
-            document.getElementById('pantalla-exito').style.display = 'flex';
+                    document.getElementById('contenido-exito').innerHTML = `
+                        <div style="font-size: 2.5rem;">✅</div>
+                        <p style="font-size: 0.9rem; line-height: 1.4;">${data.message}</p>
+                        <button onclick="location.reload()" class="btn-final" style="width:100%; margin-bottom: 10px;">ACEPTAR</button>
+                    `;
+                    document.getElementById('pantalla-exito').style.display = 'flex';
 
-            // Si el teléfono tiene 9 números, abre WhatsApp a los 1.5 segundos
-            if (telInput.length === 9 && !isNaN(telInput)) {
-                setTimeout(() => {
-                    const mensaje = `¡Hola Edgar! Confirmo mi reserva para el día ${fecha} a las ${hora} a nombre de ${nombre}.`;
-                    window.location.href = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
-                }, 1500);
-            }
-        }
+                    if (telInput.length === 9 && !isNaN(telInput)) {
+                        setTimeout(() => {
+                            const mensaje = `¡Hola Edgar! Confirmo mi reserva para el día ${fecha} a las ${hora} a nombre de ${nombre}.`;
+                            window.location.href = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
+                        }, 1500);
+                    }
+                }
+            } catch (error) { alert('error en el servidor'); }
+        };
             } catch (error) { alert('error en el servidor'); }
         };
 
