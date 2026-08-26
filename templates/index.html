@@ -405,26 +405,11 @@ function abrirInstagram(usuario) {
             const categoria = document.getElementById('input-categoria').value;
             const horaSeleccionada = document.getElementById('input-hora').value;
 
-            // Si es barbería y no ha seleccionado hora, mostramos el aviso en rojo y negrita
+            // Si es barbería y no ha seleccionado hora, no le dejamos avanzar
             if (categoria === 'barberia' && !horaSeleccionada) {
-                let aviso = document.getElementById('aviso-error-hora');
-                if (!aviso) {
-                    aviso = document.createElement('div');
-                    aviso.id = 'aviso-error-hora';
-                    aviso.style.color = '#ff4d4d';
-                    aviso.style.fontWeight = 'bold';
-                    aviso.style.fontSize = '0.85rem';
-                    aviso.style.textAlign = 'center';
-                    aviso.style.marginTop = '10px';
-                    document.getElementById('reserva-form').insertBefore(aviso, document.getElementById('btn-submit'));
-                }
-                aviso.innerText = 'Selecciona una hora disponible antes de confirmar.';
+                alert('Por favor, selecciona una hora disponible antes de confirmar.');
                 return;
             }
-
-            // Si ya hay un aviso de error anterior y ahora sí elige hora, lo borramos
-            const avisoExistente = document.getElementById('aviso-error-hora');
-            if (avisoExistente) avisoExistente.remove();
 
             const btn = document.getElementById('btn-submit');
             btn.innerText = 'PROCESANDO...'; 
@@ -457,6 +442,12 @@ function abrirInstagram(usuario) {
                         }, 1500);
                     }
                 }
+            } catch (error) { 
+                alert('error en el servidor'); 
+                btn.innerText = 'CONFIRMAR RESERVA';
+                btn.disabled = false;
+            }
+        };
             } catch (error) { alert('error en el servidor'); }
         };
             } catch (error) { alert('error en el servidor'); }
