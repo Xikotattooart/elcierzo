@@ -221,7 +221,12 @@
 <body>
     <div class="capa-oscura">
         <img src="{{ url_for('static', filename='LOGO.png') }}" class="logo" id="main-logo">
-        <!-- MAPA INTERACTIVO DE UBICACIÓN -->
+<div id="menu-servicios" class="contenedor-botones">
+            <button class="btn-servicio" onclick="mostrarForm('barberia')">reservar barbería 💈</button>
+            <button class="btn-servicio" onclick="mostrarForm('tatuaje')">reservar tatuaje 💉</button>
+            <button class="btn-servicio" onclick="mostrarRedes()">redes sociales 📱</button>
+
+            <!-- PEGA EL MAPA AQUÍ -->
             <div style="width: 100%; margin-top: 25px; background: rgba(15, 15, 15, 0.85); border: 2px solid #d4af37; border-radius: 18px; padding: 15px; box-sizing: border-box; box-shadow: 0 4px 15px rgba(0,0,0,0.6); text-align: center;">
                 <a href="https://www.google.com/maps/search/?api=1&query=Paseo+del+Prado,+30,+16320+Talayuelas,+Cuenca" 
                    target="_blank" 
@@ -245,6 +250,8 @@
                     </span>
                 </a>
             </div>
+
+        </div>
         <div id="menu-redes" class="contenedor-botones" style="display: none;">
     <h2 style="color:#d4af37; text-align:center; font-size: 1.2rem; margin-bottom: 20px; text-transform: uppercase;">nuestras redes</h2>
     
