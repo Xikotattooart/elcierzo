@@ -264,14 +264,10 @@
 
         <div id="formulario-cita">
             <h2 id="titulo-dinamico" style="color:#d4af37; text-align:center; font-size: 1.2rem; margin-bottom: 20px;"></h2>
-            <form id="reserva-form">
+           <form id="reserva-form">
                 <input type="hidden" name="categoria" id="input-categoria">
-                <div class="fila-doble">
-                    <input type="text" name="Nombre" placeholder="Nombre" required>
-                    <input type="text" name="Apellidos" placeholder="Apellidos" required>
-                </div>
-                <input type="tel" name="Telefono" placeholder="Teléfono" required>
                 
+                <!-- FORMULARIO DE TATUAJE LIMPIO -->
                 <div id="campos-tatuaje" style="display:none;">
                     <div class="fila-doble">
                         <input type="text" id="tattoo-nombre" name="Nombre" placeholder="Nombre" required>
@@ -293,7 +289,14 @@
                     <button type="button" onclick="enviarIdeaTatuadorWhatsApp()" class="btn-final" style="background: #d4af37; color: #000; margin-top: 15px;">Enviar idea al tatuador 📲</button>
                 </div>
 
+                <!-- CAMPOS PARA BARBERÍA -->
                 <div id="campos-barberia" style="display:none;">
+                    <div class="fila-doble">
+                        <input type="text" name="Nombre" placeholder="Nombre" required>
+                        <input type="text" name="Apellidos" placeholder="Apellidos" required>
+                    </div>
+                    <input type="tel" name="Telefono" placeholder="Teléfono" required>
+
                     <label>servicio</label>
                     <select name="servicio_barberia">
                         {% for s in barberia %}<option value="{{ s.nombre }}">{{ s.nombre }}</option>{% endfor %}
@@ -311,9 +314,10 @@
 
                     <input type="hidden" name="hora" id="input-hora" required>
                     <div id="grid-horas" class="grid-horas"></div>
+                    
+                    <button type="submit" class="btn-final" id="btn-submit">confirmar reserva</button>
                 </div>
 
-                <button type="submit" class="btn-final" id="btn-submit">confirmar reserva</button>
                 <button type="button" onclick="location.reload()" style="background:none; border:none; color:white; width:100%; margin-top:10px; opacity:0.6; font-size: 0.8rem;">← volver atrás</button>
             </form>
         </div>
