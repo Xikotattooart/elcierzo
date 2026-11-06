@@ -6,16 +6,17 @@ from flask import Flask, render_template, request, jsonify
 from datetime import datetime, timedelta
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from zoneinfo import ZoneInfo
 
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN DE RUTAS DINÁMICAS ---
-# Esto detecta automáticamente la carpeta: C:\Users\edgar\Desktop\BARBERIA EL CIERZO\mi_agenda_reservas
+# Esto detecta automáticamente la carpeta local o del entorno
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ruta_credenciales = os.path.join(BASE_DIR, 'credenciales.json')
 ruta_db = os.path.join(BASE_DIR, 'reservas.db')
 
-pin_seguridad = "030299"  # Pon aquí los números que quieras usar como PIN
+pin_seguridad = "030299"  # PIN de seguridad
 token_telegram = "8592802702:AAFiF_W7YvJNl20z-5PWL0wsawNKVRvMgoI"
 chat_id = "899109232"
 id_calendario = "edgarfa46@gmail.com"
@@ -35,9 +36,11 @@ def agregar_a_calendar(reserva):
         inicio = f"{reserva['fecha']}T{reserva['hora']}:00"
         fin_dt = datetime.strptime(inicio, "%Y-%m-%dT%H:%M:%S") + timedelta(minutes=30) 
         
+        # Se añade la ubicación exacta en Paseo del Prado, 30, Talayuelas, Cuenca
         evento = {
             'summary': f"{reserva['categoria'].lower()}: {reserva['nombre']}",
             'description': f"tel: {reserva['telefono']}\nservicio: {reserva['servicio']}",
+            'location': 'Paseo del Prado, 30, 16320 Talayuelas, Cuenca',
             'start': {'dateTime': inicio, 'timeZone': 'Europe/Madrid'},
             'end': {'dateTime': fin_dt.isoformat(), 'timeZone': 'Europe/Madrid'},
         }
@@ -52,53 +55,45 @@ def init_db():
     conn = sqlite3.connect(ruta_db)
     cursor = conn.cursor()
     cursor.execute('''create table if not exists citas 
-                     (id integer primary key, nombre text, telefono text, 
-                      categoria text, servicio text, fecha text, hora text)''')
+                   (id integer primary key, nombre text, telefono text, 
+                   categoria text, servicio text, fecha text, hora text)''')
     conn.commit()
     conn.close()
 
 init_db()
 
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo  # Para manejar zonas horarias exactas
-
 @app.route('/')
 def index():
-    # Lista de servicios completa con la coma añadida al final de cada elemento
     barberia_servicios = [
         {'nombre': 'corte de pelo'}, 
         {'nombre': 'corte de pelo + barba maquina'},
         {'nombre': 'corte de pelo + barba navaja'},
         {'nombre': 'arreglo de barba maquina'},
         {'nombre': 'arreglo de barba navaja'},
-        {'nombre': 'corte de pelo + barba maquina + peinado'}, # <-- Coma añadida aquí
+        {'nombre': 'corte de pelo + barba maquina + peinado'},
         {'nombre': 'corte de pelo + barba navaja + peinado'}
     ]
     
     dias_es = {"Mon": "lun", "Tue": "mar", "Wed": "mié", "Thu": "jue", "Fri": "vie", "Sat": "sáb", "Sun": "dom"}
     dias = []
     
-    # Obtenemos la hora actual estrictamente en la zona horaria de Madrid
     zona_madrid = ZoneInfo("Europe/Madrid")
     hoy = datetime.now(zona_madrid)
     
     for i in range(7):
         dia = hoy + timedelta(days=i)
-        # Filtramos para mostrar solo días hasta el sábado (0-5)
         if dia.weekday() < 6:
             nombre_dia_en = dia.strftime('%a')
             nombre_dia_es = dias_es.get(nombre_dia_en, nombre_dia_en)
             texto_dia = f"{dia.strftime('%d/%m')} ({nombre_dia_es})"
             dias.append({'valor': dia.strftime('%Y-%m-%d'), 'texto': texto_dia})
             
-    # Enviamos ambas variables (barberia y dias) al index.html
     return render_template('index.html', barberia=barberia_servicios, dias=dias)
 
 @app.route('/obtener_estado_horas/<fecha>')
 def obtener_estado_horas(fecha):
     dia_semana = datetime.strptime(fecha, '%Y-%m-%d').weekday()
     
-    # Horario uniforme de lunes a sábado
     if dia_semana in [0, 1, 2, 3, 4, 5]:
         horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30"]
     else:
@@ -124,11 +119,9 @@ def obtener_estado_horas(fecha):
             end_str = e['end'].get('dateTime', e['end'].get('date'))
             
             if 'T' in start_str and 'T' in end_str:
-                # Extraer solo la parte de la hora (HH:MM)
                 start_time = datetime.strptime(start_str.split('T')[1][:5], '%H:%M')
                 end_time = datetime.strptime(end_str.split('T')[1][:5], '%H:%M')
                 
-                # Bloquear todas las horas dentro del rango del evento
                 for h in horas_posibles:
                     hora_check = datetime.strptime(h, '%H:%M')
                     if start_time <= hora_check < end_time:
@@ -143,7 +136,6 @@ def obtener_estado_horas(fecha):
 @app.route('/reservar', methods=['POST'])
 def recuperar():
     try:
-        # CORRECCIÓN: Los campos del HTML empiezan por Mayúscula
         nombre_cliente = request.form.get('Nombre') 
         apellidos_cliente = request.form.get('Apellidos')
         nombre_completo = f"{nombre_cliente} {apellidos_cliente}"
@@ -160,13 +152,13 @@ def recuperar():
             fecha_raw = request.form.get('fecha_barberia')
             hora = request.form.get('hora') or "10:00"
             encabezado_tele = "💈 cita barbería"
-            mensaje_web = f"{titulo_cita_dorado}<br><br>Gracias {nombre_dorado}. le esperamos en la barbería. para cualquier cambio, al whatsapp o llame al teléfono."
+            mensaje_web = f"{titulo_cita_dorado}<br><br>Gracias {nombre_dorado}. Le esperamos en la barbería. Para cualquier cambio, al WhatsApp o llame al teléfono."
         else:
             servicio = "tatuaje"
             fecha_raw = request.form.get('fecha_tatuaje')
             hora = "a convenir"
             encabezado_tele = "💉 nueva solicitud tatuaje"
-            mensaje_web = f"{titulo_solicitud_dorado}<br><br>¡mensaje recibido! Gracias {nombre_dorado}, en 24h tendrá respuesta. para cualquier duda contacte por whatsapp o llame al teléfono."
+            mensaje_web = f"{titulo_solicitud_dorado}<br><br>¡Mensaje recibido! Gracias {nombre_dorado}, en 24h tendrá respuesta. Para cualquier duda contacte por WhatsApp o llame al teléfono."
 
         fecha_mostrar = fecha_raw
         try:
@@ -210,14 +202,12 @@ def cancelar_cita():
         if pin_ingresado != pin_seguridad:
             return jsonify({'status': 'error', 'message': 'PIN incorrecto'}), 400
 
-        # Eliminar de la base de datos local
         conn = sqlite3.connect(ruta_db)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM citas WHERE fecha = ? AND hora = ?", (fecha, hora))
         conn.commit()
         conn.close()
 
-        # Eliminar de Google Calendar
         try:
             scopes = ['https://www.googleapis.com/auth/calendar']
             creds_json = os.environ.get('google_credentials')
@@ -243,7 +233,6 @@ def cancelar_cita():
         except Exception as e:
             print(f"Error borrando de Calendar: {e}")
 
-        # Notificar por Telegram
         msg_cancelacion = f"❌ CITA CANCELADA:\n📅 Fecha: {fecha}\n⏰ Hora: {hora}"
         requests.post(f"https://api.telegram.org/bot{token_telegram}/sendmessage", data={'chat_id': chat_id, 'text': msg_cancelacion})
 
@@ -251,5 +240,6 @@ def cancelar_cita():
 
     except Exception as e:
         return jsonify({'status': 'error', 'message': 'Error al procesar cancelación'}), 500
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)--
