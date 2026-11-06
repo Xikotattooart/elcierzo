@@ -277,15 +277,20 @@
                         <input type="text" id="tattoo-nombre" name="Nombre" placeholder="Nombre" required>
                         <input type="text" id="tattoo-apellidos" name="Apellidos" placeholder="Apellidos" required>
                     </div>
-                    <input type="tel" id="tattoo-telefono" name="Telefono" placeholder="Teléfono (Opcional)">
                     
                     <label>¿Qué fecha tienes pensada?</label>
                     <input type="text" id="tattoo-fecha" name="fecha_tatuaje" placeholder="Ej: Próximo lunes...">
                     
-                    <label>Cuéntanos tu idea</label>
-                    <textarea id="tattoo-idea" name="descripcion" placeholder="Estilo, tamaño, zona del cuerpo..." rows="3"></textarea>
+                    <label>Zona a tatuar</label>
+                    <input type="text" id="tattoo-zona" placeholder="Ej: Espalda, bíceps, gemelo...">
                     
-                    <button type="button" onclick="enviarIdeaTatuadorWhatsApp()" class="btn-final" style="background: #25d366; color: white; margin-top: 15px;">Enviar idea al tatuador 📲</button>
+                    <label>Tamaño aproximado</label>
+                    <input type="text" id="tattoo-tamano" placeholder="Ej: 3, 6, 8 cm...">
+                    
+                    <label>Cuéntanos tu idea</label>
+                    <textarea id="tattoo-idea" name="descripcion" placeholder="Estilo, detalles..." rows="3"></textarea>
+                    
+                    <button type="button" onclick="enviarIdeaTatuadorWhatsApp()" class="btn-final" style="background: #d4af37; color: #000; margin-top: 15px;">Enviar idea al tatuador 📲</button>
                 </div>
 
                 <div id="campos-barberia" style="display:none;">
@@ -1049,8 +1054,9 @@ function confirmarCancelacion() {
         function enviarIdeaTatuadorWhatsApp() {
     const nombre = document.getElementById('tattoo-nombre').value;
     const apellidos = document.getElementById('tattoo-apellidos').value;
-    const telefono = document.getElementById('tattoo-telefono').value || 'No indicado';
     const fecha = document.getElementById('tattoo-fecha').value || 'Sin especificar';
+    const zona = document.getElementById('tattoo-zona').value || 'Sin especificar';
+    const tamano = document.getElementById('tattoo-tamano').value || 'Sin especificar';
     const idea = document.getElementById('tattoo-idea').value;
     
     if (!nombre || !apellidos || !idea) {
@@ -1062,8 +1068,9 @@ function confirmarCancelacion() {
     
     const mensajeWhatsApp = `¡Hola Edgar! Me gustaría proponer una idea para un tatuaje:\n\n` +
                           `👤 *Nombre:* ${nombre} ${apellidos}\n` +
-                          `📞 *Teléfono:* ${telefono}\n` +
                           `📅 *Fecha aprox:* ${fecha}\n` +
+                          `📍 *Zona:* ${zona}\n` +
+                          `📏 *Tamaño:* ${tamano}\n` +
                           `✍️ *Idea:* ${idea}`;
                           
     const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
