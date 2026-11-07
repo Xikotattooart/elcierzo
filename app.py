@@ -136,11 +136,11 @@ def obtener_estado_horas(fecha):
 @app.route('/reservar', methods=['POST'])
 def recuperar():
     try:
-        nombre_cliente = request.form.get('Nombre') 
-        apellidos_cliente = request.form.get('Apellidos')
-        nombre_completo = f"{nombre_cliente} {apellidos_cliente}"
+        nombre_cliente = request.form.get('Nombre') or 'Cliente'
+        apellidos_cliente = request.form.get('Apellidos') or ''
+        nombre_completo = f"{nombre_cliente} {apellidos_cliente}".strip()
         categoria = request.form.get('categoria')
-        telefono = request.form.get('Telefono')
+        telefono = request.form.get('Telefono', 'No indicado')
         descripcion = request.form.get('descripcion', 'sin descripción')
         
         nombre_dorado = f"<span style='color:#d4af37; font-weight:bold;'>{nombre_cliente}</span>"
@@ -148,14 +148,14 @@ def recuperar():
         titulo_solicitud_dorado = f"<span style='color:#d4af37; font-weight:bold; text-transform:uppercase; font-size:1.4rem;'>¡solicitud de cita enviada!</span>"
 
         if categoria == 'barberia':
-            servicio = request.form.get('servicio_barberia')
+            servicio = request.form.get('servicio_barberia') or 'Corte de pelo'
             fecha_raw = request.form.get('fecha_barberia')
             hora = request.form.get('hora') or "10:00"
             encabezado_tele = "💈 cita barbería"
             mensaje_web = f"{titulo_cita_dorado}<br><br>Gracias {nombre_dorado}. Le esperamos en la barbería. Para cualquier cambio, al WhatsApp o llame al teléfono."
         else:
             servicio = "tatuaje"
-            fecha_raw = request.form.get('fecha_tatuaje')
+            fecha_raw = request.form.get('fecha_tatuaje') or datetime.now().strftime('%Y-%m-%d')
             hora = "a convenir"
             encabezado_tele = "💉 nueva solicitud tatuaje"
             mensaje_web = f"{titulo_solicitud_dorado}<br><br>¡Mensaje recibido! Gracias {nombre_dorado}, en 24h tendrá respuesta. Para cualquier duda contacte por WhatsApp o llame al teléfono."
@@ -181,15 +181,19 @@ def recuperar():
         if categoria == 'tatuaje':
             msg_tele += f"\n📝 idea: {descripcion}"
             
-        requests.post(f"https://api.telegram.org/bot{token_telegram}/sendmessage", data={'chat_id': chat_id, 'text': msg_tele})
+        try:
+            requests.post(f"https://api.telegram.org/bot{token_telegram}/sendmessage", data={'chat_id': chat_id, 'text': msg_tele})
+        except Exception as telegram_err:
+            print(f"Error enviando Telegram: {telegram_err}")
         
-        if categoria == 'barberia' and "-" in datos['fecha']:
+        # Sincronización automática con Google Calendar solo para barbería con hora válida
+        if categoria == 'barberia' and "-" in str(datos['fecha']) and ":" in str(datos['hora']):
             agregar_a_calendar(datos)
             
         return jsonify({"status": "success", "message": mensaje_web})
     except Exception as e:
         print(f"error reserva: {e}")
-        return jsonify({"status": "error"}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/cancelar', methods=['POST'])
 def cancelar_cita():
