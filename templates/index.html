@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+document.getElementById('reserva-form').onsubmit<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -527,7 +527,7 @@ function abrirInstagram(usuario) {
                     `;
                     document.getElementById('pantalla-exito').style.display = 'flex';
                 } else {
-                    alert('Error en el servidor');
+                    alert('Error en el servidor: ' + (data.message || 'Desconocido'));
                     btn.innerText = 'CONFIRMAR RESERVA';
                     btn.disabled = false;
                 }
