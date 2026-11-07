@@ -264,32 +264,21 @@
 
         <div id="formulario-cita">
             <h2 id="titulo-dinamico" style="color:#d4af37; text-align:center; font-size: 1.2rem; margin-bottom: 20px;"></h2>
-         <form id="reserva-form" onsubmit="return false;" style="position: relative; z-index: 10;">
-    <input type="hidden" name="categoria" id="input-categoria">
+            <form id="reserva-form">
+                <input type="hidden" name="categoria" id="input-categoria">
+                <div class="fila-doble">
+                    <input type="text" name="Nombre" placeholder="Nombre" required>
+                    <input type="text" name="Apellidos" placeholder="Apellidos" required>
+                </div>
+                <input type="tel" name="Telefono" placeholder="Teléfono" required>
                 
-                <!-- FORMULARIO DE TATUAJE LIMPIO -->
                 <div id="campos-tatuaje" style="display:none;">
-                    <div class="fila-doble">
-                        <input type="text" id="tattoo-nombre" name="Nombre" placeholder="Nombre" required>
-                        <input type="text" id="tattoo-apellidos" name="Apellidos" placeholder="Apellidos" required>
-                    </div>
-                    
-                    <label>¿Qué fecha tienes pensada?</label>
-                    <input type="text" id="tattoo-fecha" name="fecha_tatuaje" placeholder="Ej: Próximo lunes...">
-                    
-                    <label>Zona a tatuar</label>
-                    <input type="text" id="tattoo-zona" placeholder="Ej: Espalda, bíceps, gemelo...">
-                    
-                    <label>Tamaño aproximado</label>
-                    <input type="text" id="tattoo-tamano" placeholder="Ej: 3, 6, 8 cm...">
-                    
-                    <label>Cuéntanos tu idea</label>
-                    <textarea id="tattoo-idea" name="descripcion" placeholder="Estilo, detalles..." rows="3"></textarea>
-                    
-                    <button type="button" onclick="enviarIdeaTatuadorWhatsApp()" class="btn-final" style="background: #d4af37; color: #000; margin-top: 15px;">Enviar idea al tatuador 📲</button>
+                    <label>¿qué fecha tienes pensada?</label>
+                    <input type="text" name="fecha_tatuaje" placeholder="Ej: Próximo lunes...">
+                    <label>cuéntanos tu idea</label>
+                    <textarea name="descripcion" placeholder="Estilo, tamaño, zona..." rows="3"></textarea>
                 </div>
 
-                <!-- CAMPOS PARA BARBERÍA -->
                 <div id="campos-barberia" style="display:none;">
                     <label>servicio</label>
                     <select name="servicio_barberia">
@@ -308,9 +297,8 @@
 
                     <input type="hidden" name="hora" id="input-hora" required>
                     <div id="grid-horas" class="grid-horas"></div>
-                </div> <!-- Aquí cierra correctamente campos-barberia -->
+                </div>
 
-                <!-- El botón de submit va fuera de campos-barberia, dentro del form principal -->
                 <button type="submit" class="btn-final" id="btn-submit">confirmar reserva</button>
                 <button type="button" onclick="location.reload()" style="background:none; border:none; color:white; width:100%; margin-top:10px; opacity:0.6; font-size: 0.8rem;">← volver atrás</button>
             </form>
@@ -351,7 +339,7 @@
         <div id="support-r" class="support-ship" style="display:none;"></div>
     </div>
 
-   <script>
+    <script>
         let audioCtx = null;
         function playShootSound() {
             if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -461,6 +449,7 @@ function abrirInstagram(usuario) {
             const categoria = document.getElementById('input-categoria').value;
             const horaSeleccionada = document.getElementById('input-hora').value;
 
+            // Validación obligatoria de hora para barbería con pop-up
             if (categoria === 'barberia' && !horaSeleccionada) {
                 document.getElementById('popup-aviso-cita').style.display = 'flex';
                 return;
@@ -471,13 +460,8 @@ function abrirInstagram(usuario) {
             btn.disabled = true;
             
             const formData = new FormData(this);
-            
             try {
-                const response = await fetch('/reservar', { 
-                    method: 'POST', 
-                    body: formData 
-                });
-                
+                const response = await fetch('/reservar', { method: 'POST', body: formData });
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -487,12 +471,15 @@ function abrirInstagram(usuario) {
                     const fecha = document.getElementById('select-fecha') ? document.getElementById('select-fecha').value : '';
                     const hora = document.getElementById('input-hora') ? document.getElementById('input-hora').value : '';
 
+                    // Enlace de WhatsApp
+                    // Reorganizamos la fecha de AAAA-MM-DD a DD/MM/AAAA para el mensaje
                     const partesFecha = fecha.split('-');
                     const fechaBonita = partesFecha.length === 3 ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}` : fecha;
 
-                    const mensajeWhatsApp = `¡Hola Edgar! Confirmo mi reserva para el día ${fechaBonita} a las ${hora} a nombre de ${nombre}.`;
+                    const mensajeWhatsApp = `¡Hola Edgar! Confirmo mi reserva para el día ${fechaBonita} a las ${hora} a nombre de ${nombre}. (Si necesito cancelarla o cambiarla, te aviso por aquí).`;
                     const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
 
+                    // Enlace para Google Calendar (calculando 30 min de duración por defecto)
                     let gCalUrl = "#";
                     if (fecha && hora) {
                         const fechaClean = fecha.replace(/-/g, '');
@@ -503,7 +490,10 @@ function abrirInstagram(usuario) {
                         if (m >= 60) { h += 1; m -= 60; }
                         const horaFinClean = String(h).padStart(2, '0') + String(m).padStart(2, '0') + '00';
                         
-                        gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Cita Barbería - El Cierzo')}&dates=${fechaClean}T${horaClean}/${fechaClean}T${horaFinClean}&details=${encodeURIComponent('Cita reservada en El Cierzo Studio & Barber')}&location=${encodeURIComponent('Talayuelas')}`;
+                        const startDateTime = `${fechaClean}T${horaClean}`;
+                        const endDateTime = `${fechaClean}T${horaFinClean}`;
+                        
+                        gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Cita Barbería - El Cierzo')}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent('Cita reservada en El Cierzo Studio & Barber')}&location=${encodeURIComponent('Talayuelas')}&remindermins=30`;
                     }
 
                     document.getElementById('contenido-exito').innerHTML = `
@@ -522,18 +512,14 @@ function abrirInstagram(usuario) {
                         <button onclick="location.reload()" class="btn-final" style="width:100%; margin-top: 0;">FINALIZAR</button>
                     `;
                     document.getElementById('pantalla-exito').style.display = 'flex';
-                } else {
-                    alert('Error: ' + (data.message || 'No se pudo guardar la cita'));
-                    btn.innerText = 'CONFIRMAR RESERVA';
-                    btn.disabled = false;
                 }
-            } catch (err) {
-                console.error(err);
-                alert('Hubo un error de conexión al procesar la reserva.');
+            } catch (error) { 
+                alert('error en el servidor'); 
                 btn.innerText = 'CONFIRMAR RESERVA';
                 btn.disabled = false;
             }
         };
+
         let gameActive = false;
         let score = 0;
         let lives = 0;
@@ -1051,31 +1037,6 @@ function confirmarCancelacion() {
             btn.innerText = 'confirmar reserva';
             btn.disabled = false;
         }
-        function enviarIdeaTatuadorWhatsApp() {
-    const nombre = document.getElementById('tattoo-nombre').value;
-    const apellidos = document.getElementById('tattoo-apellidos').value;
-    const fecha = document.getElementById('tattoo-fecha').value || 'Sin especificar';
-    const zona = document.getElementById('tattoo-zona').value || 'Sin especificar';
-    const tamano = document.getElementById('tattoo-tamano').value || 'Sin especificar';
-    const idea = document.getElementById('tattoo-idea').value;
-    
-    if (!nombre || !apellidos || !idea) {
-        alert('Por favor, rellena al menos tu nombre, apellidos y la idea del tatuaje.');
-        return;
-    }
-    
-    const TU_NUMERO_WHATSAPP = "34686544572"; 
-    
-    const mensajeWhatsApp = `¡Hola Edgar! Me gustaría proponer una idea para un tatuaje:\n\n` +
-                          `👤 *Nombre:* ${nombre} ${apellidos}\n` +
-                          `📅 *Fecha aprox:* ${fecha}\n` +
-                          `📍 *Zona:* ${zona}\n` +
-                          `📏 *Tamaño:* ${tamano}\n` +
-                          `✍️ *Idea:* ${idea}`;
-                          
-    const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
-    window.open(urlWhatsApp, '_blank');
-}
     </script>
     <div id="modal-cancelar" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:9999;">
     <div style="background:#1a1a1a; border:2px solid #d4af37; padding:25px; border-radius:8px; max-width:400px; width:90%; text-align:center; position:relative; color:#fff;">
@@ -1097,3 +1058,4 @@ function confirmarCancelacion() {
     </div>
 </body>
 </html>
+
