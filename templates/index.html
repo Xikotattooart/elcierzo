@@ -477,10 +477,14 @@ function abrirInstagram(usuario) {
             btn.innerText = 'PROCESANDO...'; 
             btn.disabled = true;
             
-            const formData = new FormData(this);
+         const formData = new FormData(this);
             try {
                 const response = await fetch('/reservar', { method: 'POST', body: formData });
                 const data = await response.json();
+                
+                if (data.status === 'success') {
+                
+                if (data.status === 'success') {
                 
                 if (data.status === 'success') {
                     const TU_NUMERO_WHATSAPP = "34686544572"; 
