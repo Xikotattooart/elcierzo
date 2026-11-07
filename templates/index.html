@@ -291,12 +291,6 @@
 
                 <!-- CAMPOS PARA BARBERÍA -->
                 <div id="campos-barberia" style="display:none;">
-                    <div class="fila-doble">
-                        <input type="text" name="Nombre" placeholder="Nombre" required>
-                        <input type="text" name="Apellidos" placeholder="Apellidos" required>
-                    </div>
-                    <input type="tel" name="Telefono" placeholder="Teléfono">
-
                     <label>servicio</label>
                     <select name="servicio_barberia">
                         {% for s in barberia %}<option value="{{ s.nombre }}">{{ s.nombre }}</option>{% endfor %}
@@ -314,10 +308,10 @@
 
                     <input type="hidden" name="hora" id="input-hora" required>
                     <div id="grid-horas" class="grid-horas"></div>
-                    
-                    <button type="submit" class="btn-final" id="btn-submit">confirmar reserva</button>
-                </div>
+                </div> <!-- Aquí cierra correctamente campos-barberia -->
 
+                <!-- El botón de submit va fuera de campos-barberia, dentro del form principal -->
+                <button type="submit" class="btn-final" id="btn-submit">confirmar reserva</button>
                 <button type="button" onclick="location.reload()" style="background:none; border:none; color:white; width:100%; margin-top:10px; opacity:0.6; font-size: 0.8rem;">← volver atrás</button>
             </form>
         </div>
