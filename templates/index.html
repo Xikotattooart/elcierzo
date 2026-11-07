@@ -477,8 +477,13 @@ function abrirInstagram(usuario) {
             btn.disabled = true;
             
             const formData = new FormData(this);
+            
             try {
-                const response = await fetch('/reservar', { method: 'POST', body: formData });
+                const response = await fetch('/reservar', { 
+                    method: 'POST', 
+                    body: formData 
+                });
+                
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -491,7 +496,7 @@ function abrirInstagram(usuario) {
                     const partesFecha = fecha.split('-');
                     const fechaBonita = partesFecha.length === 3 ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}` : fecha;
 
-                    const mensajeWhatsApp = `¡Hola Edgar! Confirmo mi reserva para el día ${fechaBonita} a las ${hora} a nombre de ${nombre}. (Si necesito cancelarla o cambiarla, te aviso por aquí).`;
+                    const mensajeWhatsApp = `¡Hola Edgar! Confirmo mi reserva para el día ${fechaBonita} a las ${hora} a nombre de ${nombre}.`;
                     const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
 
                     let gCalUrl = "#";
@@ -504,10 +509,7 @@ function abrirInstagram(usuario) {
                         if (m >= 60) { h += 1; m -= 60; }
                         const horaFinClean = String(h).padStart(2, '0') + String(m).padStart(2, '0') + '00';
                         
-                        const startDateTime = `${fechaClean}T${horaClean}`;
-                        const endDateTime = `${fechaClean}T${horaFinClean}`;
-                        
-                        gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Cita Barbería - El Cierzo')}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent('Cita reservada en El Cierzo Studio & Barber')}&location=${encodeURIComponent('Talayuelas')}&remindermins=30`;
+                        gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Cita Barbería - El Cierzo')}&dates=${fechaClean}T${horaClean}/${fechaClean}T${horaFinClean}&details=${encodeURIComponent('Cita reservada en El Cierzo Studio & Barber')}&location=${encodeURIComponent('Talayuelas')}`;
                     }
 
                     document.getElementById('contenido-exito').innerHTML = `
@@ -527,12 +529,13 @@ function abrirInstagram(usuario) {
                     `;
                     document.getElementById('pantalla-exito').style.display = 'flex';
                 } else {
-                    alert('Error en el servidor: ' + (data.message || 'Desconocido'));
+                    alert('Error: ' + (data.message || 'No se pudo guardar la cita'));
                     btn.innerText = 'CONFIRMAR RESERVA';
                     btn.disabled = false;
                 }
-            } catch (error) { 
-                alert('Error de conexión con el servidor.'); 
+            } catch (err) {
+                console.error(err);
+                alert('Hubo un error de conexión al procesar la reserva.');
                 btn.innerText = 'CONFIRMAR RESERVA';
                 btn.disabled = false;
             }
