@@ -342,6 +342,13 @@
 
         <div id="game-over-overlay">
             <div class="pixel-title">GAME OVER</div>
+            
+            <div id="new-record-input-container" style="display:none; margin-bottom: 15px; text-align: center;">
+                <p style="color: #ffcc00; font-size: 0.9rem; font-weight: bold; margin-bottom: 5px; text-transform: uppercase;">🔥 ¡Nuevo Récord Barber! 🔥</p>
+                <input type="text" id="player-name-input" placeholder="Escribe tu nombre o apodo" maxlength="15" style="width: 220px; height: 40px; font-size: 0.9rem; text-align: center; border-radius: 8px; border: 1px solid #d4af37; background: #111; color: #fff; margin-bottom: 8px;">
+                <button onclick="guardarNuevoRecord()" style="padding: 8px 15px; background: #d4af37; color: #000; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-size: 0.8rem; text-transform: uppercase;">Guardar Récord</button>
+            </div>
+
             <button class="btn-restart" onclick="reiniciarPartida()">RESTART</button>
             <button class="btn-exit-game" onclick="location.reload()">EXIT</button>
         </div>
@@ -357,7 +364,9 @@
                     <div id="ui-lives">VIDAS: <span id="game-lives">0/3</span></div>
                 </div>
                 <div style="text-align: center;">
-                    RÉCORD BARBER<br><span id="best-score">0</span>
+                    RÉCORD BARBER<br>
+                    <span id="best-score">0</span>
+                    <div id="best-player" style="font-size: 0.65rem; color: #ffcc00; opacity: 0.8; margin-top: 2px;">-</div>
                 </div>
             </div>
         </div>
@@ -631,6 +640,10 @@ if (categoria === 'tatuaje') {
             document.getElementById('game-lives').innerText = "0/3";
             document.getElementById('timer-display').innerText = "00:00";
             document.getElementById('best-score').innerText = localStorage.getItem('barber_game_record') || 0;
+            const recordGuardado = localStorage.getItem('barber_game_record') || 0;
+            const jugadorGuardado = localStorage.getItem('barber_game_player') || "-";
+            document.getElementById('best-score').innerText = recordGuardado;
+            document.getElementById('best-player').innerText = recordGuardado > 0 ? `(${jugadorGuardado})` : "-";
             
             const player = document.getElementById('player');
             const container = document.getElementById('game-container');
@@ -1042,7 +1055,32 @@ if (categoria === 'tatuaje') {
             gameActive = false;
             clearInterval(timerInterval);
             gameIntervals.forEach(clearInterval);
+
+            const recordActual = parseInt(localStorage.getItem('barber_game_record') || 0);
+            const inputContainer = document.getElementById('new-record-input-container');
+
+            if (score > recordActual) {
+                inputContainer.style.display = 'block';
+                document.getElementById('player-name-input').value = '';
+            } else {
+                inputContainer.style.display = 'none';
+            }
+
             document.getElementById('game-over-overlay').style.display = 'flex';
+        }
+
+        function guardarNuevoRecord() {
+            const nombreInput = document.getElementById('player-name-input').value.trim() || "Anónimo";
+            localStorage.setItem('barber_game_record', score);
+            localStorage.setItem('barber_game_player', nombreInput);
+
+            document.getElementById('best-score').innerText = score;
+            document.getElementById('best-player').innerText = `(${nombreInput})`;
+            document.getElementById('new-record-input-container').style.display = 'none';
+        }
+
+        function actualizarScore() {
+            document.getElementById('game-score').innerText = score;
         }
 
         function reiniciarPartida() {
