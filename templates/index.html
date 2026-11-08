@@ -389,6 +389,15 @@ function abrirInstagram(usuario) {
             document.getElementById('formulario-cita').style.display = 'block';
             document.getElementById('input-categoria').value = tipo;
             document.getElementById('titulo-dinamico').innerText = tipo === 'barberia' ? 'RESERVAR BARBERÍA' : 'RESERVAR TATUAJE';
+            
+            // Cambiar el texto del botón según el servicio
+            const btnSubmit = document.getElementById('btn-submit');
+            if (tipo === 'tatuaje') {
+                btnSubmit.innerText = 'ENVIAR IDEA AL TATUADOR';
+            } else {
+                btnSubmit.innerText = 'CONFIRMAR RESERVA';
+            }
+
             document.getElementById('main-logo').classList.add('logo-pequeno');
             if(tipo === 'tatuaje') {
                 document.getElementById('campos-tatuaje').style.display = 'block';
@@ -468,18 +477,31 @@ function abrirInstagram(usuario) {
                     const TU_NUMERO_WHATSAPP = "34686544572"; 
                     
                     const nombre = document.querySelector('input[name="Nombre"]') ? document.querySelector('input[name="Nombre"]').value : '';
+                    const apellidos = document.querySelector('input[name="Apellidos"]') ? document.querySelector('input[name="Apellidos"]').value : '';
+                    const descripcion = document.querySelector('textarea[name="descripcion"]') ? document.querySelector('textarea[name="descripcion"]').value : '';
+                    const fechaTattoo = document.querySelector('input[name="fecha_tatuaje"]') ? document.querySelector('input[name="fecha_tatuaje"]').value : '';
+
+                    // SI ES TATUAJE: Redirige directamente al WhatsApp de Edgar con la idea redactada
+                    if (categoria === 'tatuaje') {
+                        const mensajeWhatsApp = `¡Hola Edgar! Soy ${nombre} ${apellidos}. Te envío los detalles de mi idea para tatuaje:\n\n- Fecha pensada: ${fechaTattoo}\n- Idea/Estilo: ${descripcion}`;
+                        const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
+                        
+                        // Abre el WhatsApp en otra pestaña/app
+                        window.open(urlWhatsApp, '_blank');
+                        location.reload();
+                        return;
+                    }
+
+                    // SI ES BARBERÍA: Mantiene exactamente su flujo habitual de Google Calendar y éxito
                     const fecha = document.getElementById('select-fecha') ? document.getElementById('select-fecha').value : '';
                     const hora = document.getElementById('input-hora') ? document.getElementById('input-hora').value : '';
 
-                    // Enlace de WhatsApp
-                    // Reorganizamos la fecha de AAAA-MM-DD a DD/MM/AAAA para el mensaje
                     const partesFecha = fecha.split('-');
                     const fechaBonita = partesFecha.length === 3 ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}` : fecha;
 
                     const mensajeWhatsApp = `¡Hola Edgar! Confirmo mi reserva para el día ${fechaBonita} a las ${hora} a nombre de ${nombre}. (Si necesito cancelarla o cambiarla, te aviso por aquí).`;
                     const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
 
-                    // Enlace para Google Calendar (calculando 30 min de duración por defecto)
                     let gCalUrl = "#";
                     if (fecha && hora) {
                         const fechaClean = fecha.replace(/-/g, '');
@@ -515,7 +537,7 @@ function abrirInstagram(usuario) {
                 }
             } catch (error) { 
                 alert('error en el servidor'); 
-                btn.innerText = 'CONFIRMAR RESERVA';
+                btn.innerText = categoria === 'tatuaje' ? 'ENVIAR IDEA AL TATUADOR' : 'CONFIRMAR RESERVA';
                 btn.disabled = false;
             }
         };
