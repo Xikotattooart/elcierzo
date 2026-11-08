@@ -504,23 +504,23 @@ function abrirInstagram(usuario) {
                     // SI ES TATUAJE: Redirige directamente al WhatsApp de Edgar con la idea redactada y el enlace de la imagen
                     // SI ES TATUAJE: Redirige directamente al WhatsApp de Edgar con la idea redactada y el enlace de la imagen
 if (categoria === 'tatuaje') {
-    const zona = document.querySelector('input[name="zona_tatuaje"]') ? document.querySelector('input[name="zona_tatuaje"]').value : '';
-    const tamano = document.querySelector('input[name="tamano_tatuaje"]') ? document.querySelector('input[name="tamano_tatuaje"]').value : '';
-    const fechaTattoo = document.querySelector('select[name="fecha_tatuaje"]') ? document.querySelector('select[name="fecha_tatuaje"]').value : '';
-    const descripcion = document.querySelector('textarea[name="descripcion"]') ? document.querySelector('textarea[name="descripcion"]').value : '';
+            const zona = document.querySelector('input[name="zona_tatuaje"]') ? document.querySelector('input[name="zona_tatuaje"]').value : '';
+            const tamano = document.querySelector('input[name="tamano_tatuaje"]') ? document.querySelector('input[name="tamano_tatuaje"]').value : '';
+            const fechaTattoo = document.querySelector('select[name="fecha_tatuaje"]') ? document.querySelector('select[name="fecha_tatuaje"]').value : '';
+            const descripcion = document.querySelector('textarea[name="descripcion"]') ? document.querySelector('textarea[name="descripcion"]').value : '';
 
-    let mensajeWhatsApp = `¡Hola Edgar! Soy ${nombre} ${apellidos}. Te envío los detalles para mi tatuaje:\n\n📍 Zona: ${zona}\n📏 Tamaño: ${tamano}\n📅 Preferencia: ${fechaTattoo}\n📝 Idea: ${descripcion}`;
-    
-    // Si se subió imagen, añadimos el link directo generado por el servidor
-    if (data.imagen_url) {
-        mensajeWhatsApp += `\n\n🖼️ Imagen de referencia:\n${data.imagen_url}`;
-    }
+            let mensajeWhatsApp = `¡Hola Edgar! Soy ${nombre} ${apellidos}. Te envío los detalles para mi tatuaje:\n\n📍 Zona: ${zona}\n📏 Tamaño: ${tamano}\n📅 Preferencia: ${fechaTattoo}\n📝 Idea: ${descripcion}`;
+            
+            if (data.imagen_url) {
+                mensajeWhatsApp += `\n\n🖼️ Imagen de referencia:\n${data.imagen_url}`;
+            }
 
-    const urlWhatsApp = `https://wa.me/34686544572?text=${encodeURIComponent(mensajeWhatsApp)}`;
-    
-    window.location.href = urlWhatsApp;
-    return;
-}
+            // Usamos el enlace directo de la aplicación para evitar pantallas intermedias
+            const urlWhatsApp = `whatsapp://send?phone=34686544572&text=${encodeURIComponent(mensajeWhatsApp)}`;
+            
+            window.location.href = urlWhatsApp;
+            return;
+        }
 
                     // SI ES BARBERÍA: Mantiene exactamente su flujo habitual de Google Calendar y éxito
                     const fecha = document.getElementById('select-fecha') ? document.getElementById('select-fecha').value : '';
