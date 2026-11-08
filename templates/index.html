@@ -354,7 +354,7 @@
                     <div id="timer-display">00:00</div>
                     <div id="ui-lives">VIDAS: <span id="game-lives">0/3</span></div>
                 </div>
-                <div>RECORD: <span id="best-score">0</span></div>
+                <div>RÉCORD BARBER GAME: <span id="best-score">0</span></div>
             </div>
         </div>
 
@@ -610,7 +610,7 @@ if (categoria === 'tatuaje') {
             document.getElementById('game-over-overlay').style.display = 'none';
             document.getElementById('boss-ui').style.display = 'none';
             score = 0;
-            lives = 0;
+            lives = 0; // Empieza en 0/3
             seconds = 0;
             tripleShotActive = false;
             bombPowerActive = false;
@@ -626,7 +626,7 @@ if (categoria === 'tatuaje') {
             document.getElementById('game-score').innerText = "0";
             document.getElementById('game-lives').innerText = "0/3";
             document.getElementById('timer-display').innerText = "00:00";
-            document.getElementById('best-score').innerText = localStorage.getItem('tattoo_record') || 0;
+            document.getElementById('best-score').innerText = localStorage.getItem('barber_game_record') || 0;
             
             const player = document.getElementById('player');
             const container = document.getElementById('game-container');
@@ -649,7 +649,8 @@ if (categoria === 'tatuaje') {
 
                 if (relativeY > window.innerHeight / 2.5) {
                     playerX = relativeX - 42;
-                    playerY = relativeY - 42;
+                    // DESPLAZAMIENTO TÁCTIL: El muñeco se sitúa 80 píxeles por encima del dedo para no tapar la cara
+                    playerY = (relativeY - 80) - 42;
 
                     if(playerX < 0) playerX = 0;
                     if(playerX > container.offsetWidth - 85) playerX = container.offsetWidth - 85;
@@ -689,7 +690,12 @@ if (categoria === 'tatuaje') {
                         crearBoss();
                     }
 
+                    // Las vidas aparecen exactamente cada 30 segundos
                     if (seconds > 0 && seconds % 30 === 0) {
+                        crearVidaItem();
+                    }
+
+                    if (seconds > 0 && seconds % 20 === 0) {
                         if (lastCoinType === 2) {
                             crearMoneda();
                             lastCoinType = 1;
@@ -698,12 +704,10 @@ if (categoria === 'tatuaje') {
                             lastCoinType = 2;
                         }
                     }
-
-                    if (seconds > 0 && seconds % 65 === 0) {
-                        crearVidaItem();
-                    }
                 }
             }, 1000);
+
+            // ... (resto de bucles de disparo y enemigos se mantienen igual)
 
             gameIntervals.push(setInterval(() => {
                 if(gameActive) {
@@ -938,12 +942,21 @@ if (categoria === 'tatuaje') {
                 else {
                     v.style.top = (y + 6) + 'px'; 
                     if(checkCollision(document.getElementById('player'), v)) {
-                        if(lives < 3) lives++;
+                        if(lives < 3) lives++; // Sube de 1 en 1 hasta un máximo de 3
                         document.getElementById('game-lives').innerText = lives + "/3";
                         v.remove(); clearInterval(moveV);
                     }
                 }
             }, 20);
+        }
+
+        function actualizarScore() {
+            document.getElementById('game-score').innerText = score;
+            const recordActual = localStorage.getItem('barber_game_record') || 0;
+            if(score > recordActual) {
+                localStorage.setItem('barber_game_record', score);
+                document.getElementById('best-score').innerText = score;
+            }
         }
 
         function crearMoneda() {
