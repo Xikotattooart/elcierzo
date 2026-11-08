@@ -143,6 +143,22 @@ def recuperar():
         telefono = request.form.get('Telefono', 'No indicado')
         descripcion = request.form.get('descripcion', 'sin descripción')
         
+        # --- GESTIÓN DE SUBIDA DE IMAGEN DE REFERENCIA ---
+        imagen_url = ""
+        if 'imagen_referencia' in request.files:
+            file = request.files['imagen_referencia']
+            if file and file.filename != '':
+                # Limpiamos el nombre y creamos uno único con fecha y hora para que no se repita
+                ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
+                unique_filename = f"tattoo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
+                
+                upload_folder = os.path.join(BASE_DIR, 'static', 'uploads')
+                os.makedirs(upload_folder, exist_ok=True)
+                
+                file.save(os.path.join(upload_folder, unique_filename))
+                # Generamos la URL absoluta del archivo en tu servidor
+                imagen_url = f"{request.host_url}static/uploads/{unique_filename}"
+
         nombre_dorado = f"<span style='color:#d4af37; font-weight:bold;'>{nombre_cliente}</span>"
         titulo_cita_dorado = f"<span style='color:#d4af37; font-weight:bold; text-transform:uppercase; font-size:1.4rem;'>¡cita confirmada!</span>"
         titulo_solicitud_dorado = f"<span style='color:#d4af37; font-weight:bold; text-transform:uppercase; font-size:1.4rem;'>¡solicitud de cita enviada!</span>"
@@ -180,17 +196,18 @@ def recuperar():
         msg_tele = f"{encabezado_tele}:\n👤 {datos['nombre']}\n📞 {datos['telefono']}\n📅 {fecha_mostrar}\n⏰ {datos['hora']}\n✂️ {datos['servicio']}"
         if categoria == 'tatuaje':
             msg_tele += f"\n📝 idea: {descripcion}"
+            if imagen_url:
+                msg_tele += f"\n🖼️ Referencia: {imagen_url}"
             
         try:
             requests.post(f"https://api.telegram.org/bot{token_telegram}/sendmessage", data={'chat_id': chat_id, 'text': msg_tele})
         except Exception as telegram_err:
             print(f"Error enviando Telegram: {telegram_err}")
         
-        # Sincronización automática con Google Calendar solo para barbería con hora válida
         if categoria == 'barberia' and "-" in str(datos['fecha']) and ":" in str(datos['hora']):
             agregar_a_calendar(datos)
             
-        return jsonify({"status": "success", "message": mensaje_web})
+        return jsonify({"status": "success", "message": mensaje_web, "imagen_url": imagen_url})
     except Exception as e:
         print(f"error reserva: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
