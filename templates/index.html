@@ -264,7 +264,7 @@
 
         <div id="formulario-cita">
             <h2 id="titulo-dinamico" style="color:#d4af37; text-align:center; font-size: 1.2rem; margin-bottom: 20px;"></h2>
-            <form id="reserva-form">
+            <form id="reserva-form" enctype="multipart/form-data">
                 <input type="hidden" name="categoria" id="input-categoria">
                 <div class="fila-doble">
                     <input type="text" name="Nombre" placeholder="Nombre" required>
@@ -273,10 +273,24 @@
                 <input type="tel" name="Telefono" placeholder="Teléfono" required>
                 
                 <div id="campos-tatuaje" style="display:none;">
-                    <label>¿qué fecha tienes pensada?</label>
-                    <input type="text" name="fecha_tatuaje" placeholder="Ej: Próximo lunes...">
+                    <label>zona a tatuar</label>
+                    <input type="text" name="zona_tatuaje" placeholder="Ej: Antebrazo, gemelo, bíceps...">
+                    
+                    <label>tamaño aproximado</label>
+                    <input type="text" name="tamano_tatuaje" placeholder="Ej: 10-15 cm">
+                    
+                    <label>¿qué fecha tienes pensado?</label>
+                    <select name="fecha_tatuaje">
+                        <option value="Martes por la mañana">Martes por la mañana</option>
+                        <option value="Miércoles durante el día">Miércoles durante el día</option>
+                        <option value="Sábado por la tarde">Sábado por la tarde</option>
+                    </select>
+
                     <label>cuéntanos tu idea</label>
-                    <textarea name="descripcion" placeholder="Estilo, tamaño, zona..." rows="3"></textarea>
+                    <textarea name="descripcion" placeholder="Estilo, detalles..." rows="3"></textarea>
+
+                    <label>subir imagen de referencia (opcional)</label>
+                    <input type="file" name="imagen_referencia" accept="image/*" style="padding-top: 10px; height: auto;">
                 </div>
 
                 <div id="campos-barberia" style="display:none;">
@@ -299,7 +313,7 @@
                     <div id="grid-horas" class="grid-horas"></div>
                 </div>
 
-                <button type="submit" class="btn-final" id="btn-submit">confirmar reserva</button>
+                <button type="submit" class="btn-final" id="btn-submit">ENVIAR IDEA AL TATUADOR💬</button>
                 <button type="button" onclick="location.reload()" style="background:none; border:none; color:white; width:100%; margin-top:10px; opacity:0.6; font-size: 0.8rem;">← volver atrás</button>
             </form>
         </div>
@@ -483,10 +497,14 @@ function abrirInstagram(usuario) {
 
                     // SI ES TATUAJE: Redirige directamente al WhatsApp de Edgar con la idea redactada
                     if (categoria === 'tatuaje') {
-                        const mensajeWhatsApp = `¡Hola Edgar! Soy ${nombre} ${apellidos}. Te envío los detalles de mi idea para tatuaje:\n\n- Fecha pensada: ${fechaTattoo}\n- Idea/Estilo: ${descripcion}`;
+                        const zona = document.querySelector('input[name="zona_tatuaje"]') ? document.querySelector('input[name="zona_tatuaje"]').value : '';
+                        const tamano = document.querySelector('input[name="tamano_tatuaje"]') ? document.querySelector('input[name="tamano_tatuaje"]').value : '';
+                        const fechaTattoo = document.querySelector('select[name="fecha_tatuaje"]') ? document.querySelector('select[name="fecha_tatuaje"]').value : '';
+                        const descripcion = document.querySelector('textarea[name="descripcion"]') ? document.querySelector('textarea[name="descripcion"]').value : '';
+
+                        const mensajeWhatsApp = `¡Hola Edgar! Soy ${nombre} ${apellidos}. Te envío los detalles para mi tatuaje:\n\n📍 Zona: ${zona}\n📏 Tamaño: ${tamano}\n📅 Preferencia: ${fechaTattoo}\n📝 Idea: ${descripcion}`;
                         const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
                         
-                        // Abre el WhatsApp en otra pestaña/app
                         window.open(urlWhatsApp, '_blank');
                         location.reload();
                         return;
