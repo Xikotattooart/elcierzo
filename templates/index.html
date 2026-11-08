@@ -277,20 +277,22 @@
                     <input type="text" name="zona_tatuaje" placeholder="Ej: Antebrazo, gemelo, bíceps...">
                     
                     <label>tamaño aproximado</label>
-                    <input type="text" name="tamano_tatuaje" placeholder="Ej: 10-15 cm">
+                    <input type="text" name="tamano_tatuaje" placeholder="Ej: 3, 6, 10 cm...">
                     
                     <label>¿qué fecha tienes pensado?</label>
                     <select name="fecha_tatuaje">
                         <option value="Martes por la mañana">Martes por la mañana</option>
-                        <option value="Miércoles durante el día">Miércoles durante el día</option>
+                        <option value="Miércoles por la mañana">Miércoles por la mañana</option>
+                        <option value="Miércoles por la tarde">Miércoles por la tarde</option>
                         <option value="Sábado por la tarde">Sábado por la tarde</option>
+                        <option value="Indiferente">Indiferente</option>
                     </select>
 
                     <label>cuéntanos tu idea</label>
                     <textarea name="descripcion" placeholder="Estilo, detalles..." rows="3"></textarea>
 
-                    <label>subir imagen de referencia (opcional)</label>
-                    <input type="file" name="imagen_referencia" accept="image/*" style="padding-top: 10px; height: auto;">
+                    <label>subir imagen de referencia</label>
+                    <input type="file" name="imagen_referencia" accept="image/*" style="height: 60px; padding: 12px; background: #1a1a1a; border: 2px dashed #d4af37; cursor: pointer; color: #d4af37;">
                 </div>
 
                 <div id="campos-barberia" style="display:none;">
@@ -404,24 +406,26 @@ function abrirInstagram(usuario) {
             document.getElementById('input-categoria').value = tipo;
             document.getElementById('titulo-dinamico').innerText = tipo === 'barberia' ? 'RESERVAR BARBERÍA' : 'RESERVAR TATUAJE';
             
-            // Cambiar el texto del botón según el servicio
             const btnSubmit = document.getElementById('btn-submit');
-            if (tipo === 'tatuaje') {
-                btnSubmit.innerText = 'ENVIAR IDEA AL TATUADOR';
-            } else {
-                btnSubmit.innerText = 'CONFIRMAR RESERVA';
-            }
+            const inputTel = document.getElementById('input-telefono');
 
-            document.getElementById('main-logo').classList.add('logo-pequeno');
-            if(tipo === 'tatuaje') {
+            if (tipo === 'tatuaje') {
+                btnSubmit.innerHTML = '📞💬 ENVIAR IDEA AL TATUADOR';
                 document.getElementById('campos-tatuaje').style.display = 'block';
                 document.getElementById('campos-barberia').style.display = 'none';
                 document.getElementById('input-hora').value = "a convenir";
+                inputTel.style.display = 'none';
+                inputTel.removeAttribute('required');
             } else {
+                btnSubmit.innerText = 'CONFIRMAR RESERVA';
                 document.getElementById('campos-tatuaje').style.display = 'none';
                 document.getElementById('campos-barberia').style.display = 'block';
+                inputTel.style.display = 'block';
+                inputTel.setAttribute('required', 'required');
                 cargarHoras();
             }
+
+            document.getElementById('main-logo').classList.add('logo-pequeno');
         }
 
         async function cargarHoras(fechaForzada = null) {
@@ -503,10 +507,9 @@ function abrirInstagram(usuario) {
                         const descripcion = document.querySelector('textarea[name="descripcion"]') ? document.querySelector('textarea[name="descripcion"]').value : '';
 
                         const mensajeWhatsApp = `¡Hola Edgar! Soy ${nombre} ${apellidos}. Te envío los detalles para mi tatuaje:\n\n📍 Zona: ${zona}\n📏 Tamaño: ${tamano}\n📅 Preferencia: ${fechaTattoo}\n📝 Idea: ${descripcion}`;
-                        const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
+                        const urlWhatsApp = `https://wa.me/34686544572?text=${encodeURIComponent(mensajeWhatsApp)}`;
                         
-                        window.open(urlWhatsApp, '_blank');
-                        location.reload();
+                        window.location.href = urlWhatsApp;
                         return;
                     }
 
