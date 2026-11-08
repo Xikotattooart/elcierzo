@@ -515,13 +515,12 @@ if (categoria === 'tatuaje') {
                 mensajeWhatsApp += `\n\n🖼️ Imagen de referencia:\n${data.imagen_url}`;
             }
 
-            // Usamos el enlace directo de la aplicación para evitar pantallas intermedias
-            const urlWhatsApp = `whatsapp://send?phone=34686544572&text=${encodeURIComponent(mensajeWhatsApp)}`;
+            // Usamos wa.me con app_absent para forzar la apertura directa en la app
+            const urlWhatsApp = `https://wa.me/34686544572?text=${encodeURIComponent(mensajeWhatsApp)}&app_absent=0`;
             
             window.location.href = urlWhatsApp;
             return;
         }
-
                     // SI ES BARBERÍA: Mantiene exactamente su flujo habitual de Google Calendar y éxito
                     const fecha = document.getElementById('select-fecha') ? document.getElementById('select-fecha').value : '';
                     const hora = document.getElementById('input-hora') ? document.getElementById('input-hora').value : '';
