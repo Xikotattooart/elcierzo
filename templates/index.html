@@ -919,19 +919,22 @@ if (categoria === 'tatuaje') {
                     en.style.top = (y + speedY) + 'px'; 
                     en.style.left = (x + speedX) + 'px'; 
                     if(checkCollision(document.getElementById('player'), en)) {
-    if(!shieldActive) {
-        lives--; // Resta una vida de verdad
-        document.getElementById('game-lives').innerText = Math.max(0, lives) + "/3";
-        explosion(en.offsetLeft + size/2, en.offsetTop + size/2, "#ff4444");
-        if(lives <= 0) {
-            gameOver(); // Termina la partida si llega a 0
+                        if(!shieldActive) {
+                            lives--;
+                            document.getElementById('game-lives').innerText = Math.max(0, lives) + "/3";
+                            explosion(en.offsetLeft + size/2, en.offsetTop + size/2, "#ff4444");
+                            if(lives <= 0) {
+                                gameOver();
+                            }
+                        } else {
+                            explosion(en.offsetLeft + size/2, en.offsetTop + size/2, "#0096ff");
+                        }
+                        en.remove(); 
+                        clearInterval(moveEn);
+                    }
+                }
+            }, 30);
         }
-    } else {
-        explosion(en.offsetLeft + size/2, en.offsetTop + size/2, "#0096ff");
-    }
-    en.remove(); 
-    clearInterval(moveEn);
-}
 
         function crearVidaItem() {
             const v = document.createElement('div');
