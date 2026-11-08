@@ -147,7 +147,7 @@ def recuperar():
         titulo_cita_dorado = f"<span style='color:#d4af37; font-weight:bold; text-transform:uppercase; font-size:1.4rem;'>¡cita confirmada!</span>"
         titulo_solicitud_dorado = f"<span style='color:#d4af37; font-weight:bold; text-transform:uppercase; font-size:1.4rem;'>¡solicitud de cita enviada!</span>"
 
-        if categoria == 'barberia':
+       if categoria == 'barberia':
             servicio = request.form.get('servicio_barberia') or 'Corte de pelo'
             fecha_raw = request.form.get('fecha_barberia')
             hora = request.form.get('hora') or "10:00"
@@ -159,7 +159,6 @@ def recuperar():
             hora = "a convenir"
             encabezado_tele = "💉 nueva solicitud tatuaje"
             mensaje_web = f"{titulo_solicitud_dorado}<br><br>¡Mensaje recibido! Gracias {nombre_dorado}, en 24h tendrá respuesta. Para cualquier duda contacte por WhatsApp o llame al teléfono."
-
         fecha_mostrar = fecha_raw
         try:
             if "-" in fecha_raw and len(fecha_raw) == 10:
