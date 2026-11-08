@@ -287,7 +287,7 @@
                     <label>tamaño aproximado</label>
                     <input type="text" name="tamano_tatuaje" placeholder="Ej: 3, 6, 10 cm...">
                     
-                    <label>¿qué fecha tienes pensado?</label>
+                    <label>¿qué horario te viene mejor?</label>
                     <select name="fecha_tatuaje">
                         <option value="Martes por la mañana">Martes por la mañana</option>
                         <option value="Miércoles por la mañana">Miércoles por la mañana</option>
@@ -299,8 +299,10 @@
                     <label>cuéntanos tu idea</label>
                     <textarea name="descripcion" placeholder="Estilo, detalles..." rows="3"></textarea>
 
-                    <label>subir imagen de referencia</label>
-                    <input type="file" name="imagen_referencia" accept="image/*" style="height: 60px; padding: 12px; background: #1a1a1a; border: 2px dashed #d4af37; cursor: pointer; color: #d4af37;">
+                    <label>subir imagen de referencia <span style="font-size: 0.6rem; opacity: 0.7; text-transform: lowercase;">(opcional)</span></label>
+                    <div style="background: #1a1a1a; border: 2px dashed #d4af37; border-radius: 12px; padding: 10px; margin: 8px 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; box-sizing: border-box;">
+                        <input type="file" name="imagen_referencia" accept="image/*" style="width: 100%; background: none; border: none; height: auto; padding: 0; margin: 0; color: #d4af37; font-size: 0.8rem; text-align: left;">
+                    </div>
                 </div>
 
                 <div id="campos-barberia" style="display:none;">
