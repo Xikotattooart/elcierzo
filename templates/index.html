@@ -355,67 +355,6 @@
         </div>
     </div>
 
-    <div id="game-container">
-        <div id="start-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;">
-            <div style="text-align: center;">
-                <label style="color: #d4af37; font-size: 0.8rem; margin-bottom: 5px; text-transform: uppercase;">Tu nombre o apodo</label>
-                <input type="text" id="player-nickname-input" placeholder="Ej: Edgar" maxlength="12" style="width: 200px; height: 40px; font-size: 1rem; text-align: center; border-radius: 8px; border: 1px solid #d4af37; background: #111; color: #fff;">
-            </div>
-            <button id="btn-start-game" onclick="validarYComenzarJuego()" style="padding: 15px 40px; background: #d4af37; color: black; font-size: 1.5rem; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 0 20px #d4af37;">START</button>
-        </div>
-
-        <div id="game-over-overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); flex-direction:column; justify-content:center; align-items:center; z-index:10001; padding: 20px; box-sizing: border-box;">
-            <div class="pixel-title" style="margin-bottom: 10px;">GAME OVER</div>
-            
-            <div id="new-record-msg" style="color: #ffcc00; font-size: 1rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; text-align: center; display: none;">🔥 ¡Enhorabuena, Nuevo Récord Barber! 🔥</div>
-
-            <div style="width: 100%; max-width: 280px; background: rgba(20,20,20,0.9); border: 1px solid #d4af37; border-radius: 12px; padding: 12px; margin-bottom: 15px; text-align: center;">
-                <p style="color: #d4af37; font-size: 0.8rem; font-weight: bold; margin: 0 0 8px 0; text-transform: uppercase;">🏆 Top 5 Récords Barber 🏆</p>
-                <div id="ranking-list" style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; text-align: left;"></div>
-            </div>
-
-            <button class="btn-restart" onclick="reiniciarPartida()">RESTART</button>
-            <button class="btn-exit-game" onclick="location.reload()">EXIT</button>
-        </div>
-        
-        <div id="header-game">
-            <div class="ui-top-row">
-                <div style="text-align: center;">
-                    BARBER POINTS<br>
-                    <span id="game-score">0</span>
-                </div>
-                <div class="timer-container">
-                    <div id="timer-display">00:00</div>
-                    <div id="ui-lives">VIDAS: <span id="game-lives">0/3</span></div>
-                </div>
-                <div style="text-align: center;">
-                    RÉCORD BARBER<br>
-                    <span id="best-score">0</span>
-                    <div id="best-player" style="font-size: 0.65rem; color: #ffcc00; opacity: 0.8; margin-top: 2px;">-</div>
-                </div>
-            </div>
-        </div>
-        
-        <div id="player"></div>
-        <div id="support-l" class="support-ship" style="display:none;"></div>
-        <div id="support-r" class="support-ship" style="display:none;"></div>
-
-        <!-- CAPA OCULTA DE RESET (Pulsa 10 veces en la esquina superior derecha) -->
-        <div id="secret-click-zone" style="position: absolute; top: 0; right: 0; width: 80px; height: 80px; z-index: 10500;"></div>
-
-        <!-- MODAL PIN DE RESET -->
-        <div id="modal-reset-pin" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); flex-direction:column; justify-content:center; align-items:center; z-index:11000; padding: 20px; box-sizing: border-box;">
-            <div style="background:#1a1a1a; border:2px solid #d4af37; padding:25px; border-radius:15px; max-width:300px; width:90%; text-align:center; color:#fff;">
-                <h3 style="color:#d4af37; text-transform:uppercase; margin-top:0; font-size: 1.1rem;">Resetear Récords</h3>
-                <p style="font-size:0.85rem; color:#ccc; margin-bottom: 15px;">Introduce el código PIN:</p>
-                <input type="password" id="input-reset-pin" placeholder="PIN secreto" maxlength="6" style="width:100%; height:45px; padding:10px; margin-bottom:15px; border:1px solid #d4af37; background:#111; color:#fff; text-align:center; font-size: 1.2rem; letter-spacing: 5px; border-radius: 8px;">
-                <button onclick="verificarPinReset()" style="width:100%; padding:12px; background:#d4af37; color:#000; font-weight:bold; border:none; border-radius: 8px; cursor:pointer; text-transform: uppercase; margin-bottom: 8px;">CONFIRMAR</button>
-                <button onclick="cerrarModalReset()" style="width:100%; padding:8px; background:none; border:1px solid #555; color:#aaa; font-weight:bold; border-radius: 8px; cursor:pointer;">CANCELAR</button>
-                <p id="msg-error-reset" style="color:#ff4d4d; margin-top:10px; font-size:0.8rem; display:none;"></p>
-            </div>
-        </div>
-    </div>
-
     <script>
         let audioCtx = null;
         function playShootSound() {
