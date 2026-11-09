@@ -1062,35 +1062,19 @@ if (categoria === 'tatuaje') {
         }
 
         let adminClicks = 0;
+        let modoEliminarActivo = false;
 
         function gestionarAdminRanking() {
             adminClicks++;
             if (adminClicks >= 10) {
                 adminClicks = 0;
+                modoEliminarActivo = !modoEliminarActivo;
                 let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
-                if (ranking.length === 0) {
-                    alert("No hay registros en el ranking para borrar.");
-                    return;
-                }
-                let mensaje = "Elige el número del jugador que deseas eliminar:\n\n";
-                ranking.forEach((item, index) => {
-                    mensaje += `${index + 1}. ${item.name} - ${item.score} pts\n`;
-                });
-                let seleccion = prompt(mensaje);
-                let num = parseInt(seleccion);
-                if (!isNaN(num) && num >= 1 && num <= ranking.length) {
-                    let eliminado = ranking.splice(num - 1, 1);
-                    localStorage.setItem('barber_ranking', JSON.stringify(ranking));
-                    if (ranking.length > 0) {
-                        localStorage.setItem('barber_game_record', ranking[0].score);
-                        localStorage.setItem('barber_game_player', ranking[0].name);
-                    } else {
-                        localStorage.removeItem('barber_game_record');
-                        localStorage.removeItem('barber_game_player');
-                    }
-                    alert(`Eliminado correctamente: ${eliminado[0].name}`);
-                    // Refrescamos la vista del ranking si está abierto
-                    gameOverVisualUpdate(ranking);
+                gameOverVisualUpdate(ranking);
+                if (modoEliminarActivo) {
+                    alert("🔓 MODO ADMIN ACTIVADO: Toca directamente sobre cualquier jugador de la lista para eliminarlo.");
+                } else {
+                    alert("🔒 MODO ADMIN DESACTIVADO.");
                 }
             }
         }
@@ -1113,6 +1097,26 @@ if (categoria === 'tatuaje') {
                     row.style.borderRadius = '8px';
                     row.style.border = index === 0 ? '1px solid #00d2ff' : '1px solid rgba(255, 255, 255, 0.08)';
                     
+                    if (modoEliminarActivo) {
+                        row.style.cursor = 'pointer';
+                        row.style.border = '1px dashed #ff3333';
+                        row.title = "Toca para eliminar";
+                        row.onclick = () => {
+                            if (confirm(`¿Seguro que deseas eliminar a "${item.name}" (${item.score} pts)?`)) {
+                                ranking.splice(index, 1);
+                                localStorage.setItem('barber_ranking', JSON.stringify(ranking));
+                                if (ranking.length > 0) {
+                                    localStorage.setItem('barber_game_record', ranking[0].score);
+                                    localStorage.setItem('barber_game_player', ranking[0].name);
+                                } else {
+                                    localStorage.removeItem('barber_game_record');
+                                    localStorage.removeItem('barber_game_player');
+                                }
+                                gameOverVisualUpdate(ranking);
+                            }
+                        };
+                    }
+
                     let colorTexto = '#ffffff';
                     let icono = `${index + 1}.`;
                     if (index === 0) {
@@ -1124,7 +1128,8 @@ if (categoria === 'tatuaje') {
                         colorTexto = '#cd7f32';
                     }
 
-                    row.innerHTML = `<span style="color: ${colorTexto}; font-weight: bold;">${icono} ${item.name}</span> <span style="color: #00d2ff; font-weight: bold;">${item.score} pts</span>`;
+                    let textoExtra = modoEliminarActivo ? ` <span style="color:#ff3333; font-size:0.75rem;">[ELIMINAR]</span>` : '';
+                    row.innerHTML = `<span style="color: ${colorTexto}; font-weight: bold;">${icono} ${item.name}${textoExtra}</span> <span style="color: #00d2ff; font-weight: bold;">${item.score} pts</span>`;
                     listContainer.appendChild(row);
                 });
             }
