@@ -342,7 +342,19 @@
             <button id="btn-start-game" onclick="validarYComenzarJuego()" style="padding: 15px 40px; background: #d4af37; color: black; font-size: 1.5rem; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 0 20px #d4af37;">START</button>
         </div>
 
-        <div id="game-over-overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:1
+        <div id="game-over-overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); flex-direction:column; justify-content:center; align-items:center; z-index:10001; padding: 20px; box-sizing: border-box;">
+            <div class="pixel-title" style="margin-bottom: 10px;">GAME OVER</div>
+            
+            <div id="new-record-msg" style="color: #ffcc00; font-size: 1rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; text-align: center; display: none;">🔥 ¡Enhorabuena, Nuevo Récord Barber! 🔥</div>
+
+            <div style="width: 100%; max-width: 280px; background: rgba(20,20,20,0.9); border: 1px solid #d4af37; border-radius: 12px; padding: 12px; margin-bottom: 15px; text-align: center;">
+                <p style="color: #d4af37; font-size: 0.8rem; font-weight: bold; margin: 0 0 8px 0; text-transform: uppercase;">🏆 Top 5 Récords Barber 🏆</p>
+                <div id="ranking-list" style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; text-align: left;"></div>
+            </div>
+
+            <button class="btn-restart" onclick="reiniciarPartida()">RESTART</button>
+            <button class="btn-exit-game" onclick="location.reload()">EXIT</button>
+        </div>
         
         <div id="header-game">
             <div class="ui-top-row">
