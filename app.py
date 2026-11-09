@@ -297,6 +297,25 @@ def notificar_record():
 
     return jsonify({"status": "ok"})
 
+from flask import send_from_directory, make_response
+
+@app.route('/manifest.json')
+def manifest():
+    r = make_response(send_from_directory(app.static_folder, 'manifest.json'))
+    r.headers['Content-Type'] = 'application/manifest+json'
+    r.headers['Cache-Control'] = 'no-cache'
+    return r
+
+@app.route('/sw.js')
+def service_worker():
+    # Debe servirse desde la raíz para tener scope "/"
+    r = make_response(send_from_directory(app.static_folder, 'sw.js'))
+    r.headers['Content-Type'] = 'application/javascript'
+    r.headers['Service-Worker-Allowed'] = '/'
+    r.headers['Cache-Control'] = 'no-cache'
+    return r
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
 
