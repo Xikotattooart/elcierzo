@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#000000">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="El Cierzo">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>
+/* Se registra aquí, pronto, para no perder el evento de instalación */
+window.__deferredInstall = null;
+window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); window.__deferredInstall = e; });
+window.addEventListener('appinstalled', function(){ window.__deferredInstall = null; document.documentElement.classList.add('is-standalone'); });
+if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) document.documentElement.classList.add('is-standalone');
+</script>
+<title>El Cierzo Tattoo & Barbershop | Talayuelas</title>
 <meta name="description" content="Estudio profesional de tatuajes y barbería en Talayuelas, Cuenca. Pide tu cita o envíanos tu idea de tatuaje directamente.">
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='ICONO.png') }}">
 <style>
@@ -30,10 +45,9 @@ button{cursor:pointer;color:inherit}
 /* ---------- Layout ---------- */
 .capa-oscura{width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column;align-items:center;
   padding:max(28px,env(safe-area-inset-top)) 20px max(36px,env(safe-area-inset-bottom))}
-.logo{width:68%;max-width:250px;margin:14px 0 6px;view-transition-name:logo;animation:rise .8s var(--ease) both}
+.logo{width:74%;max-width:280px;margin:16px 0 30px;view-transition-name:logo;animation:rise .8s var(--ease) both}
 @supports not (view-transition-name:none){.logo{transition:width .6s var(--ease),margin .6s var(--ease)}}
-.logo-pequeno{width:104px;margin:8px 0 4px}
-.tagline{margin:0 0 26px;font-size:.78rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;text-align:center;animation:rise .8s .08s var(--ease) both}
+.logo-pequeno{width:108px;margin:8px 0 20px}
 .contenedor-botones{width:100%;display:flex;flex-direction:column;gap:12px}
 .contenedor-botones>*{animation:rise .75s var(--ease) both}
 .contenedor-botones>*:nth-child(1){animation-delay:.10s}.contenedor-botones>*:nth-child(2){animation-delay:.17s}
@@ -220,6 +234,59 @@ select option:disabled{color:#6e6e76}
 @keyframes vt-out{to{opacity:0;transform:scale(.985) translateY(-6px);filter:blur(6px)}}
 @keyframes vt-in{from{opacity:0;transform:scale(1.012) translateY(14px);filter:blur(6px)}}
 
+/* ===== Barra inferior ===== */
+.bottom-bar{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;width:100%;margin-top:4px}
+.secret{width:auto;padding:9px 12px;font-size:.66rem;letter-spacing:.1em;white-space:nowrap}
+.install{display:inline-flex;align-items:center;gap:7px;color:var(--text);letter-spacing:.04em;border-radius:999px;transition:transform .45s var(--spring)}
+.install svg{width:14px;height:14px;color:var(--gold);flex:none}
+.install:active{transform:scale(.94)}
+.is-standalone .js-install{display:none!important}
+#modal-instalar{z-index:10006}
+#modal-instalar .sheet{max-height:88dvh;overflow-y:auto;text-align:center}
+.app-ico{display:block;width:76px;height:76px;margin:0 auto 12px;border-radius:18px;box-shadow:0 0 0 1px rgba(217,182,95,.45),0 10px 28px rgba(0,0,0,.5)}
+.os-block{margin:14px 0 4px;padding:14px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(217,182,95,.22);text-align:left}
+.os-block h4{margin:0 0 10px;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.os-block .btn-final{margin-top:4px}
+.os-block .pasos ol{margin:0}
+.os-note{margin:10px 0 0;font-size:.8rem;line-height:1.4;color:var(--muted)}
+
+.bottom-bar .secret.glass{border:1px solid transparent;color:var(--text)}
+@media(hover:hover){.bottom-bar .secret:hover{color:var(--gold)}}
+.hora-ocupada{cursor:default}
+
+/* ===== Instalar (pantalla de éxito) y pasos ===== */
+.btn-install{display:flex;align-items:center;justify-content:center;gap:8px;background:transparent;border:1px solid rgba(217,182,95,.45);color:var(--gold)}
+.btn-install svg{width:16px;height:16px}
+.pasos ol{list-style:none;counter-reset:p;margin:6px 0 18px;padding:0;text-align:left}
+.pasos li{counter-increment:p;display:flex;gap:12px;align-items:flex-start;padding:9px 0;font-size:.9rem;line-height:1.4;color:var(--text)}
+.pasos li::before{content:counter(p);flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;font-weight:700;color:var(--gold-ink);background:var(--gold)}
+.inline-ico{width:16px;height:16px;vertical-align:-3px;color:var(--gold)}
+
+/* ===== Horas: disponible vs ocupada ===== */
+.legend{display:flex;gap:16px;margin:8px 4px 0;font-size:.7rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{display:inline-block;width:12px;height:12px;border-radius:4px}
+.lg-free{background:rgba(255,255,255,.09);border:1px solid rgba(217,182,95,.5)}
+.lg-sel{background:var(--gold)}
+.lg-busy{border:1px solid rgba(255,255,255,.14);background:linear-gradient(to top right,transparent 44%,rgba(255,255,255,.5) 46% 54%,transparent 56%);opacity:.6}
+.hora-btn{background:rgba(255,255,255,.09);border:1px solid rgba(217,182,95,.38);color:#fff;font-weight:600}
+.hora-btn:not(.hora-ocupada):not(.hora-seleccionada):not(:disabled):active{background:rgba(217,182,95,.24);border-color:var(--gold);transform:scale(.94)}
+@media(hover:hover){.hora-btn:not(.hora-ocupada):not(.hora-seleccionada):not(:disabled):hover{background:rgba(217,182,95,.16);border-color:var(--gold);color:var(--gold);transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.4)}}
+.hora-seleccionada{background:var(--gold)!important;color:var(--gold-ink)!important;border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(217,182,95,.22)}
+.hora-ocupada{background:rgba(255,255,255,.015)!important;color:#5a5a61!important;border:1px solid rgba(255,255,255,.05)!important;
+  text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:rgba(255,255,255,.4);opacity:.55;font-weight:500}
+
+/* ===== Toques gold ===== */
+:root{--rim-gold:linear-gradient(180deg,rgba(217,182,95,.7),rgba(217,182,95,.12) 45%,rgba(217,182,95,.08) 70%,rgba(217,182,95,.3))}
+::selection{background:rgba(217,182,95,.32)}
+input,select,textarea{caret-color:var(--gold)}
+.ico{box-shadow:inset 0 0 0 1px rgba(217,182,95,.28)}
+.chev{transition:transform .35s var(--ease),color .3s}
+#titulo-dinamico::after,.titulo-seccion::after{content:"";display:block;width:28px;height:2px;margin:10px auto 0;border-radius:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.btn-servicio:active::before,.install:active::before{background:var(--rim-gold)}
+@media(hover:hover){.btn-servicio:hover::before,.install:hover::before{background:var(--rim-gold)}.btn-servicio:hover .chev{color:var(--gold);transform:translateX(3px)}}
+.ok-ico{background:rgba(217,182,95,.14);color:var(--gold)}
+
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -227,7 +294,6 @@ select option:disabled{color:#6e6e76}
 <svg class="bg-shards" viewBox="0 0 500 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><polygon points="0,0 97,0 105,82" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,0 105,82 0,100" fill="rgb(28,28,29)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="97,0 203,0 105,82" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="203,0 201,107 105,82" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="203,0 324,0 316,77" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="203,0 316,77 201,107" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="324,0 398,0 316,77" fill="rgb(19,19,20)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="398,0 389,77 316,77" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="398,0 500,0 389,77" fill="rgb(17,17,18)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="500,0 500,117 389,77" fill="rgb(21,21,22)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,100 105,82 74,227" fill="rgb(28,28,29)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,100 74,227 0,211" fill="rgb(28,28,29)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="105,82 201,107 226,209" fill="rgb(30,30,31)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="105,82 226,209 74,227" fill="rgb(17,17,18)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="201,107 316,77 306,181" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="201,107 306,181 226,209" fill="rgb(30,30,31)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="316,77 389,77 373,202" fill="rgb(22,22,23)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="316,77 373,202 306,181" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="389,77 500,117 500,175" fill="rgb(13,13,14)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="389,77 500,175 373,202" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,211 74,227 0,283" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="74,227 86,274 0,283" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="74,227 226,209 86,274" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="226,209 198,297 86,274" fill="rgb(25,25,26)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="226,209 306,181 198,297" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="306,181 319,301 198,297" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="306,181 373,202 408,300" fill="rgb(10,10,11)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="306,181 408,300 319,301" fill="rgb(23,23,24)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="373,202 500,175 500,309" fill="rgb(15,15,16)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="373,202 500,309 408,300" fill="rgb(26,26,27)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,283 86,274 88,428" fill="rgb(21,21,22)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,283 88,428 0,398" fill="rgb(24,24,25)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="86,274 198,297 88,428" fill="rgb(26,26,27)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="198,297 228,419 88,428" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="198,297 319,301 228,419" fill="rgb(25,25,26)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="319,301 312,390 228,419" fill="rgb(19,19,20)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="319,301 408,300 385,388" fill="rgb(30,30,31)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="319,301 385,388 312,390" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="408,300 500,309 500,376" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="408,300 500,376 385,388" fill="rgb(27,27,28)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,398 88,428 94,519" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,398 94,519 0,515" fill="rgb(20,20,21)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="88,428 228,419 94,519" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="228,419 194,526 94,519" fill="rgb(23,23,24)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="228,419 312,390 319,472" fill="rgb(25,25,26)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="228,419 319,472 194,526" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="312,390 385,388 384,523" fill="rgb(10,10,11)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="312,390 384,523 319,472" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="385,388 500,376 500,498" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="385,388 500,498 384,523" fill="rgb(20,20,21)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,515 94,519 0,627" fill="rgb(28,28,29)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="94,519 94,576 0,627" fill="rgb(24,24,25)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="94,519 194,526 207,616" fill="rgb(26,26,27)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="94,519 207,616 94,576" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="194,526 319,472 287,577" fill="rgb(13,13,14)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="194,526 287,577 207,616" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="319,472 384,523 391,626" fill="rgb(10,10,11)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="319,472 391,626 287,577" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="384,523 500,498 500,614" fill="rgb(15,15,16)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="384,523 500,614 391,626" fill="rgb(20,20,21)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,627 94,576 86,678" fill="rgb(17,17,18)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,627 86,678 0,679" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="94,576 207,616 175,717" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="94,576 175,717 86,678" fill="rgb(22,22,23)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="207,616 287,577 175,717" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="287,577 282,703 175,717" fill="rgb(25,25,26)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="287,577 391,626 282,703" fill="rgb(11,11,12)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="391,626 397,683 282,703" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="391,626 500,614 500,713" fill="rgb(25,25,26)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="391,626 500,713 397,683" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,679 86,678 79,800" fill="rgb(26,26,27)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,679 79,800 0,800" fill="rgb(20,20,21)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="86,678 175,717 79,800" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="175,717 208,800 79,800" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="175,717 282,703 279,800" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="175,717 279,800 208,800" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="282,703 397,683 396,800" fill="rgb(28,28,29)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="282,703 396,800 279,800" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="397,683 500,713 500,800" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="397,683 500,800 396,800" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><defs><radialGradient id="vg" cx="50%" cy="50%" r="75%"><stop offset="40%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".78"/></radialGradient></defs><rect width="500" height="800" fill="url(#vg)"/><rect width="500" height="800" fill="#000" opacity=".28"/></svg>
 <div class="capa-oscura">
   <img src="{{ url_for('static', filename='LOGO.png') }}" class="logo" id="main-logo" alt="El Cierzo Tattoo & Barbershop">
-  <p class="tagline">Tattoo &amp; Barbershop · Talayuelas</p>
 
   <div id="menu-servicios" class="contenedor-botones">
     <button class="btn-servicio" onclick="mostrarForm('barberia')">
@@ -251,7 +317,10 @@ select option:disabled{color:#6e6e76}
       <p><svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Paseo del Prado, 30, 16320 Talayuelas, Cuenca</p>
     </a>
 
-    <button class="secret" onclick="prepararJuego()">secret game</button>
+    <div class="bottom-bar">
+      <button type="button" class="secret" onclick="prepararJuego()">secret game</button>
+      <button type="button" class="secret glass install js-install" onclick="instalarApp()"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/></svg>Instalar aplicación</button>
+    </div>
   </div>
 
   <div id="menu-redes" class="contenedor-botones" style="display:none;">
@@ -308,6 +377,7 @@ select option:disabled{color:#6e6e76}
           {% for d in dias %}<option value="{{ d.valor }}">{{ d.texto }}</option>{% endfor %}
         </select>
         <div class="horas-head"><label>Horas disponibles</label><span id="contador-libres"></span></div>
+        <div class="legend"><span><i class="lg lg-free"></i>Disponible</span><span><i class="lg lg-sel"></i>Elegida</span><span><i class="lg lg-busy"></i>Ocupada</span></div>
         <input type="hidden" name="hora" id="input-hora" required>
         <div id="grid-horas" class="grid-horas"></div>
       </div>
@@ -555,6 +625,7 @@ if (categoria === 'tatuaje') {
                         <a href="${urlWhatsApp}" target="_blank" rel="noopener" class="btn-link btn-wa">Enviar aviso por WhatsApp</a>
                         ${fecha && hora ? `<a href="${gCalUrl}" target="_blank" rel="noopener" class="btn-link">Guardar en Google Calendar</a>` : ''}
                         <button onclick="location.reload()" class="btn-final">Finalizar</button>
+                        <button type="button" onclick="instalarApp()" class="btn-link btn-install js-install"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/></svg>Instalar App El Cierzo</button>
                     `;
                     document.getElementById('pantalla-exito').style.display = 'flex';
                 }
@@ -1211,6 +1282,31 @@ function confirmarCancelacion() {
 })();
 </script>
 
+<script>
+function instalarApp(){
+  var n = document.getElementById('android-nota');
+  if (n) { n.style.display = 'none'; n.textContent = ''; }
+  document.getElementById('modal-instalar').style.display = 'flex';
+}
+function instalarAndroid(){
+  var p = window.__deferredInstall;
+  var n = document.getElementById('android-nota');
+  if (p) {
+    p.prompt();
+    p.userChoice.then(function(r){
+      window.__deferredInstall = null;
+      if (r && r.outcome === 'accepted') cerrarModalInstalar();
+    }).catch(function(){});
+    return;
+  }
+  if (n) {
+    n.textContent = 'Abre el menú ⋮ de Chrome y pulsa «Instalar aplicación» o «Añadir a pantalla de inicio». Si estás dentro de Instagram o WhatsApp, ábrela antes en Chrome.';
+    n.style.display = 'block';
+  }
+}
+function cerrarModalInstalar(){ document.getElementById('modal-instalar').style.display = 'none'; }
+if ('serviceWorker' in navigator) window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });
+</script>
 <div id="modal-cancelar" class="overlay">
   <div class="sheet">
     <button class="cerrar" onclick="cerrarModalCancelar()" aria-label="Cerrar">&times;</button>
@@ -1228,6 +1324,32 @@ function confirmarCancelacion() {
   <div class="sheet">
     <p style="color:var(--text);font-size:1rem;margin-bottom:18px">Selecciona una hora antes de confirmar</p>
     <button type="button" class="btn-final" style="margin-top:0" onclick="cerrarPopupAviso()">OK</button>
+  </div>
+</div>
+<div id="modal-instalar" class="overlay">
+  <div class="sheet">
+    <button class="cerrar" onclick="cerrarModalInstalar()" aria-label="Cerrar">&times;</button>
+    <img class="app-ico" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="El Cierzo">
+    <h3>Instalar El Cierzo</h3>
+
+    <div class="os-block">
+      <h4>Android</h4>
+      <button type="button" class="btn-final" onclick="instalarAndroid()">Instalar</button>
+      <p class="os-note" id="android-nota" style="display:none"></p>
+    </div>
+
+    <div class="os-block">
+      <h4>iOS / iPhone</h4>
+      <div class="pasos"><ol>
+        <li><span>Abre esta web en <b>Safari</b>. Si estás en Instagram o WhatsApp: menú <b>···</b> → «Abrir en Safari».</span></li>
+        <li><span>Pulsa el botón <b>Compartir</b> <svg class="inline-ico" viewBox="0 0 24 24"><path d="M12 15V3m0 0L8 7m4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> (abajo en el centro).</span></li>
+        <li><span>Desliza hacia abajo y pulsa <b>«Añadir a pantalla de inicio»</b>.</span></li>
+        <li><span>Pulsa <b>«Añadir»</b>, arriba a la derecha.</span></li>
+        <li><span>Abre <b>El Cierzo</b> desde el nuevo icono de tu pantalla de inicio.</span></li>
+      </ol></div>
+    </div>
+
+    <button type="button" class="btn-ghost" onclick="cerrarModalInstalar()">Cerrar</button>
   </div>
 </div>
 </body>
