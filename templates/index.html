@@ -664,11 +664,10 @@ if (categoria === 'tatuaje') {
             
             const player = document.getElementById('player');
             const container = document.getElementById('game-container');
-            const btnStart = document.getElementById('btn-start-game');
-            const rectBtn = btnStart.getBoundingClientRect();
             
+            // POSICIÓN INICIAL: Abajo en el centro esperando a los demonios
             playerX = (container.offsetWidth / 2) - 42;
-            playerY = (rectBtn.bottom - container.getBoundingClientRect().top) + 40; 
+            playerY = container.offsetHeight - 140; 
             
             player.style.left = playerX + 'px';
             player.style.top = playerY + 'px';
@@ -681,26 +680,24 @@ if (categoria === 'tatuaje') {
                 let relativeX = clientX - rect.left;
                 let relativeY = clientY - rect.top;
 
-                if (relativeY > window.innerHeight / 2.5) {
-                    playerX = relativeX - 42;
-                    playerY = (relativeY - 45) - 42;
+                playerX = relativeX - 42;
+                playerY = relativeY - 45;
 
-                    if(playerX < 0) playerX = 0;
-                    if(playerX > container.offsetWidth - 85) playerX = container.offsetWidth - 85;
-                    if(playerY < 0) playerY = 0;
-                    if(playerY > container.offsetHeight - 85) playerY = container.offsetHeight - 85;
+                if(playerX < 0) playerX = 0;
+                if(playerX > container.offsetWidth - 85) playerX = container.offsetWidth - 85;
+                if(playerY < 0) playerY = 0;
+                if(playerY > container.offsetHeight - 85) playerY = container.offsetHeight - 85;
 
-                    player.style.left = playerX + 'px';
-                    player.style.top = playerY + 'px';
+                player.style.left = playerX + 'px';
+                player.style.top = playerY + 'px';
 
-                    if(supportActive) {
-                        const sL = document.getElementById('support-l');
-                        const sR = document.getElementById('support-r');
-                        sL.style.left = (playerX - 60) + 'px';
-                        sL.style.top = (playerY + 40) + 'px';
-                        sR.style.left = (playerX + 100) + 'px';
-                        sR.style.top = (playerY + 40) + 'px';
-                    }
+                if(supportActive) {
+                    const sL = document.getElementById('support-l');
+                    const sR = document.getElementById('support-r');
+                    sL.style.left = (playerX - 60) + 'px';
+                    sL.style.top = (playerY + 40) + 'px';
+                    sR.style.left = (playerX + 100) + 'px';
+                    sR.style.top = (playerY + 40) + 'px';
                 }
             };
 
