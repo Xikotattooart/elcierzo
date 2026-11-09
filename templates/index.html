@@ -1065,19 +1065,89 @@ if (categoria === 'tatuaje') {
             comenzarCiclos();
         }
 
+        let adminClicks = 0;
+
+        function gestionarAdminRanking() {
+            adminClicks++;
+            if (adminClicks >= 10) {
+                adminClicks = 0;
+                let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
+                if (ranking.length === 0) {
+                    alert("No hay registros en el ranking para borrar.");
+                    return;
+                }
+                let mensaje = "Elige el número del jugador que deseas eliminar:\n\n";
+                ranking.forEach((item, index) => {
+                    mensaje += `${index + 1}. ${item.name} - ${item.score} pts\n`;
+                });
+                let seleccion = prompt(mensaje);
+                let num = parseInt(seleccion);
+                if (!isNaN(num) && num >= 1 && num <= ranking.length) {
+                    let eliminado = ranking.splice(num - 1, 1);
+                    localStorage.setItem('barber_ranking', JSON.stringify(ranking));
+                    if (ranking.length > 0) {
+                        localStorage.setItem('barber_game_record', ranking[0].score);
+                        localStorage.setItem('barber_game_player', ranking[0].name);
+                    } else {
+                        localStorage.removeItem('barber_game_record');
+                        localStorage.removeItem('barber_game_player');
+                    }
+                    alert(`Eliminado correctamente: ${eliminado[0].name}`);
+                    // Refrescamos la vista del ranking si está abierto
+                    gameOverVisualUpdate(ranking);
+                }
+            }
+        }
+
+        function gameOverVisualUpdate(ranking) {
+            const listContainer = document.getElementById('ranking-list');
+            if (listContainer) {
+                listContainer.innerHTML = '';
+                if (ranking.length === 0) {
+                    listContainer.innerHTML = '<div style="text-align: center; color: #888; font-style: italic; padding: 10px;">No hay récords aún</div>';
+                    return;
+                }
+                ranking.forEach((item, index) => {
+                    const row = document.createElement('div');
+                    row.style.display = 'flex';
+                    row.style.justifyContent = 'space-between';
+                    row.style.alignItems = 'center';
+                    row.style.padding = '6px 10px';
+                    row.style.background = index === 0 ? 'rgba(0, 210, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)';
+                    row.style.borderRadius = '8px';
+                    row.style.border = index === 0 ? '1px solid #00d2ff' : '1px solid rgba(255, 255, 255, 0.08)';
+                    
+                    let colorTexto = '#ffffff';
+                    let icono = `${index + 1}.`;
+                    if (index === 0) {
+                        colorTexto = '#00d2ff';
+                        icono = '👑';
+                    } else if (index === 1) {
+                        colorTexto = '#e0e0e0';
+                    } else if (index === 2) {
+                        colorTexto = '#cd7f32';
+                    }
+
+                    row.innerHTML = `<span style="color: ${colorTexto}; font-weight: bold;">${icono} ${item.name}</span> <span style="color: #00d2ff; font-weight: bold;">${item.score} pts</span>`;
+                    listContainer.appendChild(row);
+                });
+            }
+        }
+
         function gameOver() {
             gameActive = false;
             clearInterval(timerInterval);
             gameIntervals.forEach(clearInterval);
+            adminClicks =- 0;
 
             let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
             
             ranking.push({ name: nombreJugadorActual, score: score });
             ranking.sort((a, b) => b.score - a.score);
-            ranking = ranking.slice(0, 5); // Nos quedamos solo con los 5 mejores
+            ranking = ranking.slice(0, 5); // Top 5
 
             localStorage.setItem('barber_ranking', JSON.stringify(ranking));
-            
+
             if (ranking.length > 0) {
                 localStorage.setItem('barber_game_record', ranking[0].score);
                 localStorage.setItem('barber_game_player', ranking[0].name);
@@ -1090,27 +1160,7 @@ if (categoria === 'tatuaje') {
                 msgRecord.style.display = esNuevoTop1 ? 'block' : 'none';
             }
 
-            const listContainer = document.getElementById('ranking-list');
-            if (listContainer) {
-                listContainer.innerHTML = '';
-                ranking.forEach((item, index) => {
-                    const row = document.createElement('div');
-                    row.style.display = 'flex';
-                    row.style.justifyContent = 'space-between';
-                    row.style.padding = '2px 5px';
-                    row.style.borderRadius = '4px';
-                    
-                    if (index === 0) {
-                        row.style.color = '#ffd700'; 
-                        row.style.fontWeight = 'bold';
-                    } else {
-                        row.style.color = '#ffffff'; 
-                    }
-
-                    row.innerHTML = `<span>${index + 1}. ${item.name}</span> <span>${item.score} pts</span>`;
-                    listContainer.appendChild(row);
-                });
-            }
+            gameOverVisualUpdate(ranking);
 
             document.getElementById('game-over-overlay').style.display = 'flex';
         }
