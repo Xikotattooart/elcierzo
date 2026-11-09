@@ -7,271 +7,227 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        .hora-ocupada {
-    border-color: #555 !important;
-    color: #555 !important;
-    background: rgba(255, 255, 255, 0.02) !important;
-    cursor: pointer;
-}
-        body { 
-            margin: 0; 
-            padding: 0; 
-            background: url("{{ url_for('static', filename='fondo.jpg') }}") no-repeat center center fixed; 
-            background-size: cover; 
-            font-family: 'Helvetica Neue', Arial, sans-serif; 
-            color: white; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            overflow-x: hidden; 
+        :root {
+            --gold: #d4af37;
+            --gold-soft: #f0d77a;
+            --gold-glow: rgba(212, 175, 55, 0.45);
+            --cyan: #00d2ff;
+            --glass: rgba(255, 255, 255, 0.06);
+            --glass-strong: rgba(18, 18, 24, 0.55);
+            --glass-border: rgba(255, 255, 255, 0.14);
+            --text: #f4f4f6;
+            --muted: rgba(255, 255, 255, 0.6);
+            --blur: blur(20px) saturate(160%);
         }
-        .capa-oscura { 
-            background: rgba(0, 0, 0, 0.85); 
-            min-height: 100vh; 
-            width: 100%; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            padding: 20px 25px; 
-            box-sizing: border-box; 
+        * { -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0; padding: 0;
+            background: #07070b url("{{ url_for('static', filename='fondo.jpg') }}") no-repeat center center fixed;
+            background-size: cover;
+            font-family: -apple-system, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            color: var(--text);
+            display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
         }
-        #popup-aviso-cita {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 10005;
-            justify-content: center;
-            align-items: center;
+
+        /* ===== Fondo: velo oscuro + orbes luminosos ===== */
+        .capa-oscura {
+            position: relative; isolation: isolate;
+            background: linear-gradient(180deg, rgba(5,5,10,0.82), rgba(5,5,10,0.92));
+            min-height: 100vh; width: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 24px 20px 40px; box-sizing: border-box; overflow: hidden;
         }
-        .tarjeta-popup-aviso {
-            border: 2px solid #d4af37;
-            background: #000;
-            padding: 25px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 320px;
-            text-align: center;
-            color: #fff;
+        .orbe { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .55; z-index: -1; pointer-events: none; animation: flota 14s ease-in-out infinite alternate; }
+        .orbe-1 { width: 320px; height: 320px; background: radial-gradient(circle, #d4af37, transparent 70%); top: -80px; left: -100px; }
+        .orbe-2 { width: 280px; height: 280px; background: radial-gradient(circle, #00a2ff, transparent 70%); bottom: 10%; right: -110px; opacity: .35; animation-delay: -5s; }
+        .orbe-3 { width: 220px; height: 220px; background: radial-gradient(circle, #8a4dff, transparent 70%); top: 45%; left: -90px; opacity: .25; animation-delay: -9s; }
+        @keyframes flota { from { transform: translate(0,0) scale(1); } to { transform: translate(30px,-40px) scale(1.15); } }
+
+        .logo { width: 80%; max-width: 280px; margin: 14px 0 22px; transition: .4s ease-in-out; filter: drop-shadow(0 0 22px var(--gold-glow)); }
+        .logo-pequeno { width: 110px; margin-top: 16px; margin-bottom: 12px; }
+
+        /* ===== Cristal base ===== */
+        .glass, #formulario-cita, .tarjeta-exito, .tarjeta-popup-aviso, .tarjeta-modal {
+            background: linear-gradient(145deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
+            -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 0 30px rgba(255,255,255,.02);
         }
-        .logo { width: 85%; max-width: 320px; margin-top: 15px; margin-bottom: 20px; transition: 0.4s ease-in-out; }
-        .logo-pequeno { width: 120px; margin-top: 20px; margin-bottom: 10px; }
-        
-        .contenedor-botones { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
-        .btn-servicio { padding: 22px; background: rgba(255, 255, 255, 0.05); border: 2px solid #d4af37; border-radius: 18px; color: #d4af37; font-weight: bold; font-size: 1.1rem; text-transform: uppercase; cursor: pointer; }
-        
-        #formulario-cita { display: none; width: 100%; max-width: 400px; background: rgba(10, 10, 10, 0.98); padding: 20px; border-radius: 20px; border: 1px solid #d4af37; box-sizing: border-box; }
+
+        .contenedor-botones { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 12px; }
+
+        .btn-servicio {
+            position: relative; overflow: hidden;
+            padding: 20px; border-radius: 18px; cursor: pointer;
+            background: linear-gradient(145deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
+            -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 28px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.2);
+            color: var(--gold-soft); font-weight: 700; font-size: 1rem; letter-spacing: 1.5px; text-transform: uppercase;
+            transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+        }
+        .btn-servicio::after { content: ""; position: absolute; top: 0; left: -120%; width: 60%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.25), transparent); transform: skewX(-20deg); transition: left .6s ease; }
+        .btn-servicio:hover, .btn-servicio:active { transform: translateY(-2px); border-color: rgba(212,175,55,.7); box-shadow: 0 10px 32px rgba(0,0,0,.5), 0 0 26px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,.25); }
+        .btn-servicio:hover::after { left: 140%; }
+
+        .btn-link { background: none; border: none; color: var(--text); width: 100%; margin-top: 12px; opacity: .6; font-size: .8rem; cursor: pointer; transition: .2s; }
+        .btn-link:hover { opacity: 1; }
+
+        .titulo-seccion { color: var(--gold-soft); text-align: center; font-size: 1.1rem; margin: 0 0 18px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 18px var(--gold-glow); }
+
+        /* Mapa */
+        .tarjeta-mapa { width: 100%; padding: 10px; border-radius: 18px; box-sizing: border-box; text-align: center; }
+        .tarjeta-mapa a { text-decoration: none; color: inherit; display: block; }
+        .tarjeta-mapa iframe { border: 0; border-radius: 12px; pointer-events: none; filter: invert(.92) hue-rotate(180deg) saturate(.7) brightness(.9); }
+        .tarjeta-mapa p { color: var(--gold-soft); font-weight: 700; margin: 10px 0 2px; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; }
+
+        .btn-secreto {
+            background: rgba(255,255,255,.03); border: 1px dashed rgba(212,175,55,.5); color: rgba(240,215,122,.8);
+            padding: 7px 20px; border-radius: 10px; font-size: .72rem; font-family: ui-monospace, monospace; text-transform: uppercase;
+            cursor: pointer; margin: 4px auto 0; display: block; letter-spacing: 1.5px; transition: .3s;
+        }
+        .btn-secreto:hover { color: var(--gold); border-color: var(--gold); background: rgba(212,175,55,.12); box-shadow: 0 0 18px var(--gold-glow); }
+
+        /* ===== Formulario ===== */
+        #formulario-cita { display: none; width: 100%; max-width: 400px; padding: 22px 20px; border-radius: 24px; box-sizing: border-box; }
         .fila-doble { display: flex; gap: 10px; width: 100%; }
-        input, select, textarea { width: 100%; height: 50px; padding: 0 15px; margin: 8px 0; background: #111; border: 1px solid #333; border-radius: 12px; color: white; font-size: 1rem; box-sizing: border-box; text-align: center; color-scheme: dark; }
-        textarea {
-    text-align: center;
-    padding-top: 15px; /* Empuja el texto hacia el centro */
-    line-height: 1.5;
-    height: 80px;      /* Le damos un poco más de altura para que respire */
-    resize: none;      /* Evita que el usuario lo deforme */
-}
-        .grid-horas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 15px 0; }
-        .hora-btn { height: 45px; border: 1px solid #d4af37; background: none; color: #d4af37; border-radius: 10px; font-weight: bold; }
-        .hora-btn:disabled { border-color: #444; color: #444; opacity: 0.4; }
-        .hora-seleccionada { background: #d4af37 !important; color: black !important; }
-        
-        label { color: #d4af37; font-size: 0.7rem; text-transform: uppercase; font-weight: bold; margin-top: 10px; display: block; text-align: center; }
-        .btn-final { background: #d4af37; color: black; border: none; height: 60px; border-radius: 15px; width: 100%; font-weight: bold; font-size: 1.1rem; text-transform: uppercase; margin-top: 15px; cursor: pointer; }
-        
-        #pantalla-exito { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
-        .tarjeta-exito { border: 2px solid #d4af37; padding: 25px; border-radius: 25px; background: #000; width: 90%; max-width: 350px; text-align: center; }
+        input, select, textarea {
+            width: 100%; height: 50px; padding: 0 15px; margin: 8px 0;
+            background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); border-radius: 14px;
+            color: var(--text); font-size: 1rem; box-sizing: border-box; text-align: center; color-scheme: dark; font-family: inherit;
+            transition: border-color .2s, box-shadow .2s, background .2s; outline: none;
+        }
+        input::placeholder, textarea::placeholder { color: rgba(255,255,255,.4); }
+        input:focus, select:focus, textarea:focus { border-color: var(--gold); background: rgba(255,255,255,.09); box-shadow: 0 0 0 3px rgba(212,175,55,.18), 0 0 20px rgba(212,175,55,.2); }
+        select option { background: #15151c; color: #fff; }
+        textarea { padding-top: 15px; line-height: 1.5; height: 84px; resize: none; }
+        input[type="file"] { height: 60px; padding: 14px 12px; background: rgba(212,175,55,.06); border: 2px dashed rgba(212,175,55,.55); cursor: pointer; color: var(--gold-soft); }
+        input[type="file"]::file-selector-button { background: rgba(212,175,55,.2); color: var(--gold-soft); border: 1px solid rgba(212,175,55,.5); border-radius: 8px; padding: 4px 10px; margin-right: 8px; cursor: pointer; }
 
-        #game-container { 
-            display: none; 
-            position: fixed; 
-            top: 0; left: 50%;
-            transform: translateX(-50%); 
-            width: 100vw; 
-            max-width: 500px; 
-            height: 100vh; 
-            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("{{ url_for('static', filename='fondo_game.jpg') }}") no-repeat center center; 
-            background-size: cover; 
-            overflow: hidden; 
-            touch-action: none; 
-            z-index: 10000; 
-            border-left: 1px solid rgba(212, 175, 55, 0.3);
-            border-right: 1px solid rgba(212, 175, 55, 0.3);
-        }
+        label { color: var(--gold-soft); font-size: .68rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1.4px; margin-top: 12px; display: block; text-align: center; }
+        .fila-horas { display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 10px 0 2px; }
+        .fila-horas span { font-size: .75rem; }
+        #contador-libres { color: #ff6b6b; text-transform: none; }
 
-        #player { 
-            position: absolute; 
-            width: 85px; 
-            height: 85px; 
-            background: url("{{ url_for('static', filename='nave.png') }}") no-repeat center; 
-            background-size: contain; 
-            z-index: 5000; 
-        }
+        .grid-horas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+        .hora-btn { height: 44px; border: 1px solid rgba(212,175,55,.45); background: rgba(212,175,55,.07); color: var(--gold-soft); border-radius: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: .2s; }
+        .hora-btn:hover { background: rgba(212,175,55,.18); box-shadow: 0 0 14px rgba(212,175,55,.3); }
+        .hora-btn:disabled { border-color: #444; color: #444; opacity: .4; }
+        .hora-seleccionada { background: linear-gradient(135deg, #f0d77a, #d4af37) !important; color: #111 !important; border-color: transparent !important; box-shadow: 0 0 22px var(--gold-glow) !important; }
+        .hora-ocupada { border-color: rgba(255,255,255,.1) !important; color: rgba(255,255,255,.3) !important; background: rgba(255,255,255,.03) !important; text-decoration: line-through; box-shadow: none !important; cursor: pointer; }
 
-        .support-ship {
-            position: absolute;
-            width: 45px;
-            height: 45px;
-            background: url("{{ url_for('static', filename='nave.png') }}") no-repeat center;
-            background-size: contain;
-            z-index: 4900;
-            opacity: 0.8;
-            filter: sepia(1) hue-rotate(10deg) saturate(2);
-            pointer-events: none;
+        .btn-final {
+            background: linear-gradient(135deg, #f0d77a, #d4af37 55%, #b8932b); color: #14110a; border: none; height: 58px; border-radius: 16px; width: 100%;
+            font-weight: 800; font-size: 1rem; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 16px; cursor: pointer; font-family: inherit;
+            box-shadow: 0 8px 26px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,.5); transition: transform .2s, box-shadow .2s;
         }
+        .btn-final:hover { transform: translateY(-2px); box-shadow: 0 12px 34px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,.5); }
+        .btn-final:disabled { opacity: .6; transform: none; }
 
-        .bubble-active {
-            box-shadow: 0 0 0 45px rgba(0, 150, 255, 0.4), inset 0 0 20px rgba(0, 150, 255, 0.6);
-            border-radius: 50%;
+        /* ===== Pantallas superpuestas ===== */
+        #pantalla-exito, #popup-aviso-cita, #modal-cancelar {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(4,4,8,.6); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+            align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;
         }
-        .bomb-bullet { 
-            position: absolute; width: 14px; height: 14px; background: #ff0000; 
-            border-radius: 50%; box-shadow: 0 0 10px #ff0000; z-index: 2000; 
+        #pantalla-exito { z-index: 9999; flex-direction: column; }
+        #popup-aviso-cita { z-index: 10005; }
+        #modal-cancelar { z-index: 9999; }
+        .tarjeta-exito, .tarjeta-popup-aviso, .tarjeta-modal { padding: 26px; border-radius: 26px; width: 90%; text-align: center; color: #fff; box-sizing: border-box; position: relative; }
+        .tarjeta-exito { max-width: 350px; border-color: rgba(212,175,55,.5); box-shadow: 0 10px 50px rgba(0,0,0,.6), 0 0 40px rgba(212,175,55,.2), inset 0 1px 0 rgba(255,255,255,.2); }
+        .tarjeta-popup-aviso { max-width: 320px; }
+        .tarjeta-modal { max-width: 400px; }
+        .tarjeta-popup-aviso p { font-size: 1rem; margin: 0 0 20px; line-height: 1.4; }
+        .tarjeta-modal h3 { color: var(--gold-soft); text-transform: uppercase; margin: 0 0 10px; letter-spacing: 1px; font-size: 1.05rem; }
+        .tarjeta-modal p { font-size: .92rem; color: rgba(255,255,255,.75); line-height: 1.45; }
+        .tarjeta-modal hr { border: 0; border-top: 1px solid rgba(255,255,255,.12); margin: 16px 0; }
+        .modal-cerrar { position: absolute; top: 10px; right: 16px; font-size: 26px; color: var(--gold-soft); cursor: pointer; line-height: 1; }
+        #msg-error-modal { color: #ff6b6b; margin: 10px 0 0; display: none; }
+
+        /* ===== Juego: elementos funcionales (sin cambios) ===== */
+        #game-container {
+            display: none; position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+            width: 100vw; max-width: 500px; height: 100vh;
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("{{ url_for('static', filename='fondo_game.jpg') }}") no-repeat center center;
+            background-size: cover; overflow: hidden; touch-action: none; z-index: 10000;
+            border-left: 1px solid rgba(212, 175, 55, 0.3); border-right: 1px solid rgba(212, 175, 55, 0.3);
         }
-        
+        #player { position: absolute; width: 85px; height: 85px; background: url("{{ url_for('static', filename='nave.png') }}") no-repeat center; background-size: contain; z-index: 5000; }
+        .support-ship { position: absolute; width: 45px; height: 45px; background: url("{{ url_for('static', filename='nave.png') }}") no-repeat center; background-size: contain; z-index: 4900; opacity: 0.8; filter: sepia(1) hue-rotate(10deg) saturate(2); pointer-events: none; }
+        .bubble-active { box-shadow: 0 0 0 45px rgba(0, 150, 255, 0.4), inset 0 0 20px rgba(0, 150, 255, 0.6); border-radius: 50%; }
+        .bomb-bullet { position: absolute; width: 14px; height: 14px; background: #ff0000; border-radius: 50%; box-shadow: 0 0 10px #ff0000; z-index: 2000; }
         .enemy { position: absolute; background-size: contain; background-repeat: no-repeat; background-position: center; z-index: 1000; filter: drop-shadow(0 0 10px #d4af37); }
         .coin { position: absolute; background: url("{{ url_for('static', filename='moneda.png') }}") no-repeat center; background-size: contain; width: 50px; height: 50px; z-index: 1500; filter: drop-shadow(0 0 15px #ffd700); }
         .coin-2 { position: absolute; background: url("{{ url_for('static', filename='moneda_2.png') }}") no-repeat center; background-size: contain; width: 50px; height: 50px; z-index: 1500; filter: drop-shadow(0 0 15px #00ff00); }
         .vida-item { position: absolute; background: url("{{ url_for('static', filename='vida.png') }}") no-repeat center; background-size: contain; width: 40px; height: 40px; z-index: 1550; }
         .bullet { position: absolute; width: 4px; height: 12px; background: #d4af37; border-radius: 5px; box-shadow: 0 0 10px #d4af37; z-index: 2000; }
-        
-        /* estilos nave poderosa modificado */
-        .boss-ship {
-            position: absolute;
-            width: 212px; /* reducido a la mitad */
-            height: 212px;
-            background: url("{{ url_for('static', filename='nave_poderosa.png') }}") no-repeat center;
-            background-size: contain;
-            z-index: 4500;
-            filter: drop-shadow(0 0 30px #ff0000);
-        }
-        .boss-fireball {
-            position: absolute;
-            width: 70px;
-            height: 70px;
-            background: radial-gradient(circle, #ffcc00, #ff6600, #ff0000);
-            border-radius: 50%;
-            box-shadow: 0 0 40px #ff3300;
-            z-index: 4600;
-        }
+        .boss-ship { position: absolute; width: 212px; height: 212px; background: url("{{ url_for('static', filename='nave_poderosa.png') }}") no-repeat center; background-size: contain; z-index: 4500; filter: drop-shadow(0 0 30px #ff0000); }
+        .boss-fireball { position: absolute; width: 70px; height: 70px; background: radial-gradient(circle, #ffcc00, #ff6600, #ff0000); border-radius: 50%; box-shadow: 0 0 40px #ff3300; z-index: 4600; }
 
-        #header-game { 
-            position: absolute; 
-            top: 15px; 
-            width: 100%; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            z-index: 8000; 
-        }
+        /* ===== Juego: interfaz en cristal ===== */
+        #header-game { position: absolute; top: 12px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 8000; pointer-events: none; }
         .ui-top-row {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            width: 100%;
-            color: #d4af37;
-            font-size: 0.9rem;
-            font-weight: bold;
-            margin-bottom: 5px;
+            display: flex; justify-content: space-around; align-items: center; width: calc(100% - 24px); box-sizing: border-box; padding: 10px 6px;
+            color: var(--gold-soft); font-size: .72rem; font-weight: 700; letter-spacing: 1px; line-height: 1.5;
+            background: rgba(255,255,255,.07); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,.16); border-radius: 18px; box-shadow: 0 6px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.18);
         }
-        .timer-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #timer-display { 
-            background: rgba(0,0,0,0.6); 
-            padding: 5px 15px; 
-            border-radius: 15px; 
-            border: 1px solid #d4af37; 
-            color: #d4af37; 
-            font-weight: bold; 
-            font-family: monospace; 
-            font-size: 1.1rem; 
-        }
-        #ui-lives {
-            margin-top: 4px;
-            color: #d4af37;
-            font-weight: bold;
-            font-size: 0.8rem;
-            text-shadow: 1px 1px black;
-        }
-        #boss-ui {
-            display: none;
-            color: #ff0000;
-            font-size: 0.8rem;
-            margin-top: 2px;
-            text-shadow: 1px 1px black;
-        }
-        
-        #start-overlay, #game-over-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9000; }
+        .ui-top-row span { font-size: 1.05rem; color: #fff; text-shadow: 0 0 10px var(--gold-glow); }
+        .timer-container { display: flex; flex-direction: column; align-items: center; }
+        #timer-display { background: rgba(0,0,0,.35); padding: 4px 14px; border-radius: 14px; border: 1px solid rgba(212,175,55,.6); color: var(--gold-soft); font-weight: 700; font-family: ui-monospace, monospace; font-size: 1.05rem; box-shadow: 0 0 14px rgba(212,175,55,.25); }
+        #ui-lives { margin-top: 4px; color: var(--gold-soft); font-weight: 700; font-size: .72rem; }
+        #ui-lives span { font-size: .8rem; }
+        #boss-ui { display: none; color: #ff5d5d; font-size: .78rem; margin-top: 8px; font-weight: 700; padding: 4px 14px; border-radius: 12px; background: rgba(255,0,0,.12); border: 1px solid rgba(255,70,70,.4); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+
+        #start-overlay, #game-over-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(4,4,10,.55); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9000; }
         #game-over-overlay { display: none; z-index: 10001; }
-        
-        .pixel-title { font-family: 'Courier New', Courier, monospace; font-size: 3.5rem; color: #ff0000; text-shadow: 4px 4px #550000; font-weight: 900; margin-bottom: 20px; letter-spacing: -2px; }
-        .btn-restart { padding: 15px 40px; background: #d4af37; color: black; font-size: 1.5rem; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; }
-        .btn-exit-game { margin-top: 20px; padding: 8px 20px; background: #ff4444; color: white; border: none; border-radius: 20px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
-
-        #btn-start-game { padding: 20px 50px; background: #d4af37; color: black; font-size: 2rem; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 0 20px #d4af37; margin-bottom: 30px; }
-
-        .btn-juego-mini { background: none; border: 1px solid #d4af37; color: #d4af37; padding: 8px 15px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; cursor: pointer; margin-top: 10px; }
+        .pixel-title { font-family: 'Courier New', Courier, monospace; font-size: 3.2rem; color: #ff3b3b; text-shadow: 0 0 24px rgba(255,0,0,.6), 3px 3px #550000; font-weight: 900; margin-bottom: 18px; letter-spacing: -2px; }
+        .btn-restart, #btn-start-game {
+            padding: 14px 44px; background: linear-gradient(135deg, #f0d77a, #d4af37); color: #14110a; font-size: 1.4rem; font-weight: 800; letter-spacing: 2px;
+            border: none; border-radius: 16px; cursor: pointer; box-shadow: 0 0 28px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,.5); transition: transform .2s;
+        }
+        .btn-restart:hover, #btn-start-game:hover { transform: scale(1.04); }
+        .btn-exit-game { margin-top: 14px; padding: 8px 24px; background: rgba(255,68,68,.15); color: #ff8c8c; border: 1px solid rgba(255,68,68,.5); border-radius: 20px; font-weight: 700; font-size: .8rem; cursor: pointer; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+        #start-overlay > div:first-child { padding: 20px 26px; border-radius: 22px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 10px 36px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18); }
+        #player-nickname-input { width: 200px; height: 42px; margin: 6px 0 0; }
+        .tarjeta-ranking { width: 100%; max-width: 320px; padding: 16px; margin-bottom: 16px; border-radius: 20px; box-sizing: border-box; background: linear-gradient(145deg, rgba(0,210,255,.16), rgba(0,90,160,.14)); border: 1px solid rgba(0,210,255,.5); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: 0 0 34px rgba(0,210,255,.25), inset 0 1px 0 rgba(255,255,255,.2); }
+        .btn-juego-mini { background: none; border: 1px solid var(--gold); color: var(--gold); padding: 8px 15px; border-radius: 10px; font-size: .8rem; font-weight: bold; text-transform: uppercase; cursor: pointer; margin-top: 10px; }
         .exp-part { position: absolute; background: #d4af37; border-radius: 50%; z-index: 3000; animation: flyout 0.4s ease-out forwards; }
         @keyframes flyout { from { transform: translate(0, 0) scale(1); opacity: 1; } to { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
     </style>
 </head>
 <body>
     <div class="capa-oscura">
+        <span class="orbe orbe-1"></span><span class="orbe orbe-2"></span><span class="orbe orbe-3"></span>
+
         <img src="{{ url_for('static', filename='LOGO.png') }}" class="logo" id="main-logo">
+
         <div id="menu-servicios" class="contenedor-botones">
             <button class="btn-servicio" onclick="mostrarForm('barberia')">reservar barbería 💈</button>
             <button class="btn-servicio" onclick="mostrarForm('tatuaje')">reservar tatuaje 💉</button>
             <button class="btn-servicio" onclick="mostrarRedes()">redes sociales 📱</button>
 
-            <!-- MAPA CENTRADO EN LA FICHA DE EL CIERZO -->
-            <div style="width: 100%; max-width: 500px; margin: 0px auto 0 auto; background: rgba(15, 15, 15, 0.85); border: 2px solid #d4af37; border-radius: 18px; padding: 10px; box-sizing: border-box; box-shadow: 0 4px 15px rgba(0,0,0,0.6); text-align: center;">
-                <a href="https://www.google.com/maps/search/?api=1&query=El+Cierzo+Talayuelas" 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   style="text-decoration: none; color: inherit; display: block;">
-                   
-                    <iframe 
-                        src="https://maps.google.com/maps?q=El%20Cierzo%20Talayuelas&t=&z=17&ie=UTF8&iwloc=&output=embed" 
-                        width="100%" 
-                        height="120" 
-                        style="border:0; border-radius: 8px; pointer-events: none;" 
-                        allowfullscreen="" 
-                        loading="lazy">
-                    </iframe>
-                    
-                    <p style="color: #d4af37; font-weight: bold; margin-top: 8px; margin-bottom: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
-                        📍 Paseo del Prado, 30, 16320 Talayuelas, Cuenca
-                    </p>
+            <div class="tarjeta-mapa glass">
+                <a href="https://www.google.com/maps/search/?api=1&query=El+Cierzo+Talayuelas" target="_blank" rel="noopener noreferrer">
+                    <iframe src="https://maps.google.com/maps?q=El%20Cierzo%20Talayuelas&t=&z=17&ie=UTF8&iwloc=&output=embed" width="100%" height="120" allowfullscreen="" loading="lazy"></iframe>
+                    <p>📍 Paseo del Prado, 30, 16320 Talayuelas, Cuenca</p>
                 </a>
             </div>
 
-            <!-- BOTÓN SECRETO ÚNICO (Más visible, ancho y elegante) -->
-            <button onclick="prepararJuego()" style="background: rgba(0,0,0,0.3); border: 1px dashed rgba(212, 175, 55, 0.6); color: rgba(212, 175, 55, 0.85); padding: 7px 20px; border-radius: 10px; font-size: 0.75rem; font-family: monospace; text-transform: uppercase; cursor: pointer; margin-top: 5px; width: auto; max-width: 180px; margin-left: auto; margin-right: auto; display: block; letter-spacing: 1.5px; transition: 0.3s;" onmouseover="this.style.color='#d4af37'; this.style.borderColor='#d4af37'; this.style.background='rgba(212, 175, 55, 0.15)';" onmouseout="this.style.color='rgba(212, 175, 55, 0.85)'; this.style.borderColor='rgba(212, 175, 55, 0.6)'; this.style.background='rgba(0,0,0,0.3)';">
-                secret game
-            </button>
+            <button class="btn-secreto" onclick="prepararJuego()">secret game</button>
         </div>
 
         <div id="menu-redes" class="contenedor-botones" style="display: none;">
-    <h2 style="color:#d4af37; text-align:center; font-size: 1.2rem; margin-bottom: 20px; text-transform: uppercase;">nuestras redes</h2>
-    
-    <button class="btn-servicio" onclick="abrirInstagram('elcierzoestudio')">
-        Instagram estudio 💈💉
-    </button>
-    
-    <button class="btn-servicio" onclick="abrirInstagram('xikotattooart')">
-        instagram tattoos💉
-    </button>
-    
-    <button type="button" onclick="volverAlMenu()" style="background:none; border:none; color:white; width:100%; margin-top:10px; opacity:0.6; font-size: 0.8rem;">← volver atrás</button>
-</div>
+            <h2 class="titulo-seccion">nuestras redes</h2>
+            <button class="btn-servicio" onclick="abrirInstagram('elcierzoestudio')">Instagram estudio 💈💉</button>
+            <button class="btn-servicio" onclick="abrirInstagram('xikotattooart')">instagram tattoos💉</button>
+            <button type="button" onclick="volverAlMenu()" class="btn-link">← volver atrás</button>
+        </div>
 
         <div id="formulario-cita">
-            <h2 id="titulo-dinamico" style="color:#d4af37; text-align:center; font-size: 1.2rem; margin-bottom: 20px;"></h2>
+            <h2 id="titulo-dinamico" class="titulo-seccion"></h2>
             <form id="reserva-form" enctype="multipart/form-data">
                 <input type="hidden" name="categoria" id="input-categoria">
                 <div class="fila-doble">
@@ -279,14 +235,14 @@
                     <input type="text" name="Apellidos" placeholder="Apellidos" required>
                 </div>
                 <input type="tel" name="Telefono" id="input-telefono" placeholder="Teléfono" required>
-                
+
                 <div id="campos-tatuaje" style="display:none;">
                     <label>zona a tatuar</label>
                     <input type="text" name="zona_tatuaje" placeholder="Ej: Antebrazo, gemelo, bíceps...">
-                    
+
                     <label>tamaño aproximado</label>
                     <input type="text" name="tamano_tatuaje" placeholder="Ej: 3, 6, 10 cm...">
-                    
+
                     <label>¿qué horario te va mejor?</label>
                     <select name="fecha_tatuaje">
                         <option value="Martes por la mañana">Martes por la mañana</option>
@@ -300,7 +256,7 @@
                     <textarea name="descripcion" placeholder="Estilo, detalles..." rows="3"></textarea>
 
                     <label>subir imagen de referencia</label>
-                    <input type="file" name="imagen_referencia" accept="image/*" style="height: 60px; padding: 12px; background: #1a1a1a; border: 2px dashed #d4af37; cursor: pointer; color: #d4af37;">
+                    <input type="file" name="imagen_referencia" accept="image/*">
                 </div>
 
                 <div id="campos-barberia" style="display:none;">
@@ -308,15 +264,16 @@
                     <select name="servicio_barberia">
                         {% for s in barberia %}<option value="{{ s.nombre }}">{{ s.nombre }}</option>{% endfor %}
                     </select>
+
                     <label>fecha</label>
                     <select name="fecha_barberia" id="select-fecha" onchange="cargarHoras()">
                         {% for d in dias %}<option value="{{ d.valor }}">{{ d.texto }}</option>{% endfor %}
                     </select>
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; margin-bottom: 2px;">
-                        <span style="visibility: hidden; font-size: 0.75rem;">placeholder</span>
-                        <label style="margin-top: 0; text-align: center;">horas disponibles</label>
-                        <span id="contador-libres" style="color: #ff4d4d; font-weight: normal; text-transform: none; font-size: 0.75rem;"></span>
+
+                    <div class="fila-horas">
+                        <span style="visibility: hidden;">placeholder</span>
+                        <label style="margin-top: 0;">horas disponibles</label>
+                        <span id="contador-libres"></span>
                     </div>
 
                     <input type="hidden" name="hora" id="input-hora" required>
@@ -324,7 +281,7 @@
                 </div>
 
                 <button type="submit" class="btn-final" id="btn-submit">ENVIAR IDEA AL TATUADOR💬</button>
-                <button type="button" onclick="location.reload()" style="background:none; border:none; color:white; width:100%; margin-top:10px; opacity:0.6; font-size: 0.8rem;">← volver atrás</button>
+                <button type="button" onclick="location.reload()" class="btn-link">← volver atrás</button>
             </form>
         </div>
     </div>
@@ -334,38 +291,37 @@
     </div>
 
     <div id="game-container">
-        <div id="start-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;">
+        <div id="start-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;">
             <div style="text-align: center;">
-                <label style="color: #d4af37; font-size: 0.8rem; margin-bottom: 5px; text-transform: uppercase;">Nickname / Apodo</label>
-                <input type="text" id="player-nickname-input" maxlength="12" style="width: 200px; height: 40px; font-size: 1rem; text-align: center; border-radius: 8px; border: 1px solid #d4af37; background: #111; color: #fff;">
+                <label style="margin-top: 0;">Nickname / Apodo</label>
+                <input type="text" id="player-nickname-input" maxlength="12">
             </div>
-            <button id="btn-start-game" onclick="validarYComenzarJuego()" style="padding: 15px 40px; background: #d4af37; color: black; font-size: 1.5rem; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 0 20px #d4af37;">START</button>
+            <button id="btn-start-game" onclick="validarYComenzarJuego()">START</button>
         </div>
 
-        <div id="game-over-overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); flex-direction:column; justify-content:center; align-items:center; z-index:10001; padding: 15px; box-sizing: border-box;">
-            <div class="pixel-title" style="margin-bottom: 5px; font-size: 2.8rem;">GAME OVER</div>
-            
-            <div id="new-record-msg" style="color: #00d2ff; font-size: 0.95rem; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; text-align: center; display: none; text-shadow: 0 0 10px rgba(0,210,255,0.6);">🔥 ¡Nuevo Récord Barber! 🔥</div>
+        <div id="game-over-overlay" style="display:none; flex-direction:column; justify-content:center; align-items:center; padding: 15px; box-sizing: border-box;">
+            <div class="pixel-title" style="margin-bottom: 6px; font-size: 2.8rem;">GAME OVER</div>
 
-            <div style="width: 100%; max-width: 320px; background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 60, 110, 0.95)); border: 2px solid #00d2ff; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 0 25px rgba(0, 210, 255, 0.3);">
+            <div id="new-record-msg" style="color: var(--cyan); font-size: .95rem; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; text-align: center; display: none; text-shadow: 0 0 12px rgba(0,210,255,.7);">🔥 ¡Nuevo Récord Barber! 🔥</div>
+
+            <div class="tarjeta-ranking">
                 <div style="text-align: center; margin-bottom: 12px;">
-                    <p style="color: #00d2ff; font-size: 0.95rem; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 8px rgba(0,210,255,0.5);">🏆 TOP 5 RÉCORDS BARBER 🏆</p>
+                    <p style="color: var(--cyan); font-size: .92rem; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 10px rgba(0,210,255,.6);">🏆 TOP 5 RÉCORDS BARBER 🏆</p>
                 </div>
-                <div id="ranking-list" style="font-size: 0.95rem; display: flex; flex-direction: column; gap: 6px; text-align: left;"></div>
+                <div id="ranking-list" style="font-size: .95rem; display: flex; flex-direction: column; gap: 6px; text-align: left;"></div>
             </div>
 
             <button class="btn-restart" onclick="reiniciarPartida()" style="margin-bottom: 8px;">RESTART</button>
             <button class="btn-exit-game" onclick="location.reload()">EXIT</button>
-            
+
             <div id="secret-admin-trigger" onclick="gestionarAdminRanking()" title="Admin" style="width: 10px; height: 10px; background: #ff3333; border-radius: 50%; margin-top: 25px; cursor: pointer; box-shadow: 0 0 8px #ff3333; opacity: 0.7;"></div>
         </div>
-        
+
         <div id="header-game">
             <div class="ui-top-row">
                 <div style="text-align: center;">
                     BARBER POINTS<br>
                     <span id="game-score">0</span>
-                    <div id="boss-ui" style="display: none; color: #ff0000; font-size: 0.8rem; margin-top: 2px; text-shadow: 1px 1px black;">BOSS HP: <span id="boss-hp-count">0</span>/2000</div>
                 </div>
                 <div class="timer-container">
                     <div id="timer-display">00:00</div>
@@ -376,6 +332,7 @@
                     <span id="best-score">0</span>
                 </div>
             </div>
+            <div id="boss-ui">BOSS HP: <span id="boss-hp-count">0</span>/2000</div>
         </div>
 
         <div id="player"></div>
@@ -1238,21 +1195,21 @@ function confirmarCancelacion() {
             btn.disabled = false;
         }
     </script>
-    <div id="modal-cancelar" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:9999;">
-    <div style="background:#1a1a1a; border:2px solid #d4af37; padding:25px; border-radius:8px; max-width:400px; width:90%; text-align:center; position:relative; color:#fff;">
-        <span onclick="cerrarModalCancelar()" style="position:absolute; top:10px; right:15px; font-size:26px; color:#d4af37; cursor:pointer;">&times;</span>
-        <h3 style="color:#d4af37; text-transform:uppercase; margin-top:0;">¿Deseas eliminar esta cita?</h3>
-        <p style="font-size:0.95rem; color:#ccc;">Si esta cita es tuya y quieres cancelarla, ponte en contacto con el estudio.</p>
-        <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
-        <p style="font-size:0.85rem; color:#d4af37; font-weight:bold;">Si eres el barbero, introduzca el código PIN:</p>
-        <input type="password" id="pin-cancelar" placeholder="Código PIN" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #d4af37; background:#111; color:#fff; text-align:center;">
-        <button onclick="confirmarCancelacion()" style="width:100%; padding:12px; background:#d4af37; color:#000; font-weight:bold; border:none; cursor:pointer;">ELIMINAR CITA</button>
-        <p id="msg-error-modal" style="color:#ff4d4d; margin-top:10px; display:none;"></p>
+    <div id="modal-cancelar">
+        <div class="tarjeta-modal">
+            <span class="modal-cerrar" onclick="cerrarModalCancelar()">&times;</span>
+            <h3>¿Deseas eliminar esta cita?</h3>
+            <p>Si esta cita es tuya y quieres cancelarla, ponte en contacto con el estudio.</p>
+            <hr>
+            <p style="font-size:.85rem; color: var(--gold-soft); font-weight:700;">Si eres el barbero, introduzca el código PIN:</p>
+            <input type="password" id="pin-cancelar" placeholder="Código PIN">
+            <button onclick="confirmarCancelacion()" class="btn-final" style="margin-top: 8px; height: 50px;">ELIMINAR CITA</button>
+            <p id="msg-error-modal"></p>
+        </div>
     </div>
-</div>
     <div id="popup-aviso-cita">
         <div class="tarjeta-popup-aviso">
-            <p style="font-size: 1rem; color: #fff; margin-bottom: 20px; line-height: 1.4;">Selecciona una cita antes de confirmar</p>
+            <p>Selecciona una cita antes de confirmar</p>
             <button type="button" onclick="cerrarPopupAviso()" class="btn-final" style="margin-top: 0;">OK</button>
         </div>
     </div>
