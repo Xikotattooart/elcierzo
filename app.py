@@ -12,10 +12,12 @@ import tempfile
 import os
 from datetime import datetime
 
+import subprocess # Asegúrate de tener 'import subprocess' arriba si no lo tienes
+
 def imprimir_en_xprinter_facil(nombre_cliente, servicio, total):
     """
-    Imprime directamente en la Xprinter usando el sistema de Windows 
-    sin necesidad de instalar librerías externas ni usar la consola.
+    Imprime directamente en la Xprinter usando el comando nativo de Windows,
+    enviando el texto de forma directa al puerto o nombre de la impresora compartida.
     """
     try:
         # Diseño del ticket térmico adaptado al ancho estándar
@@ -36,12 +38,21 @@ def imprimir_en_xprinter_facil(nombre_cliente, servicio, total):
             "================================\n\n\n"
         )
 
-        # Crea un archivo temporal invisible y ordena a Windows imprimirlo en la Xprinter predeterminada
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="w", encoding="utf-8") as f:
+        # Crea un archivo temporal con codificación cp850 / latin-1 (compatible con acentos en térmicas)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="w", encoding="cp850", errors="ignore") as f:
             f.write(ticket)
             temp_path = f.name
 
-        os.startfile(temp_path, "print")
+        # Opción A: Enviar directamente a la impresora predeterminada o por nombre exacto de Windows
+        # Ponemos el nombre exacto con el que la guardaste en Windows (ej: "impresora tickets" o "Xprinter")
+        nombre_impresora = "impresora tickets" # Cambia esto si le pusiste otro nombre exacto
+        
+        # Comando nativo de Windows para mandar archivo a impresora compartida/local sin abrir ventanas
+        comando = f'print /d:"{nombre_impresora}" "{temp_path}"'
+        
+        # Ejecutamos el comando de consola de manera oculta
+        subprocess.run(comando, shell=True, check=True)
+        
         print("✅ Ticket mandado a la Xprinter con éxito.")
     except Exception as e:
         print(f"❌ Error al imprimir: {e}")
