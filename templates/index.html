@@ -287,7 +287,7 @@
                     <label>tamaño aproximado</label>
                     <input type="text" name="tamano_tatuaje" placeholder="Ej: 3, 6, 10 cm...">
                     
-                    <label>¿qué horario te viene mejor?</label>
+                    <label>¿qué fecha tienes pensado?</label>
                     <select name="fecha_tatuaje">
                         <option value="Martes por la mañana">Martes por la mañana</option>
                         <option value="Miércoles por la mañana">Miércoles por la mañana</option>
@@ -299,10 +299,8 @@
                     <label>cuéntanos tu idea</label>
                     <textarea name="descripcion" placeholder="Estilo, detalles..." rows="3"></textarea>
 
-                    <label>subir imagen de referencia <span style="font-size: 0.6rem; opacity: 0.7; text-transform: lowercase;">(opcional)</span></label>
-                    <div style="background: #1a1a1a; border: 2px dashed #d4af37; border-radius: 12px; padding: 10px; margin: 8px 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; box-sizing: border-box;">
-                        <input type="file" name="imagen_referencia" accept="image/*" style="width: 100%; background: none; border: none; height: auto; padding: 0; margin: 0; color: #d4af37; font-size: 0.8rem; text-align: left;">
-                    </div>
+                    <label>subir imagen de referencia</label>
+                    <input type="file" name="imagen_referencia" accept="image/*" style="height: 60px; padding: 12px; background: #1a1a1a; border: 2px dashed #d4af37; cursor: pointer; color: #d4af37;">
                 </div>
 
                 <div id="campos-barberia" style="display:none;">
@@ -334,25 +332,35 @@
     <div id="pantalla-exito">
         <div class="tarjeta-exito" id="contenido-exito"></div>
     </div>
+
+    <div id="game-container">
+        <div id="start-overlay">
+            <button id="btn-start-game" onclick="comenzarCiclos()">START</button>
+        </div>
+
+        <div id="game-over-overlay">
+            <div class="pixel-title">GAME OVER</div>
+            <button class="btn-restart" onclick="reiniciarPartida()">RESTART</button>
+            <button class="btn-exit-game" onclick="location.reload()">EXIT</button>
+        </div>
         
+        <div id="header-game">
+            <div class="ui-top-row">
+                <div style="text-align: center;">
+                    BARBER POINTS: <span id="game-score">0</span>
+                    <div id="boss-ui">BOSS HP: <span id="boss-hp-count">0</span>/2000</div>
+                </div>
+                <div class="timer-container">
+                    <div id="timer-display">00:00</div>
+                    <div id="ui-lives">VIDAS: <span id="game-lives">0/3</span></div>
+                </div>
+                <div>RÉCORD BARBER GAME: <span id="best-score">0</span></div>
+            </div>
+        </div>
+
         <div id="player"></div>
         <div id="support-l" class="support-ship" style="display:none;"></div>
         <div id="support-r" class="support-ship" style="display:none;"></div>
-
-        <!-- CAPA OCULTA DE RESET (Pulsa 10 veces en la esquina superior derecha) -->
-        <div id="secret-click-zone" style="position: absolute; top: 0; right: 0; width: 80px; height: 80px; z-index: 10500;"></div>
-
-        <!-- MODAL PIN DE RESET -->
-        <div id="modal-reset-pin" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); flex-direction:column; justify-content:center; align-items:center; z-index:11000; padding: 20px; box-sizing: border-box;">
-            <div style="background:#1a1a1a; border:2px solid #d4af37; padding:25px; border-radius:15px; max-width:300px; width:90%; text-align:center; color:#fff;">
-                <h3 style="color:#d4af37; text-transform:uppercase; margin-top:0; font-size: 1.1rem;">Resetear Récords</h3>
-                <p style="font-size:0.85rem; color:#ccc; margin-bottom: 15px;">Introduce el código PIN (del 1 al 9, sin el 7):</p>
-                <input type="password" id="input-reset-pin" placeholder="PIN secreto" maxlength="6" style="width:100%; height:45px; padding:10px; margin-bottom:15px; border:1px solid #d4af37; background:#111; color:#fff; text-align:center; font-size: 1.2rem; letter-spacing: 5px; border-radius: 8px;">
-                <button onclick="verificarPinReset()" style="width:100%; padding:12px; background:#d4af37; color:#000; font-weight:bold; border:none; border-radius: 8px; cursor:pointer; text-transform: uppercase; margin-bottom: 8px;">CONFIRMAR</button>
-                <button onclick="cerrarModalReset()" style="width:100%; padding:8px; background:none; border:1px solid #555; color:#aaa; font-weight:bold; border-radius: 8px; cursor:pointer;">CANCELAR</button>
-                <p id="msg-error-reset" style="color:#ff4d4d; margin-top:10px; font-size:0.8rem; display:none;"></p>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -368,6 +376,206 @@
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         }
+// COPIA ESTO DENTRO DEL <script>
+function mostrarRedes() {
+    document.getElementById('menu-servicios').style.display = 'none';
+    document.getElementById('menu-redes').style.display = 'flex';
+    document.getElementById('main-logo').classList.add('logo-pequeno');
+}
+
+function volverAlMenu() {
+    document.getElementById('menu-redes').style.display = 'none';
+    document.getElementById('menu-servicios').style.display = 'flex';
+    document.getElementById('main-logo').classList.remove('logo-pequeno');
+}
+
+function abrirInstagram(usuario) {
+    const uri = `instagram://user?username=${usuario}`;
+    const webUrl = `https://www.instagram.com/${usuario}`;
+    
+    // Guardamos el tiempo de inicio
+    const start = Date.now();
+    
+    // Intentamos abrir la App
+    window.location.href = uri;
+
+    // Ponemos un temporizador para la web
+    setTimeout(() => {
+        // Si el usuario sigue en nuestra página y han pasado menos de 2 segundos,
+        // intentamos abrir la web como plan B.
+        if (!document.hidden && (Date.now() - start) < 2000) {
+            window.location.href = webUrl;
+        }
+    }, 1000);
+}
+        function mostrarForm(tipo) {
+            document.getElementById('menu-servicios').style.display = 'none';
+            document.getElementById('formulario-cita').style.display = 'block';
+            document.getElementById('input-categoria').value = tipo;
+            document.getElementById('titulo-dinamico').innerText = tipo === 'barberia' ? 'RESERVAR BARBERÍA' : 'RESERVAR TATUAJE';
+            
+            const btnSubmit = document.getElementById('btn-submit');
+            const inputTel = document.getElementById('input-telefono');
+
+            if (tipo === 'tatuaje') {
+                btnSubmit.innerHTML = 'ENVIAR IDEA AL TATUADOR📱';
+                document.getElementById('campos-tatuaje').style.display = 'block';
+                document.getElementById('campos-barberia').style.display = 'none';
+                document.getElementById('input-hora').value = "a convenir";
+                inputTel.style.display = 'none';
+                inputTel.removeAttribute('required');
+            } else {
+                btnSubmit.innerText = 'CONFIRMAR RESERVA';
+                document.getElementById('campos-tatuaje').style.display = 'none';
+                document.getElementById('campos-barberia').style.display = 'block';
+                inputTel.style.display = 'block';
+                inputTel.setAttribute('required', 'required');
+                cargarHoras();
+            }
+
+            document.getElementById('main-logo').classList.add('logo-pequeno');
+        }
+
+        async function cargarHoras(fechaForzada = null) {
+            const fecha = fechaForzada || document.getElementById('select-fecha').value;
+            
+            if (fechaForzada) {
+                const selectFecha = document.getElementById('select-fecha');
+                if (selectFecha) selectFecha.value = fechaForzada;
+            }
+
+            const res = await fetch(`/obtener_estado_horas/${fecha}`);
+            const horas = await res.json();
+            
+            // Contamos cuántas horas libres hay y ponemos el texto exacto que pediste
+            const libresCount = horas.filter(h => h.libre).length;
+            const contadorEl = document.getElementById('contador-libres');
+            if (contadorEl) {
+                contadorEl.innerText = `(${libresCount} servicios libres)`;
+            }
+            const grid = document.getElementById('grid-horas');
+            grid.innerHTML = '';
+            
+            horas.forEach(h => {
+                const btn = document.createElement('button');
+                btn.type = 'button'; 
+                btn.className = 'hora-btn'; 
+                btn.innerText = h.hora;
+
+                if (h.libre) {
+                    btn.onclick = () => {
+                        document.querySelectorAll('.hora-btn').forEach(b => b.classList.remove('hora-seleccionada'));
+                        btn.classList.add('hora-seleccionada');
+                        document.getElementById('input-hora').value = h.hora;
+                    };
+                } else {
+                    btn.classList.add('hora-ocupada');
+                    btn.onclick = () => {
+                        abrirModalCancelar(fecha, h.hora);
+                    };
+                }
+                grid.appendChild(btn);
+            });
+        }
+
+        document.getElementById('reserva-form').onsubmit = async function(e) {
+            e.preventDefault();
+            
+            const categoria = document.getElementById('input-categoria').value;
+            const horaSeleccionada = document.getElementById('input-hora').value;
+
+            // Validación obligatoria de hora para barbería con pop-up
+            if (categoria === 'barberia' && !horaSeleccionada) {
+                document.getElementById('popup-aviso-cita').style.display = 'flex';
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit');
+            btn.innerText = 'PROCESANDO...'; 
+            btn.disabled = true;
+            
+            const formData = new FormData(this);
+            try {
+                const response = await fetch('/reservar', { method: 'POST', body: formData });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const TU_NUMERO_WHATSAPP = "34686544572"; 
+                    
+                    const nombre = document.querySelector('input[name="Nombre"]') ? document.querySelector('input[name="Nombre"]').value : '';
+                    const apellidos = document.querySelector('input[name="Apellidos"]') ? document.querySelector('input[name="Apellidos"]').value : '';
+                    const descripcion = document.querySelector('textarea[name="descripcion"]') ? document.querySelector('textarea[name="descripcion"]').value : '';
+                    const fechaTattoo = document.querySelector('input[name="fecha_tatuaje"]') ? document.querySelector('input[name="fecha_tatuaje"]').value : '';
+
+                    // SI ES TATUAJE: Redirige directamente al WhatsApp de Edgar con la idea redactada y el enlace de la imagen
+                    // SI ES TATUAJE: Redirige directamente al WhatsApp de Edgar con la idea redactada y el enlace de la imagen
+if (categoria === 'tatuaje') {
+            const zona = document.querySelector('input[name="zona_tatuaje"]') ? document.querySelector('input[name="zona_tatuaje"]').value : '';
+            const tamano = document.querySelector('input[name="tamano_tatuaje"]') ? document.querySelector('input[name="tamano_tatuaje"]').value : '';
+            const fechaTattoo = document.querySelector('select[name="fecha_tatuaje"]') ? document.querySelector('select[name="fecha_tatuaje"]').value : '';
+            const descripcion = document.querySelector('textarea[name="descripcion"]') ? document.querySelector('textarea[name="descripcion"]').value : '';
+
+            let mensajeWhatsApp = `¡Hola Edgar! Soy ${nombre} ${apellidos}. Te envío los detalles para mi tatuaje:\n\n📍 Zona: ${zona}\n📏 Tamaño: ${tamano}\n📅 Preferencia: ${fechaTattoo}\n📝 Idea: ${descripcion}`;
+            
+            if (data.imagen_url) {
+                mensajeWhatsApp += `\n\n🖼️ Imagen de referencia:\n${data.imagen_url}`;
+            }
+
+            // Usamos wa.me con app_absent para forzar la apertura directa en la app
+            const urlWhatsApp = `https://wa.me/34686544572?text=${encodeURIComponent(mensajeWhatsApp)}&app_absent=0`;
+            
+            window.location.href = urlWhatsApp;
+            return;
+        }
+                    // SI ES BARBERÍA: Mantiene exactamente su flujo habitual de Google Calendar y éxito
+                    const fecha = document.getElementById('select-fecha') ? document.getElementById('select-fecha').value : '';
+                    const hora = document.getElementById('input-hora') ? document.getElementById('input-hora').value : '';
+
+                    const partesFecha = fecha.split('-');
+                    const fechaBonita = partesFecha.length === 3 ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}` : fecha;
+
+                    const mensajeWhatsApp = `¡Hola Edgar! Confirmo mi reserva para el día ${fechaBonita} a las ${hora} a nombre de ${nombre}. (Si necesito cancelarla o cambiarla, te aviso por aquí).`;
+                    const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
+
+                    let gCalUrl = "#";
+                    if (fecha && hora) {
+                        const fechaClean = fecha.replace(/-/g, '');
+                        const horaClean = hora.replace(/:/g, '') + '00';
+                        
+                        let [h, m] = hora.split(':').map(Number);
+                        m += 30;
+                        if (m >= 60) { h += 1; m -= 60; }
+                        const horaFinClean = String(h).padStart(2, '0') + String(m).padStart(2, '0') + '00';
+                        
+                        const startDateTime = `${fechaClean}T${horaClean}`;
+                        const endDateTime = `${fechaClean}T${horaFinClean}`;
+                        
+                        gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Cita Barbería - El Cierzo')}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent('Cita reservada en El Cierzo Studio & Barber')}&location=${encodeURIComponent('Talayuelas')}&remindermins=30`;
+                    }
+
+                    document.getElementById('contenido-exito').innerHTML = `
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">✅</div>
+                        <p style="font-size: 0.9rem; line-height: 1.4; margin-bottom: 20px;">${data.message}</p>
+                        
+                        <a href="${urlWhatsApp}" target="_blank" style="display: block; background: #25d366; color: white; padding: 12px; border-radius: 12px; font-weight: bold; text-decoration: none; margin-bottom: 10px; font-size: 0.9rem;">
+                            💬 Enviar aviso por WhatsApp
+                        </a>
+
+                        ${fecha && hora ? `
+                        <a href="${gCalUrl}" target="_blank" style="display: block; background: #4285F4; color: white; padding: 12px; border-radius: 12px; font-weight: bold; text-decoration: none; margin-bottom: 15px; font-size: 0.9rem;">
+                            📅 Guardar en Google Calendar
+                        </a>` : ''}
+
+                        <button onclick="location.reload()" class="btn-final" style="width:100%; margin-top: 0;">FINALIZAR</button>
+                    `;
+                    document.getElementById('pantalla-exito').style.display = 'flex';
+                }
+            } catch (error) { 
+                alert('error en el servidor'); 
+                btn.innerText = categoria === 'tatuaje' ? 'ENVIAR IDEA AL TATUADOR' : 'CONFIRMAR RESERVA';
+                btn.disabled = false;
+            }
+        };
 
         let gameActive = false;
         let score = 0;
@@ -396,21 +604,13 @@
             "{{ url_for('static', filename='marcianito_4.png') }}"
         ];
 
-        let nombreJugadorActual = "Anónimo";
-
-        function validarYComenzarJuego() {
-            const input = document.getElementById('player-nickname-input');
-            nombreJugadorActual = input.value.trim() || "Anónimo";
-            comenzarCiclos();
-        }
-
         function prepararJuego() {
             document.getElementById('game-container').style.display = 'block';
             document.getElementById('start-overlay').style.display = 'flex';
             document.getElementById('game-over-overlay').style.display = 'none';
             document.getElementById('boss-ui').style.display = 'none';
             score = 0;
-            lives = 0; 
+            lives = 0; // Empieza en 0/3
             seconds = 0;
             tripleShotActive = false;
             bombPowerActive = false;
@@ -426,21 +626,15 @@
             document.getElementById('game-score').innerText = "0";
             document.getElementById('game-lives').innerText = "0/3";
             document.getElementById('timer-display').innerText = "00:00";
-            
-            let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
-            if (ranking.length > 0) {
-                document.getElementById('best-score').innerText = ranking[0].score;
-                document.getElementById('best-player').innerText = `(${ranking[0].name})`;
-            } else {
-                document.getElementById('best-score').innerText = 0;
-                document.getElementById('best-player').innerText = "-";
-            }
+            document.getElementById('best-score').innerText = localStorage.getItem('barber_game_record') || 0;
             
             const player = document.getElementById('player');
             const container = document.getElementById('game-container');
+            const btnStart = document.getElementById('btn-start-game');
+            const rectBtn = btnStart.getBoundingClientRect();
             
             playerX = (container.offsetWidth / 2) - 42;
-            playerY = container.offsetHeight - 140; 
+            playerY = (rectBtn.bottom - container.getBoundingClientRect().top) + 40; 
             
             player.style.left = playerX + 'px';
             player.style.top = playerY + 'px';
@@ -453,24 +647,27 @@
                 let relativeX = clientX - rect.left;
                 let relativeY = clientY - rect.top;
 
-                playerX = relativeX - 42;
-                playerY = relativeY - 45;
+                if (relativeY > window.innerHeight / 2.5) {
+                    playerX = relativeX - 42;
+                    // DESPLAZAMIENTO TÁCTIL: El muñeco se sitúa 80 píxeles por encima del dedo para no tapar la cara
+                    playerY = (relativeY - 80) - 42;
 
-                if(playerX < 0) playerX = 0;
-                if(playerX > container.offsetWidth - 85) playerX = container.offsetWidth - 85;
-                if(playerY < 0) playerY = 0;
-                if(playerY > container.offsetHeight - 85) playerY = container.offsetHeight - 85;
+                    if(playerX < 0) playerX = 0;
+                    if(playerX > container.offsetWidth - 85) playerX = container.offsetWidth - 85;
+                    if(playerY < 0) playerY = 0;
+                    if(playerY > container.offsetHeight - 85) playerY = container.offsetHeight - 85;
 
-                player.style.left = playerX + 'px';
-                player.style.top = playerY + 'px';
+                    player.style.left = playerX + 'px';
+                    player.style.top = playerY + 'px';
 
-                if(supportActive) {
-                    const sL = document.getElementById('support-l');
-                    const sR = document.getElementById('support-r');
-                    sL.style.left = (playerX - 60) + 'px';
-                    sL.style.top = (playerY + 40) + 'px';
-                    sR.style.left = (playerX + 100) + 'px';
-                    sR.style.top = (playerY + 40) + 'px';
+                    if(supportActive) {
+                        const sL = document.getElementById('support-l');
+                        const sR = document.getElementById('support-r');
+                        sL.style.left = (playerX - 60) + 'px';
+                        sL.style.top = (playerY + 40) + 'px';
+                        sR.style.left = (playerX + 100) + 'px';
+                        sR.style.top = (playerY + 40) + 'px';
+                    }
                 }
             };
 
@@ -493,6 +690,7 @@
                         crearBoss();
                     }
 
+                    // Las vidas aparecen exactamente cada 30 segundos
                     if (seconds > 0 && seconds % 30 === 0) {
                         crearVidaItem();
                     }
@@ -508,6 +706,8 @@
                     }
                 }
             }, 1000);
+
+            // ... (resto de bucles de disparo y enemigos se mantienen igual)
 
             gameIntervals.push(setInterval(() => {
                 if(gameActive) {
@@ -538,53 +738,301 @@
             gameIntervals.push(setInterval(() => { if(gameActive && !bossActive) crearEnemigo(); }, 200));
         }
 
+        function crearBoss() {
+            bossActive = true;
+            bossDamage = 0;
+            document.getElementById('boss-ui').style.display = 'block';
+            document.getElementById('boss-hp-count').innerText = "0";
+            
+            const boss = document.createElement('div');
+            boss.className = 'boss-ship';
+            const containerW = document.getElementById('game-container').offsetWidth;
+            
+            boss.style.left = (containerW / 2 - 106) + 'px';
+            boss.style.top = '-250px';
+            document.getElementById('game-container').appendChild(boss);
+
+            let entry = setInterval(() => {
+                if (!gameActive) { clearInterval(entry); return; }
+                let y = parseInt(boss.style.top);
+                if (y < 85) {
+                    boss.style.top = (y + 3) + 'px';
+                } else {
+                    clearInterval(entry);
+                    iniciarMovimientoBoss(boss, containerW);
+                }
+            }, 20);
+        }
+
+        function iniciarMovimientoBoss(boss, containerW) {
+            let bossDir = Math.random() < 0.5 ? 1 : -1;
+            let currentSpeed = 4;
+            
+            let moveBoss = setInterval(() => {
+                if (!gameActive || !bossActive) { clearInterval(moveBoss); return; }
+                
+                let x = parseInt(boss.style.left);
+                
+                // probabilidad de cambio de dirección o pausa aleatoria
+                if (Math.random() < 0.02) { 
+                    bossDir *= -1; 
+                }
+                if (Math.random() < 0.01) {
+                    currentSpeed = 0; // se frena un momento
+                    setTimeout(() => { if(gameActive) currentSpeed = 4; }, 800);
+                }
+
+                if (x < -20 || x > containerW - 190) {
+                    bossDir *= -1;
+                }
+                
+                boss.style.left = (x + (currentSpeed * bossDir)) + 'px';
+            }, 30);
+
+            let fireInterval = setInterval(() => {
+                if (!gameActive || !bossActive) { clearInterval(fireInterval); return; }
+                crearBolaFuego(parseInt(boss.style.left) + 106, parseInt(boss.style.top) + 190);
+            }, 3000);
+        }
+
+        function crearBolaFuego(x, y) {
+            const f = document.createElement('div');
+            f.className = 'boss-fireball';
+            f.style.left = (x - 35) + 'px';
+            f.style.top = y + 'px';
+            document.getElementById('game-container').appendChild(f);
+            
+            let moveF = setInterval(() => {
+                if (!gameActive) { f.remove(); clearInterval(moveF); return; }
+                let currY = parseInt(f.style.top);
+                
+                if (currY > window.innerHeight) { 
+                    f.remove(); 
+                    clearInterval(moveF); 
+                } else {
+                    f.style.top = (currY + 8) + 'px';
+                    if (checkCollision(f, document.getElementById('player'))) {
+                        if (!shieldActive) {
+                            lives -= 2; 
+                            document.getElementById('game-lives').innerText = Math.max(0, lives) + "/3";
+                            if (lives < 0) gameOver();
+                        }
+                        f.remove(); 
+                        clearInterval(moveF);
+                    }
+                }
+            }, 20);
+        }
+
+        function crearBala(x, y, speedX, speedY, esBomba = false) {
+            const b = document.createElement('div');
+            b.className = esBomba ? 'bomb-bullet' : 'bullet';
+            b.style.left = x + 'px';
+            b.style.top = y + 'px';
+            document.getElementById('game-container').appendChild(b);
+
+            let moveB = setInterval(() => {
+                let currY = parseInt(b.style.top);
+                let currX = parseInt(b.style.left);
+                if(currY < -20 || !gameActive) {
+                    clearInterval(moveB); b.remove();
+                } else {
+                    b.style.top = (currY + speedY) + 'px';
+                    b.style.left = (currX + speedX) + 'px';
+                    
+                    if (bossActive) {
+                        const boss = document.querySelector('.boss-ship');
+                        if (boss && checkCollision(b, boss)) {
+                            // cada bala suma daño (bombas hacen más)
+                            const damagePoints = esBomba ? 100 : 10;
+                            bossDamage += damagePoints;
+                            document.getElementById('boss-hp-count').innerText = Math.min(bossDamage, bossMaxHP);
+                            
+                            explosion(currX, currY, "#ffcc00", 5);
+                            if (bossDamage >= bossMaxHP) {
+                                bossActive = false;
+                                score += 5000;
+                                actualizarScore();
+                                explosion(parseInt(boss.style.left)+106, parseInt(boss.style.top)+106, "#ff0000", 60);
+                                boss.remove();
+                                document.getElementById('boss-ui').style.display = 'none';
+                            }
+                            b.remove(); 
+                            clearInterval(moveB); 
+                            return;
+                        }
+                    }
+
+                    document.querySelectorAll('.enemy').forEach(en => {
+                        if(checkCollision(b, en)) {
+                            if(esBomba) ejecutarExplosionBomba(currX, currY);
+                            else eliminarEnemigo(en);
+                            b.remove(); clearInterval(moveB);
+                        }
+                    });
+                }
+            }, 20);
+        }
+
+        function ejecutarExplosionBomba(x, y) {
+            explosion(x, y, "#ff0000", 25);
+            document.querySelectorAll('.enemy').forEach(en => {
+                const rect = en.getBoundingClientRect();
+                const containerRect = document.getElementById('game-container').getBoundingClientRect();
+                const enX = rect.left - containerRect.left + (rect.width/2);
+                const enY = rect.top - containerRect.top + (rect.height/2);
+                const dist = Math.sqrt(Math.pow(x - enX, 2) + Math.pow(y - enY, 2));
+                if(dist < 100) eliminarEnemigo(en);
+            });
+        }
+
+        function eliminarEnemigo(en) {
+            score += 10;
+            actualizarScore();
+            explosion(en.offsetLeft + (en.offsetWidth/2), en.offsetTop + (en.offsetHeight/2), "#d4af37");
+            en.remove();
+        }
+
+        function crearEnemigo() {
+            const en = document.createElement('div');
+            en.className = 'enemy';
+            en.style.backgroundImage = `url(${imagenesMarcianos[Math.floor(Math.random() * imagenesMarcianos.length)]})`;
+            const containerW = document.getElementById('game-container').offsetWidth;
+            const size = Math.floor(Math.random() * 30) + 40;
+            en.style.width = size + 'px'; en.style.height = size + 'px';
+            en.style.left = Math.random() * (containerW - size) + 'px';
+            en.style.top = '-50px';
+            document.getElementById('game-container').appendChild(en);
+            
+            let speedY = 4 + (score / 800); 
+            let speedX = (Math.random() - 0.5) * 3;
+            let moveEn = setInterval(() => {
+                if(!gameActive) { clearInterval(moveEn); en.remove(); return; }
+                let y = parseInt(en.style.top);
+                let x = parseInt(en.style.left);
+                if(x <= 0 || x >= containerW - size) speedX *= -1;
+                
+                if(y > window.innerHeight) { clearInterval(moveEn); en.remove(); } 
+                else { 
+                    en.style.top = (y + speedY) + 'px'; 
+                    en.style.left = (x + speedX) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), en)) {
+                        if(!shieldActive) {
+                            lives--;
+                            document.getElementById('game-lives').innerText = Math.max(0, lives) + "/3";
+                            explosion(en.offsetLeft + size/2, en.offsetTop + size/2, "#ff4444");
+                            if(lives < 0) gameOver();
+                        } else explosion(en.offsetLeft + size/2, en.offsetTop + size/2, "#0096ff");
+                        en.remove(); clearInterval(moveEn);
+                    }
+                }
+            }, 30);
+        }
+
+        function crearVidaItem() {
+            const v = document.createElement('div');
+            v.className = 'vida-item';
+            v.style.left = Math.random() * (document.getElementById('game-container').offsetWidth - 40) + 'px';
+            v.style.top = '-50px';
+            document.getElementById('game-container').appendChild(v);
+            let moveV = setInterval(() => {
+                if(!gameActive) { clearInterval(moveV); v.remove(); return; }
+                let y = parseInt(v.style.top);
+                if(y > window.innerHeight) { clearInterval(moveV); v.remove(); }
+                else {
+                    v.style.top = (y + 6) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), v)) {
+                        if(lives < 3) lives++; // Sube de 1 en 1 hasta un máximo de 3
+                        document.getElementById('game-lives').innerText = lives + "/3";
+                        v.remove(); clearInterval(moveV);
+                    }
+                }
+            }, 20);
+        }
+
+        function actualizarScore() {
+            document.getElementById('game-score').innerText = score;
+            const recordActual = localStorage.getItem('barber_game_record') || 0;
+            if(score > recordActual) {
+                localStorage.setItem('barber_game_record', score);
+                document.getElementById('best-score').innerText = score;
+            }
+        }
+
+        function crearMoneda() {
+            const c = document.createElement('div');
+            c.className = 'coin';
+            c.style.left = Math.random() * (document.getElementById('game-container').offsetWidth - 50) + 'px';
+            c.style.top = '-60px';
+            document.getElementById('game-container').appendChild(c);
+            let moveC = setInterval(() => {
+                if(!gameActive) { clearInterval(moveC); c.remove(); return; }
+                let y = parseInt(c.style.top);
+                if(y > window.innerHeight) { clearInterval(moveC); c.remove(); }
+                else { 
+                    c.style.top = (y + 4) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), c)) {
+                        c.remove(); clearInterval(moveC);
+                        activarPowerUpAleatorio();
+                    }
+                }
+            }, 30);
+        }
+
+        function crearMoneda2() {
+            const c = document.createElement('div');
+            c.className = 'coin-2';
+            c.style.left = Math.random() * (document.getElementById('game-container').offsetWidth - 50) + 'px';
+            c.style.top = '-60px';
+            document.getElementById('game-container').appendChild(c);
+            let moveC = setInterval(() => {
+                if(!gameActive) { clearInterval(moveC); c.remove(); return; }
+                let y = parseInt(c.style.top);
+                if(y > window.innerHeight) { clearInterval(moveC); c.remove(); }
+                else { 
+                    c.style.top = (y + 5) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), c)) {
+                        c.remove(); clearInterval(moveC);
+                        activarRefuerzos();
+                    }
+                }
+            }, 30);
+        }
+
+        function activarRefuerzos() {
+            score += 75;
+            actualizarScore();
+            supportActive = true;
+            document.getElementById('support-l').style.display = 'block';
+            document.getElementById('support-r').style.display = 'block';
+            setTimeout(() => {
+                supportActive = false;
+                document.getElementById('support-l').style.display = 'none';
+                document.getElementById('support-r').style.display = 'none';
+            }, 10000);
+        }
+
+        function activarPowerUpAleatorio() {
+            const rand = Math.random();
+            score += 50;
+            actualizarScore();
+            if (rand < 0.33) {
+                tripleShotActive = true; bombPowerActive = false;
+                setTimeout(() => { tripleShotActive = false; }, 10000); 
+            } else if (rand < 0.66) {
+                bombPowerActive = true; tripleShotActive = false;
+                setTimeout(() => { bombPowerActive = false; }, 10000);
+            } else {
+                shieldActive = true;
+                document.getElementById('player').classList.add('bubble-active');
+                setTimeout(() => { shieldActive = false; document.getElementById('player').classList.remove('bubble-active'); }, 10000);
+            }
+        }
+
         function gameOver() {
             gameActive = false;
             clearInterval(timerInterval);
             gameIntervals.forEach(clearInterval);
-
-            let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
-            
-            ranking.push({ name: nombreJugadorActual, score: score });
-            ranking.sort((a, b) => b.score - a.score);
-            ranking = ranking.slice(0, 5);
-
-            localStorage.setItem('barber_ranking', JSON.stringify(ranking));
-            
-            if (ranking.length > 0) {
-                localStorage.setItem('barber_game_record', ranking[0].score);
-                localStorage.setItem('barber_game_player', ranking[0].name);
-            }
-
-            const esNuevoTop1 = ranking.length > 0 && ranking[0].name === nombreJugadorActual && ranking[0].score === score && score > 0;
-            
-            const msgRecord = document.getElementById('new-record-msg');
-            if (msgRecord) {
-                msgRecord.style.display = esNuevoTop1 ? 'block' : 'none';
-            }
-
-            const listContainer = document.getElementById('ranking-list');
-            if (listContainer) {
-                listContainer.innerHTML = '';
-                ranking.forEach((item, index) => {
-                    const row = document.createElement('div');
-                    row.style.display = 'flex';
-                    row.style.justifyContent = 'space-between';
-                    row.style.padding = '2px 5px';
-                    row.style.borderRadius = '4px';
-                    
-                    if (index === 0) {
-                        row.style.color = '#ffd700'; 
-                        row.style.fontWeight = 'bold';
-                    } else {
-                        row.style.color = '#ffffff'; 
-                    }
-
-                    row.innerHTML = `<span>${index + 1}. ${item.name}</span> <span>${item.score} pts</span>`;
-                    listContainer.appendChild(row);
-                });
-            }
-
             document.getElementById('game-over-overlay').style.display = 'flex';
         }
 
@@ -600,138 +1048,78 @@
             return !(rA.right < rB.left || rA.left > rB.right || rA.bottom < rB.top || rA.top > rB.bottom);
         }
 
-        // --- SISTEMA SECRETO DE RESET DE RÉCORDS ---
-        let secretClicks = 0;
-        let secretTimer = null;
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const clickZone = document.getElementById('secret-click-zone');
-            if (clickZone) {
-                clickZone.addEventListener('click', () => {
-                    secretClicks++;
-                    clearTimeout(secretTimer);
-                    
-                    if (secretClicks >= 10) {
-                        secretClicks = 0;
-                        document.getElementById('modal-reset-pin').style.display = 'flex';
-                        document.getElementById('input-reset-pin').value = '';
-                        document.getElementById('msg-error-reset').style.display = 'none';
-                    } else {
-                        secretTimer = setTimeout(() => {
-                            secretClicks = 0;
-                        }, 1500);
-                    }
-                });
+        function actualizarScore() {
+            document.getElementById('game-score').innerText = score;
+            if(score > (localStorage.getItem('tattoo_record') || 0)) {
+                localStorage.setItem('tattoo_record', score);
+                document.getElementById('best-score').innerText = score;
             }
-        });
-
-        function cerrarModalReset() {
-            document.getElementById('modal-reset-pin').style.display = 'none';
-            secretClicks = 0;
         }
 
-        function verificarPinReset() {
-            const pinIngresado = document.getElementById('input-reset-pin').value.trim();
-            const pinCorrecto = "123489"; 
-
-            if (pinIngresado === pinCorrecto) {
-                localStorage.removeItem('barber_ranking');
-                localStorage.removeItem('barber_game_record');
-                localStorage.removeItem('barber_game_player');
-                localStorage.removeItem('tattoo_record');
-
-                alert('¡Récords reseteados correctamente a 0!');
-                cerrarModalReset();
-                
-                document.getElementById('best-score').innerText = "0";
-                const bestPlayer = document.getElementById('best-player');
-                if(bestPlayer) bestPlayer.innerText = "-";
-            } else {
-                const errorMsg = document.getElementById('msg-error-reset');
-                errorMsg.innerText = "PIN incorrecto";
-                errorMsg.style.display = 'block';
+        function explosion(x, y, color, num = 10) {
+            for(let i=0; i<num; i++) {
+                const p = document.createElement('div');
+                p.className = 'exp-part';
+                p.style.background = color;
+                p.style.width = '5px'; p.style.height = '5px';
+                p.style.left = x + 'px'; p.style.top = y + 'px';
+                p.style.setProperty('--tx', (Math.random()-0.5)*180+'px');
+                p.style.setProperty('--ty', (Math.random()-0.5)*180+'px');
+                document.getElementById('game-container').appendChild(p);
+                setTimeout(() => p.remove(), 400);
             }
+        }
+        let fechaCancelar = "", horaCancelar = "";
+
+function abrirModalCancelar(fecha, hora) {
+    fechaCancelar = fecha;
+    horaCancelar = hora;
+    document.getElementById('pin-cancelar').value = '';
+    document.getElementById('msg-error-modal').style.display = 'none';
+    document.getElementById('modal-cancelar').style.display = 'flex';
+}
+
+function cerrarModalCancelar() {
+    document.getElementById('modal-cancelar').style.display = 'none';
+}
+
+function confirmarCancelacion() {
+    const pin = document.getElementById('pin-cancelar').value;
+    fetch('/cancelar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha: fechaCancelar, hora: horaCancelar, pin: pin })
+    })
+    .then(res => res.json().then(data => ({ status: res.status, body: data })))
+    .then(res => {
+        if (res.status === 200) {
+            cerrarModalCancelar();
+            cargarHoras(fechaCancelar);
+        } else {
+            document.getElementById('msg-error-modal').innerText = res.body.message || "PIN incorrecto";
+            document.getElementById('msg-error-modal').style.display = 'block';
+        }
+    });
+}
+            function cerrarPopupAviso() {
+            document.getElementById('popup-aviso-cita').style.display = 'none';
+            const btn = document.getElementById('btn-submit');
+            btn.innerText = 'confirmar reserva';
+            btn.disabled = false;
         }
     </script>
-
-    <!-- CONTENEDOR DEL JUEGO -->
-    <div id="game-container">
-        <div id="start-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;">
-            <div style="text-align: center;">
-                <label style="color: #d4af37; font-size: 0.8rem; margin-bottom: 5px; text-transform: uppercase;">Tu nombre o apodo</label>
-                <input type="text" id="player-nickname-input" placeholder="Ej: Edgar" maxlength="12" style="width: 200px; height: 40px; font-size: 1rem; text-align: center; border-radius: 8px; border: 1px solid #d4af37; background: #111; color: #fff;">
-            </div>
-            <button id="btn-start-game" onclick="validarYComenzarJuego()" style="padding: 15px 40px; background: #d4af37; color: black; font-size: 1.5rem; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 0 20px #d4af37;">START</button>
-        </div>
-
-        <div id="game-over-overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); flex-direction:column; justify-content:center; align-items:center; z-index:10001; padding: 20px; box-sizing: border-box;">
-            <div class="pixel-title" style="margin-bottom: 10px;">GAME OVER</div>
-            
-            <div id="new-record-msg" style="color: #ffcc00; font-size: 1rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; text-align: center; display: none;">🔥 ¡Enhorabuena, Nuevo Récord Barber! 🔥</div>
-
-            <div style="width: 100%; max-width: 280px; background: rgba(20,20,20,0.9); border: 1px solid #d4af37; border-radius: 12px; padding: 12px; margin-bottom: 15px; text-align: center;">
-                <p style="color: #d4af37; font-size: 0.8rem; font-weight: bold; margin: 0 0 8px 0; text-transform: uppercase;">🏆 Top 5 Récords Barber 🏆</p>
-                <div id="ranking-list" style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; text-align: left;"></div>
-            </div>
-
-            <button class="btn-restart" onclick="reiniciarPartida()">RESTART</button>
-            <button class="btn-exit-game" onclick="location.reload()">EXIT</button>
-        </div>
-        
-        <div id="header-game">
-            <div class="ui-top-row">
-                <div style="text-align: center;">
-                    BARBER POINTS<br>
-                    <span id="game-score">0</span>
-                </div>
-                <div class="timer-container">
-                    <div id="timer-display">00:00</div>
-                    <div id="ui-lives">VIDAS: <span id="game-lives">0/3</span></div>
-                </div>
-                <div style="text-align: center;">
-                    RÉCORD BARBER<br>
-                    <span id="best-score">0</span>
-                    <div id="best-player" style="font-size: 0.65rem; color: #ffcc00; opacity: 0.8; margin-top: 2px;">-</div>
-                </div>
-            </div>
-            <div id="boss-ui">JEFE: <span id="boss-hp-count">0</span>/2000</div>
-        </div>
-        
-        <div id="player"></div>
-        <div id="support-l" class="support-ship" style="display:none;"></div>
-        <div id="support-r" class="support-ship" style="display:none;"></div>
-
-        <!-- CAPA OCULTA DE RESET -->
-        <div id="secret-click-zone" style="position: absolute; top: 0; right: 0; width: 80px; height: 80px; z-index: 10500;"></div>
-
-        <!-- MODAL PIN DE RESET -->
-        <div id="modal-reset-pin" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); flex-direction:column; justify-content:center; align-items:center; z-index:11000; padding: 20px; box-sizing: border-box;">
-            <div style="background:#1a1a1a; border:2px solid #d4af37; padding:25px; border-radius:15px; max-width:300px; width:90%; text-align:center; color:#fff;">
-                <h3 style="color:#d4af37; text-transform:uppercase; margin-top:0; font-size: 1.1rem;">Resetear Récords</h3>
-                <p style="font-size:0.85rem; color:#ccc; margin-bottom: 15px;">Introduce el código PIN:</p>
-                <input type="password" id="input-reset-pin" placeholder="PIN secreto" maxlength="6" style="width:100%; height:45px; padding:10px; margin-bottom:15px; border:1px solid #d4af37; background:#111; color:#fff; text-align:center; font-size: 1.2rem; letter-spacing: 5px; border-radius: 8px;">
-                <button onclick="verificarPinReset()" style="width:100%; padding:12px; background:#d4af37; color:#000; font-weight:bold; border:none; border-radius: 8px; cursor:pointer; text-transform: uppercase; margin-bottom: 8px;">CONFIRMAR</button>
-                <button onclick="cerrarModalReset()" style="width:100%; padding:8px; background:none; border:1px solid #555; color:#aaa; font-weight:bold; border-radius: 8px; cursor:pointer;">CANCELAR</button>
-                <p id="msg-error-reset" style="color:#ff4d4d; margin-top:10px; font-size:0.85rem; display:none;"></p>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL CANCELAR CITA -->
     <div id="modal-cancelar" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:9999;">
-        <div style="background:#1a1a1a; border:2px solid #d4af37; padding:25px; border-radius:8px; max-width:400px; width:90%; text-align:center; position:relative; color:#fff;">
-            <span onclick="cerrarModalCancelar()" style="position:absolute; top:10px; right:15px; font-size:26px; color:#d4af37; cursor:pointer;">&times;</span>
-            <h3 style="color:#d4af37; text-transform:uppercase; margin-top:0;">¿Deseas eliminar esta cita?</h3>
-            <p style="font-size:0.95rem; color:#ccc;">Si esta cita es tuya y quieres cancelarla, ponte en contacto con el estudio.</p>
-            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
-            <p style="font-size:0.85rem; color:#d4af37; font-weight:bold;">Si eres el barbero, introduzca el código PIN:</p>
-            <input type="password" id="pin-cancelar" placeholder="Código PIN" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #d4af37; background:#111; color:#fff; text-align:center;">
-            <button onclick="confirmarCancelacion()" style="width:100%; padding:12px; background:#d4af37; color:#000; font-weight:bold; border:none; cursor:pointer;">ELIMINAR CITA</button>
-            <p id="msg-error-modal" style="color:#ff4d4d; margin-top:10px; display:none;"></p>
-        </div>
+    <div style="background:#1a1a1a; border:2px solid #d4af37; padding:25px; border-radius:8px; max-width:400px; width:90%; text-align:center; position:relative; color:#fff;">
+        <span onclick="cerrarModalCancelar()" style="position:absolute; top:10px; right:15px; font-size:26px; color:#d4af37; cursor:pointer;">&times;</span>
+        <h3 style="color:#d4af37; text-transform:uppercase; margin-top:0;">¿Deseas eliminar esta cita?</h3>
+        <p style="font-size:0.95rem; color:#ccc;">Si esta cita es tuya y quieres cancelarla, ponte en contacto con el estudio.</p>
+        <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+        <p style="font-size:0.85rem; color:#d4af37; font-weight:bold;">Si eres el barbero, introduzca el código PIN:</p>
+        <input type="password" id="pin-cancelar" placeholder="Código PIN" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #d4af37; background:#111; color:#fff; text-align:center;">
+        <button onclick="confirmarCancelacion()" style="width:100%; padding:12px; background:#d4af37; color:#000; font-weight:bold; border:none; cursor:pointer;">ELIMINAR CITA</button>
+        <p id="msg-error-modal" style="color:#ff4d4d; margin-top:10px; display:none;"></p>
     </div>
-
-    <!-- POPUP AVISO CITA -->
+</div>
     <div id="popup-aviso-cita">
         <div class="tarjeta-popup-aviso">
             <p style="font-size: 1rem; color: #fff; margin-bottom: 20px; line-height: 1.4;">Selecciona una cita antes de confirmar</p>
@@ -740,3 +1128,4 @@
     </div>
 </body>
 </html>
+
