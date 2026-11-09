@@ -334,8 +334,12 @@
     </div>
 
     <div id="game-container">
-        <div id="start-overlay">
-            <button id="btn-start-game" onclick="comenzarCiclos()">START</button>
+        <div id="start-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;">
+            <div style="text-align: center;">
+                <label style="color: #d4af37; font-size: 0.8rem; margin-bottom: 5px; text-transform: uppercase;">Nickname / Apodo</label>
+                <input type="text" id="player-nickname-input" maxlength="12" style="width: 200px; height: 40px; font-size: 1rem; text-align: center; border-radius: 8px; border: 1px solid #d4af37; background: #111; color: #fff;">
+            </div>
+            <button id="btn-start-game" onclick="validarYComenzarJuego()" style="padding: 15px 40px; background: #d4af37; color: black; font-size: 1.5rem; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 0 20px #d4af37;">START</button>
         </div>
 
         <div id="game-over-overlay">
