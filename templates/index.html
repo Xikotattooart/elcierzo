@@ -334,24 +334,12 @@
     </div>
 
     <div id="game-container">
-        <div id="start-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;">
-            <div style="text-align: center;">
-                <label style="color: #d4af37; font-size: 0.8rem; margin-bottom: 5px; text-transform: uppercase;">Nickname / Apodo</label>
-                <input type="text" id="player-nickname-input" maxlength="12" style="width: 200px; height: 40px; font-size: 1rem; text-align: center; border-radius: 8px; border: 1px solid #d4af37; background: #111; color: #fff;">
-            </div>
-            <button id="btn-start-game" onclick="validarYComenzarJuego()" style="padding: 15px 40px; background: #d4af37; color: black; font-size: 1.5rem; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 0 20px #d4af37;">START</button>
+        <div id="start-overlay">
+            <button id="btn-start-game" onclick="comenzarCiclos()">START</button>
         </div>
 
-        <div id="game-over-overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); flex-direction:column; justify-content:center; align-items:center; z-index:10001; padding: 20px; box-sizing: border-box;">
-            <div class="pixel-title" style="margin-bottom: 10px;">GAME OVER</div>
-            
-            <div id="new-record-msg" style="color: #ffcc00; font-size: 1rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; text-align: center; display: none;">🔥 ¡Enhorabuena, Nuevo Récord Barber! 🔥</div>
-
-            <div style="width: 100%; max-width: 280px; background: rgba(20,20,20,0.9); border: 1px solid #d4af37; border-radius: 12px; padding: 12px; margin-bottom: 15px; text-align: center;">
-                <p style="color: #d4af37; font-size: 0.8rem; font-weight: bold; margin: 0 0 8px 0; text-transform: uppercase;">🏆 Top 5 Récords Barber 🏆</p>
-                <div id="ranking-list" style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; text-align: left;"></div>
-            </div>
-
+        <div id="game-over-overlay">
+            <div class="pixel-title">GAME OVER</div>
             <button class="btn-restart" onclick="reiniciarPartida()">RESTART</button>
             <button class="btn-exit-game" onclick="location.reload()">EXIT</button>
         </div>
@@ -359,20 +347,15 @@
         <div id="header-game">
             <div class="ui-top-row">
                 <div style="text-align: center;">
-                    BARBER POINTS<br>
-                    <span id="game-score">0</span>
+                    BARBER POINTS: <span id="game-score">0</span>
+                    <div id="boss-ui">BOSS HP: <span id="boss-hp-count">0</span>/2000</div>
                 </div>
                 <div class="timer-container">
                     <div id="timer-display">00:00</div>
                     <div id="ui-lives">VIDAS: <span id="game-lives">0/3</span></div>
                 </div>
-                <div style="text-align: center;">
-                    RÉCORD BARBER<br>
-                    <span id="best-score">0</span>
-                    <div id="best-player" style="font-size: 0.65rem; color: #ffcc00; opacity: 0.8; margin-top: 2px;">-</div>
-                </div>
+                <div>RÉCORD BARBER GAME: <span id="best-score">0</span></div>
             </div>
-            <div id="boss-ui" style="text-align: center; color: #ff0000; font-size: 0.8rem; margin-top: 2px; text-shadow: 1px 1px black;">BOSS HP: <span id="boss-hp-count">0</span>/2000</div>
         </div>
 
         <div id="player"></div>
@@ -620,6 +603,30 @@ if (categoria === 'tatuaje') {
             "{{ url_for('static', filename='marcianito_3.png') }}",
             "{{ url_for('static', filename='marcianito_4.png') }}"
         ];
+
+        function prepararJuego() {
+            document.getElementById('game-container').style.display = 'block';
+            document.getElementById('start-overlay').style.display = 'flex';
+            document.getElementById('game-over-overlay').style.display = 'none';
+            document.getElementById('boss-ui').style.display = 'none';
+            score = 0;
+            lives = 0; // Empieza en 0/3
+            seconds = 0;
+            tripleShotActive = false;
+            bombPowerActive = false;
+            shieldActive = false;
+            supportActive = false;
+            bossActive = false;
+            bossDamage = 0;
+            lastCoinType = 2;
+            document.getElementById('player').classList.remove('bubble-active');
+            document.getElementById('support-l').style.display = 'none';
+            document.getElementById('support-r').style.display = 'none';
+            
+            document.getElementById('game-score').innerText = "0";
+            document.getElementById('game-lives').innerText = "0/3";
+            document.getElementById('timer-display').innerText = "00:00";
+            document.getElementById('best-score').innerText = localStorage.getItem('barber_game_record') || 0;
             
             const player = document.getElementById('player');
             const container = document.getElementById('game-container');
@@ -1022,137 +1029,10 @@ if (categoria === 'tatuaje') {
             }
         }
 
-        let nombreJugadorActual = "Anónimo";
-
-        function validarYComenzarJuego() {
-            const input = document.getElementById('player-nickname-input');
-            nombreJugadorActual = input.value.trim() || "Anónimo";
-            comenzarCiclos();
-        }
-
-        function prepararJuego() {
-            document.getElementById('game-container').style.display = 'block';
-            document.getElementById('start-overlay').style.display = 'flex';
-            document.getElementById('game-over-overlay').style.display = 'none';
-            document.getElementById('boss-ui').style.display = 'none';
-            score = 0;
-            lives = 0; 
-            seconds = 0;
-            tripleShotActive = false;
-            bombPowerActive = false;
-            shieldActive = false;
-            supportActive = false;
-            bossActive = false;
-            bossDamage = 0;
-            lastCoinType = 2;
-            document.getElementById('player').classList.remove('bubble-active');
-            document.getElementById('support-l').style.display = 'none';
-            document.getElementById('support-r').style.display = 'none';
-            
-            document.getElementById('game-score').innerText = "0";
-            document.getElementById('game-lives').innerText = "0/3";
-            document.getElementById('timer-display').innerText = "00:00";
-            
-            let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
-            if (ranking.length > 0) {
-                document.getElementById('best-score').innerText = ranking[0].score;
-                const bestPlayer = document.getElementById('best-player');
-                if(bestPlayer) bestPlayer.innerText = `(${ranking[0].name})`;
-            } else {
-                document.getElementById('best-score').innerText = 0;
-                const bestPlayer = document.getElementById('best-player');
-                if(bestPlayer) bestPlayer.innerText = "-";
-            }
-            
-            const player = document.getElementById('player');
-            const container = document.getElementById('game-container');
-            
-            playerX = (container.offsetWidth / 2) - 42;
-            playerY = container.offsetHeight - 140; 
-            
-            player.style.left = playerX + 'px';
-            player.style.top = playerY + 'px';
-
-            const moveHandler = (e) => {
-                const rect = container.getBoundingClientRect();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                
-                let relativeX = clientX - rect.left;
-                let relativeY = clientY - rect.top;
-
-                playerX = relativeX - 42;
-                playerY = relativeY - 45;
-
-                if(playerX < 0) playerX = 0;
-                if(playerX > container.offsetWidth - 85) playerX = container.offsetWidth - 85;
-                if(playerY < 0) playerY = 0;
-                if(playerY > container.offsetHeight - 85) playerY = container.offsetHeight - 85;
-
-                player.style.left = playerX + 'px';
-                player.style.top = playerY + 'px';
-
-                if(supportActive) {
-                    const sL = document.getElementById('support-l');
-                    const sR = document.getElementById('support-r');
-                    sL.style.left = (playerX - 60) + 'px';
-                    sL.style.top = (playerY + 40) + 'px';
-                    sR.style.left = (playerX + 100) + 'px';
-                    sR.style.top = (playerY + 40) + 'px';
-                }
-            };
-
-            container.addEventListener('touchmove', (e) => { if(gameActive) e.preventDefault(); moveHandler(e); }, {passive: false});
-            container.addEventListener('mousemove', (e) => { if(gameActive) moveHandler(e); });
-        }
-
         function gameOver() {
             gameActive = false;
             clearInterval(timerInterval);
             gameIntervals.forEach(clearInterval);
-
-            let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
-            
-            ranking.push({ name: nombreJugadorActual, score: score });
-            ranking.sort((a, b) => b.score - a.score);
-            ranking = ranking.slice(0, 5);
-
-            localStorage.setItem('barber_ranking', JSON.stringify(ranking));
-            
-            if (ranking.length > 0) {
-                localStorage.setItem('barber_game_record', ranking[0].score);
-                localStorage.setItem('barber_game_player', ranking[0].name);
-            }
-
-            const esNuevoTop1 = ranking.length > 0 && ranking[0].name === nombreJugadorActual && ranking[0].score === score && score > 0;
-            
-            const msgRecord = document.getElementById('new-record-msg');
-            if (msgRecord) {
-                msgRecord.style.display = esNuevoTop1 ? 'block' : 'none';
-            }
-
-            const listContainer = document.getElementById('ranking-list');
-            if (listContainer) {
-                listContainer.innerHTML = '';
-                ranking.forEach((item, index) => {
-                    const row = document.createElement('div');
-                    row.style.display = 'flex';
-                    row.style.justifyContent = 'space-between';
-                    row.style.padding = '2px 5px';
-                    row.style.borderRadius = '4px';
-                    
-                    if (index === 0) {
-                        row.style.color = '#ffd700'; 
-                        row.style.fontWeight = 'bold';
-                    } else {
-                        row.style.color = '#ffffff'; 
-                    }
-
-                    row.innerHTML = `<span>${index + 1}. ${item.name}</span> <span>${item.score} pts</span>`;
-                    listContainer.appendChild(row);
-                });
-            }
-
             document.getElementById('game-over-overlay').style.display = 'flex';
         }
 
@@ -1248,4 +1128,3 @@ function confirmarCancelacion() {
     </div>
 </body>
 </html>
-
