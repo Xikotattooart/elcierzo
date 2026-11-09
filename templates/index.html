@@ -347,21 +347,17 @@
             
             <div id="new-record-msg" style="color: #00d2ff; font-size: 0.95rem; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; text-align: center; display: none; text-shadow: 0 0 10px rgba(0,210,255,0.6);">🔥 ¡Nuevo Récord Barber! 🔥</div>
 
-            <!-- Contenedor principal del Top 5 con estilo grande y tonos azules -->
-            <div style="width: 100%; max-width: 320px; background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 60, 110, 0.95)); border: 2px solid #00d2ff; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 0 25px rgba(0, 210, 255, 0.3); position: relative;">
-                
-                <!-- Cabecera del ranking con el punto rojo secreto para moderar (10 clics) -->
-                <div style="display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 12px;">
+            <div style="width: 100%; max-width: 320px; background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 60, 110, 0.95)); border: 2px solid #00d2ff; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 0 25px rgba(0, 210, 255, 0.3);">
+                <div style="text-align: center; margin-bottom: 12px;">
                     <p style="color: #00d2ff; font-size: 0.95rem; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 8px rgba(0,210,255,0.5);">🏆 TOP 5 RÉCORDS BARBER 🏆</p>
-                    <div id="secret-admin-trigger" onclick="gestionarAdminRanking()" title="Admin" style="width: 10px; height: 10px; background: #ff3333; border-radius: 50%; position: absolute; right: 0; cursor: pointer; box-shadow: 0 0 6px #ff3333;"></div>
                 </div>
-
-                <!-- Lista donde se pintarán los nombres y puntos -->
                 <div id="ranking-list" style="font-size: 0.95rem; display: flex; flex-direction: column; gap: 6px; text-align: left;"></div>
             </div>
 
             <button class="btn-restart" onclick="reiniciarPartida()" style="margin-bottom: 8px;">RESTART</button>
             <button class="btn-exit-game" onclick="location.reload()">EXIT</button>
+            
+            <div id="secret-admin-trigger" onclick="gestionarAdminRanking()" title="Admin" style="width: 10px; height: 10px; background: #ff3333; border-radius: 50%; margin-top: 25px; cursor: pointer; box-shadow: 0 0 8px #ff3333; opacity: 0.7;"></div>
         </div>
         
         <div id="header-game">
@@ -1138,7 +1134,7 @@ if (categoria === 'tatuaje') {
             gameActive = false;
             clearInterval(timerInterval);
             gameIntervals.forEach(clearInterval);
-            adminClicks =- 0;
+            adminClicks = 0;
 
             let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
             
