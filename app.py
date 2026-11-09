@@ -8,55 +8,6 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from zoneinfo import ZoneInfo
 
-import tempfile
-import os
-from datetime import datetime
-
-import subprocess # Asegúrate de tener 'import subprocess' arriba si no lo tienes
-
-def imprimir_en_xprinter_facil(nombre_cliente, servicio, total):
-    """
-    Imprime directamente en la Xprinter usando el comando nativo de Windows,
-    enviando el texto de forma directa al puerto o nombre de la impresora compartida.
-    """
-    try:
-        # Diseño del ticket térmico adaptado al ancho estándar
-        ticket = (
-            "================================\n"
-            "   EL CIERZO | TATTOO & BARBER  \n"
-            "   Paseo del Prado, 30          \n"
-            "   Talayuelas (Cuenca)          \n"
-            "================================\n"
-            f"FECHA: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n"
-            f"CLIENTE: {nombre_cliente}\n"
-            "--------------------------------\n"
-            f"SERVICIO:\n -> {servicio}\n"
-            "--------------------------------\n"
-            f"TOTAL PAGADO: {total:.2f} EUR\n"
-            "================================\n"
-            "     ¡GRACIAS POR SU VISITA!    \n"
-            "================================\n\n\n"
-        )
-
-        # Crea un archivo temporal con codificación cp850 / latin-1 (compatible con acentos en térmicas)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="w", encoding="cp850", errors="ignore") as f:
-            f.write(ticket)
-            temp_path = f.name
-
-        # Opción A: Enviar directamente a la impresora predeterminada o por nombre exacto de Windows
-        # Ponemos el nombre exacto con el que la guardaste en Windows (ej: "impresora tickets" o "Xprinter")
-        nombre_impresora = "impresora tickets" # Cambia esto si le pusiste otro nombre exacto
-        
-        # Comando nativo de Windows para mandar archivo a impresora compartida/local sin abrir ventanas
-        comando = f'print /d:"{nombre_impresora}" "{temp_path}"'
-        
-        # Ejecutamos el comando de consola de manera oculta
-        subprocess.run(comando, shell=True, check=True)
-        
-        print("✅ Ticket mandado a la Xprinter con éxito.")
-    except Exception as e:
-        print(f"❌ Error al imprimir: {e}")
-
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN DE RUTAS DINÁMICAS ---
@@ -197,6 +148,7 @@ def recuperar():
         if 'imagen_referencia' in request.files:
             file = request.files['imagen_referencia']
             if file and file.filename != '':
+                # Limpiamos el nombre y creamos uno único con fecha y hora para que no se repita
                 ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
                 unique_filename = f"tattoo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
                 
@@ -204,6 +156,7 @@ def recuperar():
                 os.makedirs(upload_folder, exist_ok=True)
                 
                 file.save(os.path.join(upload_folder, unique_filename))
+                # Generamos la URL absoluta del archivo en tu servidor
                 imagen_url = f"{request.host_url}static/uploads/{unique_filename}"
 
         nombre_dorado = f"<span style='color:#d4af37; font-weight:bold;'>{nombre_cliente}</span>"
@@ -233,7 +186,6 @@ def recuperar():
 
         datos = {'nombre': nombre_completo, 'telefono': telefono, 'categoria': categoria, 'servicio': servicio, 'fecha': fecha_raw, 'hora': hora}
         
-        # 1. Guardar en Base de Datos SQLite
         conn = sqlite3.connect(ruta_db)
         cursor = conn.cursor()
         cursor.execute("insert into citas (nombre, telefono, categoria, servicio, fecha, hora) values (?,?,?,?,?,?)", 
@@ -241,10 +193,6 @@ def recuperar():
         conn.commit()
         conn.close()
         
-        # 🖨️ 2. LLAMADA AUTOMÁTICA A LA IMPRESORA XPRINTER AQUÍ MISMO:
-        imprimir_en_xprinter_facil(nombre_completo, servicio, 0.0)
-
-        # 3. Notificación a Telegram
         msg_tele = f"{encabezado_tele}:\n👤 {datos['nombre']}\n📞 {datos['telefono']}\n📅 {fecha_mostrar}\n⏰ {datos['hora']}\n✂️ {datos['servicio']}"
         if categoria == 'tatuaje':
             msg_tele += f"\n📝 idea: {descripcion}"
@@ -370,6 +318,4 @@ def service_worker():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
-
-
 
