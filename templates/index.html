@@ -1066,13 +1066,42 @@ if (categoria === 'tatuaje') {
             
             ranking.push({ name: nombreJugadorActual, score: score });
             ranking.sort((a, b) => b.score - a.score);
-            ranking = ranking.slice(0, 5); // Nos quedamos con el Top 5
+            ranking = ranking.slice(0, 5); // Nos quedamos solo con los 5 mejores
 
             localStorage.setItem('barber_ranking', JSON.stringify(ranking));
-
+            
             if (ranking.length > 0) {
                 localStorage.setItem('barber_game_record', ranking[0].score);
                 localStorage.setItem('barber_game_player', ranking[0].name);
+            }
+
+            const esNuevoTop1 = ranking.length > 0 && ranking[0].name === nombreJugadorActual && ranking[0].score === score && score > 0;
+            
+            const msgRecord = document.getElementById('new-record-msg');
+            if (msgRecord) {
+                msgRecord.style.display = esNuevoTop1 ? 'block' : 'none';
+            }
+
+            const listContainer = document.getElementById('ranking-list');
+            if (listContainer) {
+                listContainer.innerHTML = '';
+                ranking.forEach((item, index) => {
+                    const row = document.createElement('div');
+                    row.style.display = 'flex';
+                    row.style.justifyContent = 'space-between';
+                    row.style.padding = '2px 5px';
+                    row.style.borderRadius = '4px';
+                    
+                    if (index === 0) {
+                        row.style.color = '#ffd700'; 
+                        row.style.fontWeight = 'bold';
+                    } else {
+                        row.style.color = '#ffffff'; 
+                    }
+
+                    row.innerHTML = `<span>${index + 1}. ${item.name}</span> <span>${item.score} pts</span>`;
+                    listContainer.appendChild(row);
+                });
             }
 
             document.getElementById('game-over-overlay').style.display = 'flex';
