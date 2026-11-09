@@ -262,6 +262,43 @@ def cancelar_cita():
     except Exception as e:
         return jsonify({'status': 'error', 'message': 'Error al procesar cancelación'}), 500
 
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from flask import request, jsonify
+
+@app.route('/api/notificar-record', methods=['POST'])
+def notificar_record():
+    datos = request.json
+    nombre = datos.get('name', 'Anónimo')
+    puntuacion = datos.get('score', 0)
+
+    remitente = "edgarfa46@gmail.com"
+    password = "dwafiymjdgglumsz"
+    destinatario = "edgarfa46@gmail.com"
+
+    asunto = f"🎮 ¡Nuevo Récord en El Cierzo! {nombre} - {puntuacion} pts"
+    cuerpo = f"Hola Edgar,\n\nAlguien acaba de jugar y ha registrado un nuevo récord:\n- Jugador: {nombre}\n- Puntuación: {puntuacion} puntos"
+
+    mensaje = MIMEMultipart()
+    mensaje["From"] = remitente
+    mensaje["To"] = destinatario
+    mensaje["Subject"] = asunto
+    mensaje.attach(MIMEText(cuerpo, "plain"))
+
+    try:
+        servidor = smtplib.SMTP("smtp.gmail.com", 587)
+        servidor.starttls()
+        servidor.login(remitente, password)
+        servidor.sendmail(remitente, destinatario, mensaje.as_string())
+        servidor.quit()
+    except Exception as e:
+        print(f"Error: {e}")
+
+    return jsonify({"status": "ok"})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
+
 
