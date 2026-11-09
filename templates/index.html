@@ -80,7 +80,8 @@ svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-l
 .btn-ghost:active{transform:scale(.96);color:var(--text)}
 .map-card{display:block;border-radius:22px;overflow:hidden;color:inherit;text-decoration:none;transition:transform .45s var(--spring)}
 .map-card:active{transform:scale(.975)}
-.map-card iframe{display:block;width:100%;height:128px;border:0;pointer-events:none;filter:invert(.92) hue-rotate(180deg) saturate(.5) brightness(.9)}
+.map-frame{position:relative;width:100%;height:172px;overflow:hidden;border-radius:24px 24px 0 0;isolation:isolate;transform:translateZ(0);-webkit-mask-image:-webkit-radial-gradient(white,black)}
+.map-card iframe{display:block;width:100%;height:100%;border:0;pointer-events:none;filter:invert(.92) hue-rotate(180deg) saturate(.5) brightness(.9)}
 .map-card p{margin:0;padding:12px 16px;font-size:.78rem;color:var(--muted);display:flex;gap:8px;align-items:center}
 .map-card p svg{width:15px;height:15px;color:var(--gold);flex:none}
 .secret{align-self:center;width:auto;padding:8px 18px;border-radius:999px;background:none;border:1px dashed var(--line);
@@ -242,9 +243,10 @@ select option:disabled{color:#6e6e76}
 .install:active{transform:scale(.94)}
 .is-standalone .js-install{display:none!important}
 #modal-instalar{z-index:10006}
-#modal-instalar .sheet{max-height:88dvh;overflow-y:auto;text-align:center}
-.app-ico{display:block;width:76px;height:76px;margin:0 auto 12px;border-radius:18px;box-shadow:0 0 0 1px rgba(217,182,95,.45),0 10px 28px rgba(0,0,0,.5)}
-.os-block{margin:14px 0 4px;padding:14px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(217,182,95,.22);text-align:left}
+#modal-instalar{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:max(20px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom))}
+#modal-instalar .sheet{margin:auto;padding:22px 18px;text-align:center}
+.app-ico{display:block;width:64px;height:64px;margin:0 auto 10px;border-radius:18px;box-shadow:0 0 0 1px rgba(217,182,95,.45),0 10px 28px rgba(0,0,0,.5)}
+.os-block{margin:12px 0 4px;padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(217,182,95,.22);text-align:left}
 .os-block h4{margin:0 0 10px;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
 .os-block .btn-final{margin-top:4px}
 .os-block .pasos ol{margin:0}
@@ -258,7 +260,7 @@ select option:disabled{color:#6e6e76}
 .btn-install{display:flex;align-items:center;justify-content:center;gap:8px;background:transparent;border:1px solid rgba(217,182,95,.45);color:var(--gold)}
 .btn-install svg{width:16px;height:16px}
 .pasos ol{list-style:none;counter-reset:p;margin:6px 0 18px;padding:0;text-align:left}
-.pasos li{counter-increment:p;display:flex;gap:12px;align-items:flex-start;padding:9px 0;font-size:.9rem;line-height:1.4;color:var(--text)}
+.pasos li{counter-increment:p;display:flex;gap:12px;align-items:flex-start;padding:7px 0;font-size:.88rem;line-height:1.4;color:var(--text)}
 .pasos li::before{content:counter(p);flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;font-weight:700;color:var(--gold-ink);background:var(--gold)}
 .inline-ico{width:16px;height:16px;vertical-align:-3px;color:var(--gold)}
 
@@ -282,7 +284,8 @@ select option:disabled{color:#6e6e76}
 input,select,textarea{caret-color:var(--gold)}
 .ico{box-shadow:inset 0 0 0 1px rgba(217,182,95,.28)}
 .chev{transition:transform .35s var(--ease),color .3s}
-#titulo-dinamico::after,.titulo-seccion::after{content:"";display:block;width:28px;height:2px;margin:10px auto 0;border-radius:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+#titulo-dinamico::after{display:none!important}
+.titulo-seccion::after{content:"";display:block;width:28px;height:2px;margin:10px auto 0;border-radius:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
 .btn-servicio:active::before,.install:active::before{background:var(--rim-gold)}
 @media(hover:hover){.btn-servicio:hover::before,.install:hover::before{background:var(--rim-gold)}.btn-servicio:hover .chev{color:var(--gold);transform:translateX(3px)}}
 .ok-ico{background:rgba(217,182,95,.14);color:var(--gold)}
@@ -313,7 +316,7 @@ input,select,textarea{caret-color:var(--gold)}
     </button>
 
     <a class="map-card glass" href="https://www.google.com/maps/search/?api=1&query=El+Cierzo+Talayuelas" target="_blank" rel="noopener noreferrer">
-      <iframe src="https://maps.google.com/maps?q=El%20Cierzo%20Talayuelas&t=&z=17&ie=UTF8&iwloc=&output=embed" loading="lazy" allowfullscreen="" title="Mapa"></iframe>
+      <div class="map-frame"><iframe src="https://maps.google.com/maps?q=El%20Cierzo%20Talayuelas&t=&z=17&ie=UTF8&iwloc=&output=embed" loading="lazy" allowfullscreen="" title="Mapa"></iframe></div>
       <p><svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Paseo del Prado, 30, 16320 Talayuelas, Cuenca</p>
     </a>
 
@@ -1354,3 +1357,4 @@ if ('serviceWorker' in navigator) window.addEventListener('load', function(){ na
 </div>
 </body>
 </html>
+
