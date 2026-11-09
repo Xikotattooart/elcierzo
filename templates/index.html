@@ -622,13 +622,21 @@ if (categoria === 'tatuaje') {
             "{{ url_for('static', filename='marcianito_4.png') }}"
         ];
 
+        let nombreJugadorActual = "Anónimo";
+
+        function validarYComenzarJuego() {
+            const input = document.getElementById('player-nickname-input');
+            nombreJugadorActual = input.value.trim() || "Anónimo";
+            comenzarCiclos();
+        }
+
         function prepararJuego() {
             document.getElementById('game-container').style.display = 'block';
             document.getElementById('start-overlay').style.display = 'flex';
             document.getElementById('game-over-overlay').style.display = 'none';
             document.getElementById('boss-ui').style.display = 'none';
             score = 0;
-            lives = 0; // Empieza en 0/3
+            lives = 0; 
             seconds = 0;
             tripleShotActive = false;
             bombPowerActive = false;
@@ -644,11 +652,15 @@ if (categoria === 'tatuaje') {
             document.getElementById('game-score').innerText = "0";
             document.getElementById('game-lives').innerText = "0/3";
             document.getElementById('timer-display').innerText = "00:00";
-            document.getElementById('best-score').innerText = localStorage.getItem('barber_game_record') || 0;
-            const recordGuardado = localStorage.getItem('barber_game_record') || 0;
-            const jugadorGuardado = localStorage.getItem('barber_game_player') || "-";
-            document.getElementById('best-score').innerText = recordGuardado;
-            document.getElementById('best-player').innerText = recordGuardado > 0 ? `(${jugadorGuardado})` : "-";
+            
+            let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
+            if (ranking.length > 0) {
+                document.getElementById('best-score').innerText = ranking[0].score;
+                document.getElementById('best-player').innerText = `(${ranking[0].name})`;
+            } else {
+                document.getElementById('best-score').innerText = 0;
+                document.getElementById('best-player').innerText = "-";
+            }
             
             const player = document.getElementById('player');
             const container = document.getElementById('game-container');
@@ -671,7 +683,6 @@ if (categoria === 'tatuaje') {
 
                 if (relativeY > window.innerHeight / 2.5) {
                     playerX = relativeX - 42;
-                    // DESPLAZAMIENTO TÁCTIL: El muñeco se sitúa 80 píxeles por encima del dedo para no tapar la cara
                     playerY = (relativeY - 45) - 42;
 
                     if(playerX < 0) playerX = 0;
