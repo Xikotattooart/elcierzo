@@ -1037,10 +1037,32 @@ if (categoria === 'tatuaje') {
             }
         }
 
+        let nombreJugadorActual = "Anónimo";
+
+        function validarYComenzarJuego() {
+            const input = document.getElementById('player-nickname-input');
+            nombreJugadorActual = input.value.trim() || "Anónimo";
+            comenzarCiclos();
+        }
+
         function gameOver() {
             gameActive = false;
             clearInterval(timerInterval);
             gameIntervals.forEach(clearInterval);
+
+            let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
+            
+            ranking.push({ name: nombreJugadorActual, score: score });
+            ranking.sort((a, b) => b.score - a.score);
+            ranking = ranking.slice(0, 5); // Nos quedamos con el Top 5
+
+            localStorage.setItem('barber_ranking', JSON.stringify(ranking));
+
+            if (ranking.length > 0) {
+                localStorage.setItem('barber_game_record', ranking[0].score);
+                localStorage.setItem('barber_game_player', ranking[0].name);
+            }
+
             document.getElementById('game-over-overlay').style.display = 'flex';
         }
 
