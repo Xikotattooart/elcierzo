@@ -1041,7 +1041,11 @@ if (categoria === 'tatuaje') {
 
         function validarYComenzarJuego() {
             const input = document.getElementById('player-nickname-input');
-            nombreJugadorActual = input.value.trim() || "Anónimo";
+            if (input && input.value.trim() !== "") {
+                nombreJugadorActual = input.value.trim();
+            } else {
+                nombreJugadorActual = "Anónimo";
+            }
             comenzarCiclos();
         }
 
