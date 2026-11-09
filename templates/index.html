@@ -1063,7 +1063,50 @@ if (categoria === 'tatuaje') {
                 const bestPlayer = document.getElementById('best-player');
                 if(bestPlayer) bestPlayer.innerText = "-";
             }
-            function gameOver() {
+            
+            const player = document.getElementById('player');
+            const container = document.getElementById('game-container');
+            
+            playerX = (container.offsetWidth / 2) - 42;
+            playerY = container.offsetHeight - 140; 
+            
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+
+            const moveHandler = (e) => {
+                const rect = container.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                let relativeX = clientX - rect.left;
+                let relativeY = clientY - rect.top;
+
+                playerX = relativeX - 42;
+                playerY = relativeY - 45;
+
+                if(playerX < 0) playerX = 0;
+                if(playerX > container.offsetWidth - 85) playerX = container.offsetWidth - 85;
+                if(playerY < 0) playerY = 0;
+                if(playerY > container.offsetHeight - 85) playerY = container.offsetHeight - 85;
+
+                player.style.left = playerX + 'px';
+                player.style.top = playerY + 'px';
+
+                if(supportActive) {
+                    const sL = document.getElementById('support-l');
+                    const sR = document.getElementById('support-r');
+                    sL.style.left = (playerX - 60) + 'px';
+                    sL.style.top = (playerY + 40) + 'px';
+                    sR.style.left = (playerX + 100) + 'px';
+                    sR.style.top = (playerY + 40) + 'px';
+                }
+            };
+
+            container.addEventListener('touchmove', (e) => { if(gameActive) e.preventDefault(); moveHandler(e); }, {passive: false});
+            container.addEventListener('mousemove', (e) => { if(gameActive) moveHandler(e); });
+        }
+
+        function gameOver() {
             gameActive = false;
             clearInterval(timerInterval);
             gameIntervals.forEach(clearInterval);
