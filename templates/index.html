@@ -43,8 +43,8 @@ button{cursor:pointer;color:inherit}
 :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
 /* ---------- Layout ---------- */
-.capa-oscura{width:100%;max-width:none;margin:0;display:flex;flex-direction:column;align-items:center;
-  padding:max(28px,env(safe-area-inset-top)) 0 max(36px,env(safe-area-inset-bottom))}
+.capa-oscura{width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column;align-items:center;
+  padding:max(28px,env(safe-area-inset-top)) 20px max(36px,env(safe-area-inset-bottom))}
 .logo{width:74%;max-width:280px;margin:16px 0 30px;view-transition-name:logo;animation:rise .8s var(--ease) both}
 @supports not (view-transition-name:none){.logo{transition:width .6s var(--ease),margin .6s var(--ease)}}
 .logo-pequeno{width:108px;margin:8px 0 20px}
@@ -290,14 +290,18 @@ input,select,textarea{caret-color:var(--gold)}
 @media(hover:hover){.btn-servicio:hover::before,.install:hover::before{background:var(--rim-gold)}.btn-servicio:hover .chev{color:var(--gold);transform:translateX(3px)}}
 .ok-ico{background:rgba(217,182,95,.14);color:var(--gold)}
 
-/* ===== Edge-to-edge: la web ocupa el 100% del ancho, sin márgenes laterales ===== */
-html,body{width:100%;max-width:100%;overflow-x:hidden}
-.capa-oscura .contenedor-botones,.capa-oscura #formulario-cita{width:100%}
-.capa-oscura .btn-servicio{border-radius:0;padding:18px max(20px,env(safe-area-inset-right)) 18px max(20px,env(safe-area-inset-left))}
-.capa-oscura .map-card,.capa-oscura .map-frame{border-radius:0}
-.capa-oscura #formulario-cita{border-radius:0;padding:24px max(20px,env(safe-area-inset-right)) 28px max(20px,env(safe-area-inset-left))}
-.capa-oscura .map-card p{padding:12px max(16px,env(safe-area-inset-right)) 12px max(16px,env(safe-area-inset-left))}
-.capa-oscura .titulo-seccion,.capa-oscura .bottom-bar{padding-inline:max(16px,env(safe-area-inset-left))}
+/* ===== Responsive móvil: sin desbordes laterales, manteniendo el diseño redondeado ===== */
+html{width:100%;overflow-x:hidden;overflow-x:clip;background:#050506}
+body{width:100%;max-width:100vw;overflow-x:hidden;overflow-x:clip;background-color:transparent}
+.fila-doble>*{min-width:0;flex:1 1 0}          /* evita que Nombre/Apellidos ensanchen la página */
+.capa-oscura>*{max-width:100%}
+.map-card iframe{max-width:100%}
+img{max-width:100%}
+@media (max-width:480px){
+  .capa-oscura{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+  #formulario-cita{padding:20px 16px}
+  .btn-servicio{padding:15px 16px}
+}
 
 /* ===== Secret Games: apodo + menú ===== */
 #arcade{display:none;position:fixed;inset:0;z-index:10000;flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;
@@ -315,7 +319,9 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 .juego-ico{flex:none;width:64px;height:64px;border-radius:16px;display:grid;place-items:center;font-size:1.75rem;background:rgba(217,182,95,.12);box-shadow:inset 0 0 0 1px rgba(217,182,95,.28)}
 .juego-ico img{width:84%;height:84%;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
 .juego-ico img.pixel{image-rendering:pixelated}
-#arcade-pin{text-align:center;height:52px;font-size:1.25rem;letter-spacing:.5em}
+#arcade .campo-pin{text-align:center;height:52px;font-size:1.25rem;letter-spacing:.5em}
+#acceso-alternar a{color:var(--gold);font-weight:600;text-decoration:none;cursor:pointer}
+#arcade .juego-card .ico{width:52px;height:52px;border-radius:15px}
 .arcade-nota{margin:8px 0 0;font-size:.74rem;color:var(--muted);text-align:center;line-height:1.45}
 .juego-estado{display:block;margin-top:4px;font-size:.74rem;color:var(--gold);font-weight:600}
 .juego-estado.vacio{color:#6e6e76;font-weight:500}
@@ -512,19 +518,42 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 
 <!-- ===== SECRET GAMES: apodo obligatorio + menú de juegos ===== -->
 <div id="arcade" role="dialog" aria-label="Secret Games">
-  <div class="arcade-panel" id="arcade-paso-apodo">
+  <!-- Paso 1: elegir tipo de acceso -->
+  <div class="arcade-panel" id="arcade-paso-inicio">
     <h2 class="arcade-title">Secret <span>Games</span></h2>
-    <p class="arcade-sub">Escribe tu apodo y tu PIN para jugar.<br>Así guardamos tus partidas y las recuperas cuando vuelvas.</p>
-    <div class="game-card glass">
+    <p class="arcade-sub">Tus partidas se guardan con tu apodo y un PIN de 4 cifras.</p>
+    <button type="button" class="btn-servicio juego-card" onclick="mostrarFormAcceso('registro')">
+      <span class="ico"><svg viewBox="0 0 24 24"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 12.5-6.6"/><path d="M19 15v6M16 18h6"/></svg></span>
+      <span class="txt"><b>Nuevo usuario</b><small>Crea tu apodo y elige tu PIN</small></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button type="button" class="btn-servicio juego-card" onclick="mostrarFormAcceso('login')">
+      <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+      <span class="txt"><b>Usuario existente</b><small>Entra con tu apodo y tu PIN</small></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button type="button" class="btn-ghost" onclick="cerrarArcade()">← Volver a la web</button>
+  </div>
+
+  <!-- Paso 2: formulario (registro o inicio de sesión) -->
+  <div class="arcade-panel" id="arcade-paso-apodo" style="display:none">
+    <h2 class="arcade-title" id="acceso-titulo">Nuevo <span>usuario</span></h2>
+    <p class="arcade-sub" id="acceso-sub"></p>
+    <form class="game-card glass" id="form-acceso" autocomplete="off" novalidate>
       <label for="arcade-apodo">Nickname / Apodo</label>
       <input type="text" id="arcade-apodo" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" placeholder="Tu apodo">
       <label for="arcade-pin" style="margin-top:14px">PIN (4 cifras)</label>
-      <input type="password" id="arcade-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="go" placeholder="••••">
-      <p class="arcade-nota">¿Primera vez? El PIN que elijas quedará unido a tu apodo y nadie más podrá usar tus partidas.</p>
+      <input type="password" id="arcade-pin" class="campo-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="next" placeholder="••••">
+      <div id="grupo-pin2">
+        <label for="arcade-pin2" style="margin-top:14px">Repite el PIN</label>
+        <input type="password" id="arcade-pin2" class="campo-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="go" placeholder="••••">
+      </div>
       <p id="arcade-error"></p>
-    </div>
-    <button class="btn-game" onclick="confirmarApodo()">CONTINUAR</button>
-    <button class="btn-game sec" onclick="cerrarArcade()">Volver</button>
+      <button type="button" class="btn-ghost" id="arcade-cambiar-modo" style="display:none;padding:8px"></button>
+      <button type="submit" class="btn-game" id="btn-acceso" style="margin-top:12px">CREAR USUARIO</button>
+    </form>
+    <p class="arcade-nota" id="acceso-alternar"></p>
+    <button type="button" class="btn-ghost" onclick="mostrarInicioArcade()">← Atrás</button>
   </div>
 
   <div class="arcade-panel" id="arcade-paso-menu" style="display:none">
@@ -540,7 +569,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
       <span class="txt"><b>Let's Go Cierzo</b><small>Aventura de GBA creada por la comunidad</small><span class="juego-estado vacio" id="estado-pokemon">Comprobando…</span></span>
       <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
     </button>
-    <button type="button" class="btn-ghost" onclick="cambiarApodo()">Cambiar apodo</button>
+    <button type="button" class="btn-ghost" onclick="cambiarApodo()">Cerrar sesión / cambiar usuario</button>
     <button type="button" class="btn-ghost" onclick="cerrarArcade()">← Volver a la web</button>
   </div>
 </div>
@@ -1710,71 +1739,130 @@ async function refrescarEstadosMenu() {
 }
 
 /* ---------- Navegación Secret Games ---------- */
+let modoAcceso = 'registro';     // 'registro' (nuevo usuario) | 'login' (usuario existente)
+let accediendo = false;
+
+function mostrarPasoArcade(id) {
+  ['arcade-paso-inicio', 'arcade-paso-apodo', 'arcade-paso-menu'].forEach(p =>
+    document.getElementById(p).style.display = (p === id ? 'flex' : 'none'));
+  document.getElementById('arcade').scrollTop = 0;
+}
 function abrirArcade() {
   document.getElementById('arcade').style.display = 'flex';
   document.documentElement.style.overflow = 'hidden';
-  document.getElementById('arcade-paso-apodo').style.display = 'flex';
-  document.getElementById('arcade-paso-menu').style.display = 'none';
-  document.getElementById('arcade-error').style.display = 'none';
-  const inp = document.getElementById('arcade-apodo');
-  inp.value = localStorage.getItem('arcade_ultimo_apodo') || '';
-  document.getElementById('arcade-pin').value = '';
-  setTimeout(() => { try { (inp.value ? document.getElementById('arcade-pin') : inp).focus(); } catch (e) {} }, 250);
+  // Si ya entró en esta sesión, va directo al menú de juegos
+  if (apodoActual && pinActual) return mostrarMenuArcade();
+  mostrarInicioArcade();
 }
+function mostrarInicioArcade() { mostrarPasoArcade('arcade-paso-inicio'); }
 function cerrarArcade() {
   document.getElementById('arcade').style.display = 'none';
   document.documentElement.style.overflow = '';
 }
-let accediendo = false;
-async function confirmarApodo() {
+function errorAcceso(msg, campo, cambio) {
+  const err = document.getElementById('arcade-error');
+  const btnCambio = document.getElementById('arcade-cambiar-modo');
+  err.textContent = msg || ''; err.style.display = msg ? 'block' : 'none';
+  if (cambio) {
+    btnCambio.textContent = cambio === 'login' ? '→ Entrar como usuario existente' : '→ Crear este apodo como nuevo usuario';
+    btnCambio.onclick = () => mostrarFormAcceso(cambio, true);
+    btnCambio.style.display = 'block';
+  } else btnCambio.style.display = 'none';
+  if (campo) { try { campo.focus(); } catch (e) {} }
+}
+function mostrarFormAcceso(modo, conservarApodo) {
+  modoAcceso = modo;
+  const registro = modo === 'registro';
+  const inp = document.getElementById('arcade-apodo');
+  document.getElementById('acceso-titulo').innerHTML = registro ? 'Nuevo <span>usuario</span>' : 'Usuario <span>existente</span>';
+  document.getElementById('acceso-sub').textContent = registro
+    ? 'Elige un apodo que nadie tenga y un PIN de 4 cifras que recuerdes.'
+    : 'Escribe tu apodo y tu PIN para recuperar tus partidas.';
+  document.getElementById('grupo-pin2').style.display = registro ? 'block' : 'none';
+  document.getElementById('arcade-pin').setAttribute('enterkeyhint', registro ? 'next' : 'go');
+  document.getElementById('btn-acceso').textContent = registro ? 'CREAR USUARIO' : 'ENTRAR';
+  document.getElementById('acceso-alternar').innerHTML = registro
+    ? '¿Ya tienes apodo? <a onclick="mostrarFormAcceso(\'login\', true)">Entra aquí</a>'
+    : '¿Aún no tienes apodo? <a onclick="mostrarFormAcceso(\'registro\', true)">Crea uno</a>';
+  if (!conservarApodo) inp.value = registro ? '' : (localStorage.getItem('arcade_ultimo_apodo') || '');
+  document.getElementById('arcade-pin').value = '';
+  document.getElementById('arcade-pin2').value = '';
+  errorAcceso('');
+  mostrarPasoArcade('arcade-paso-apodo');
+  setTimeout(() => { try { (inp.value ? document.getElementById('arcade-pin') : inp).focus(); } catch (e) {} }, 250);
+}
+
+async function enviarAcceso() {
   if (accediendo) return;
   const inp = document.getElementById('arcade-apodo');
   const inpPin = document.getElementById('arcade-pin');
-  const err = document.getElementById('arcade-error');
-  const fallo = (msg, campo) => { err.textContent = msg; err.style.display = 'block'; (campo || inp).focus(); };
+  const inpPin2 = document.getElementById('arcade-pin2');
   const valor = inp.value.trim().replace(/\s+/g, ' ');
-  const slug = slugApodo(valor);
   const pin = inpPin.value.trim();
-  if (!valor) return fallo('Escribe tu apodo para continuar.');
-  if (slug.length < 2) return fallo('Usa al menos 2 letras o números.');
-  if (!/^\d{4}$/.test(pin)) return fallo('El PIN debe tener 4 cifras.', inpPin);
-  err.style.display = 'none';
-  accediendo = true;
-  const btn = document.querySelector('#arcade-paso-apodo .btn-game:not(.sec)');
-  btn.disabled = true; btn.textContent = 'COMPROBANDO…';
+  if (!valor) return errorAcceso('Escribe tu apodo.', inp);
+  if (slugApodo(valor).length < 2) return errorAcceso('El apodo necesita al menos 2 letras o números.', inp);
+  if (!/^\d{4}$/.test(pin)) return errorAcceso('El PIN debe tener exactamente 4 cifras.', inpPin);
+  if (modoAcceso === 'registro' && inpPin2.value.trim() !== pin) {
+    inpPin2.value = '';
+    return errorAcceso('Los dos PIN no coinciden.', inpPin2);
+  }
+  errorAcceso('');
+  const btn = document.getElementById('btn-acceso');
+  const textoBtn = btn.textContent;
+  accediendo = true; btn.disabled = true; btn.textContent = 'COMPROBANDO…';
+  const res = await accederServidor(modoAcceso, valor, pin);
+  accediendo = false; btn.disabled = false; btn.textContent = textoBtn;
+
+  if (res.ok) {
+    inpPin.value = ''; inpPin2.value = '';
+    if (modoAcceso === 'registro') toast('✅ Usuario «' + valor + '» creado. ¡Recuerda tu PIN!', 3500);
+    else toast('👋 Hola de nuevo, ' + valor);
+    return mostrarMenuArcade();
+  }
+  if (res.codigo === 409) return errorAcceso(res.mensaje, inp, 'login');        // apodo ya registrado
+  if (res.codigo === 404) return errorAcceso(res.mensaje, inp, 'registro');     // apodo no existe
+  inpPin.value = '';
+  errorAcceso(res.mensaje, inpPin);
+}
+
+// Llama al servidor. modo: 'registro' | 'login'. Si va bien, deja la sesión iniciada.
+async function accederServidor(modo, apodo, pin) {
   let r = null, datos = {};
   try {
-    r = await fetch('/api/acceso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
-                                     body: JSON.stringify({ apodo: valor, pin: pin }) });
+    r = await fetch('/api/' + modo, { method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
+                                      body: JSON.stringify({ apodo: apodo, pin: pin }) });
     datos = await r.json().catch(() => ({}));
   } catch (e) {}
-  accediendo = false; btn.disabled = false; btn.textContent = 'CONTINUAR';
-  if (!r) return fallo('Sin conexión con el servidor. Inténtalo de nuevo.');
-  if (!r.ok) { inpPin.value = ''; return fallo(datos.message || 'PIN incorrecto para este apodo.', inpPin); }
-  apodoActual = valor; apodoSlug = slug; pinActual = pin;
-  localStorage.setItem('arcade_ultimo_apodo', valor);
-  sessionStorage.setItem('arcade_apodo', valor);
+  if (!r) return { ok: false, codigo: 0, mensaje: 'Sin conexión con el servidor. Inténtalo de nuevo.' };
+  if (!r.ok) return { ok: false, codigo: r.status, mensaje: datos.message || 'No se pudo acceder.' };
+  apodoActual = datos.apodo || apodo; apodoSlug = slugApodo(apodo); pinActual = pin;
+  localStorage.setItem('arcade_ultimo_apodo', apodoActual);
+  sessionStorage.setItem('arcade_apodo', apodoActual);
   sessionStorage.setItem('arcade_pin', pin);
-  inpPin.value = '';
-  if (datos.status === 'nuevo') toast('✅ Apodo «' + valor + '» creado. ¡Recuerda tu PIN!', 3500);
-  mostrarMenuArcade();
+  return { ok: true };
 }
+
 function mostrarMenuArcade() {
   document.getElementById('arcade').style.display = 'flex';
   document.documentElement.style.overflow = 'hidden';
-  document.getElementById('arcade-paso-apodo').style.display = 'none';
-  document.getElementById('arcade-paso-menu').style.display = 'flex';
+  mostrarPasoArcade('arcade-paso-menu');
   document.getElementById('arcade-chip').textContent = apodoActual;
   refrescarEstadosMenu();
 }
 function cambiarApodo() {
   apodoActual = ''; apodoSlug = ''; pinActual = '';
   sessionStorage.removeItem('arcade_apodo'); sessionStorage.removeItem('arcade_pin');
-  abrirArcade();
+  mostrarInicioArcade();
 }
+document.getElementById('form-acceso').addEventListener('submit', e => { e.preventDefault(); enviarAcceso(); });
 document.getElementById('arcade-apodo').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('arcade-pin').focus(); } });
-document.getElementById('arcade-pin').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); confirmarApodo(); } });
-document.getElementById('arcade-pin').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4); });
+document.getElementById('arcade-pin').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return; e.preventDefault();
+  if (modoAcceso === 'registro') document.getElementById('arcade-pin2').focus(); else enviarAcceso();
+});
+document.getElementById('arcade-pin2').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); enviarAcceso(); } });
+document.querySelectorAll('#arcade .campo-pin').forEach(el =>
+  el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, '').slice(0, 4); }));
 
 /* ---------- Pantalla completa (lo máximo posible en vertical) ---------- */
 function maximizarPantalla() {
@@ -2102,8 +2190,10 @@ window.addEventListener('resize', () => {
   sessionStorage.removeItem('arcade_volver');
   const ap = sessionStorage.getItem('arcade_apodo');
   const pn = sessionStorage.getItem('arcade_pin');
-  abrirArcade();
-  if (ap && pn) { document.getElementById('arcade-apodo').value = ap; document.getElementById('arcade-pin').value = pn; confirmarApodo(); }
+  document.getElementById('arcade').style.display = 'flex';
+  document.documentElement.style.overflow = 'hidden';
+  if (!(ap && pn)) return mostrarInicioArcade();
+  accederServidor('login', ap, pn).then(res => res.ok ? mostrarMenuArcade() : mostrarFormAcceso('login'));
 })();
 </script>
 </body>
