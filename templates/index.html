@@ -1450,7 +1450,12 @@ if (categoria === 'tatuaje') {
 
         let nombreJugadorActual = "Anónimo";
 
+        function prepararAudioJuego() {
+            try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+            if (typeof activarSonido === 'function') activarSonido();
+        }
         function validarYComenzarJuego() {
+            prepararAudioJuego();
             // El apodo ya se pidió (obligatorio) al entrar en Secret Games
             nombreJugadorActual = (typeof apodoActual === 'string' && apodoActual) ? apodoActual : "Anónimo";
             comenzarCiclos();
@@ -1717,6 +1722,44 @@ if ('serviceWorker' in navigator) window.addEventListener('load', function(){ na
 // Juegos de GBA: sube cada juego a GitHub directamente en la carpeta static/ con estos nombres.
 // Vale el .gba suelto o comprimido en .zip (el emulador lo descomprime solo).
 // Si no está en static/, también se busca en static/roms/.
+/* ---------- Sonido: los navegadores bloquean el audio que no empieza con un toque ----------
+   Se registran todos los contextos de audio (emulador y Marcianitos) y se reactivan
+   en cada toque o tecla, para que el sonido funcione aunque el juego tarde en arrancar. */
+const CONTEXTOS_AUDIO = [];
+(function () {
+  const Original = window.AudioContext || window.webkitAudioContext;
+  if (!Original || Original.__registrado) return;
+  function AudioContextRegistrado(opciones) {
+    const ctx = opciones === undefined ? new Original() : new Original(opciones);
+    CONTEXTOS_AUDIO.push(ctx);
+    return ctx;
+  }
+  AudioContextRegistrado.prototype = Original.prototype;
+  AudioContextRegistrado.__registrado = true;
+  window.AudioContext = AudioContextRegistrado;
+  if (window.webkitAudioContext) window.webkitAudioContext = AudioContextRegistrado;
+})();
+// iPhone (iOS 17+): que el sonido de la web suene aunque el interruptor de silencio esté activado
+try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+function activarSonido() {
+  CONTEXTOS_AUDIO.forEach(ctx => {
+    try {
+      if (ctx.state === 'closed') return;
+      if (ctx.state !== 'running') ctx.resume();
+      // iPhone: además hay que reproducir algo (un silencio) dentro del propio toque
+      if (!ctx.__desbloqueado) {
+        const fuente = ctx.createBufferSource();
+        fuente.buffer = ctx.createBuffer(1, 1, 22050);
+        fuente.connect(ctx.destination);
+        fuente.start(0);
+        if (ctx.state === 'running') ctx.__desbloqueado = true;
+      }
+    } catch (e) {}
+  });
+  try { if (window.EJS_emulator && EJS_emulator.setVolume) EJS_emulator.setVolume(1); } catch (e) {}
+}
+['pointerdown', 'touchend', 'keydown', 'click'].forEach(ev => document.addEventListener(ev, activarSonido, { capture: true, passive: true }));
+
 const JUEGOS_GBA = {
   pokemon: { titulo: "Let's Go Cierzo", roms: ["{{ url_for('static', filename='lets_go_cierzo.gba') }}", "{{ url_for('static', filename='lets_go_cierzo.zip') }}",
                                               "{{ url_for('static', filename='roms/lets_go_cierzo.gba') }}", "{{ url_for('static', filename='roms/lets_go_cierzo.zip') }}"] },
@@ -2035,6 +2078,7 @@ function estadoMarcianitos() {
            boss: bossActive ? 'active' : (bossDerrotado ? 'defeated' : 'none'), fecha: Date.now() };
 }
 function continuarPartidaGuardada() {
+  prepararAudioJuego();
   const s = datosMarcianitos.enCurso;
   if (!s) return validarYComenzarJuego();
   nombreJugadorActual = apodoActual || 'Anónimo';
@@ -2099,6 +2143,7 @@ function arrancarEmulador(url) {
   window.EJS_gameName = juegoActual + '_' + apodoSlug;    // separa los guardados internos por apodo
   window.EJS_pathtodata = EJS_DATA_URL;
   window.EJS_startOnLoaded = true;
+  window.EJS_volume = 1;
   window.EJS_color = '#d9b65f';
   window.EJS_backgroundColor = '#000000';
   window.EJS_onGameStart = alArrancarPokemon;
@@ -2109,6 +2154,10 @@ function arrancarEmulador(url) {
 }
 async function alArrancarPokemon() {
   document.getElementById('poke-cargando').style.display = 'none';
+  activarSonido();
+  setTimeout(() => {
+    if (CONTEXTOS_AUDIO.some(c => c.state === 'suspended')) toast('🔊 Toca cualquier botón para activar el sonido', 3500);
+  }, 1200);
   const buf = await (partidaPokemonPromesa || Promise.resolve(null));
   setTimeout(() => {
     if (buf && buf.byteLength) {
