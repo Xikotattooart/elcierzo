@@ -315,6 +315,164 @@ def service_worker():
     r.headers['Cache-Control'] = 'no-cache'
     return r
 
+# --- SECRET GAMES: GUARDADO DE PARTIDAS POR APODO ---
+import re
+import unicodedata
+from flask import send_file
+
+# Carpeta donde se guardan las partidas. En hosting con disco efímero, apunta
+# PARTIDAS_DIR a un disco persistente (p. ej. /var/data/partidas).
+CARPETA_PARTIDAS = os.environ.get('PARTIDAS_DIR') or os.path.join(BASE_DIR, 'partidas')
+LIMITE_PARTIDA = {'marcianitos': 256 * 1024, 'pokemon': 16 * 1024 * 1024}
+
+def _slug_apodo(apodo):
+    n = unicodedata.normalize('NFKD', (apodo or '').strip().lower()).encode('ascii', 'ignore').decode()
+    return re.sub(r'[^a-z0-9_-]+', '_', n).strip('_')[:24]
+
+# --- PIN por apodo (se guarda cifrado, nunca en claro) ---
+import time
+from werkzeug.security import generate_password_hash, check_password_hash
+
+def init_jugadores():
+    conn = sqlite3.connect(ruta_db)
+    conn.execute('''create table if not exists jugadores
+                    (slug text primary key, apodo text, pin_hash text, creado text)''')
+    conn.commit()
+    conn.close()
+
+init_jugadores()
+
+MAX_FALLOS_PIN = 5
+BLOQUEO_PIN_SEG = 5 * 60
+_fallos_pin = {}  # slug -> [fallos, bloqueado_hasta]
+
+def _jugador(slug):
+    conn = sqlite3.connect(ruta_db)
+    fila = conn.execute("select apodo, pin_hash from jugadores where slug = ?", (slug,)).fetchone()
+    conn.close()
+    return fila
+
+def _comprobar_pin(slug, pin):
+    """Verifica el PIN de un apodo YA registrado. Devuelve (ok, codigo_http, mensaje)."""
+    if not re.fullmatch(r'\d{4}', pin or ''):
+        return False, 400, 'El PIN debe tener exactamente 4 cifras.'
+    fallos, hasta = _fallos_pin.get(slug, [0, 0])
+    if hasta > time.time():
+        minutos = int((hasta - time.time()) // 60) + 1
+        return False, 429, f'Demasiados intentos fallidos. Espera {minutos} min.'
+    fila = _jugador(slug)
+    if not fila:
+        return False, 404, 'Ese apodo no existe todavía. ¿Quieres crearlo como nuevo usuario?'
+    if check_password_hash(fila[1], pin):
+        _fallos_pin.pop(slug, None)
+        return True, 200, 'ok'
+    fallos += 1
+    if fallos >= MAX_FALLOS_PIN:
+        _fallos_pin[slug] = [0, time.time() + BLOQUEO_PIN_SEG]
+        return False, 429, 'Demasiados intentos fallidos. Espera 5 min.'
+    _fallos_pin[slug] = [fallos, 0]
+    return False, 401, f'PIN incorrecto. Te quedan {MAX_FALLOS_PIN - fallos} intentos.'
+
+def _leer_credenciales():
+    datos = request.get_json(silent=True) or {}
+    apodo = re.sub(r'\s+', ' ', (datos.get('apodo') or '').strip())[:32]
+    return apodo, _slug_apodo(apodo), str(datos.get('pin') or '').strip()
+
+@app.route('/api/registro', methods=['POST'])
+def registro_jugador():
+    """Nuevo usuario: crea el apodo con su PIN. Falla si el apodo ya existe."""
+    apodo, slug, pin = _leer_credenciales()
+    if len(slug) < 2:
+        return jsonify({'status': 'error', 'message': 'El apodo necesita al menos 2 letras o números.'}), 400
+    if not re.fullmatch(r'\d{4}', pin):
+        return jsonify({'status': 'error', 'message': 'El PIN debe tener exactamente 4 cifras.'}), 400
+    try:
+        conn = sqlite3.connect(ruta_db)
+        conn.execute("insert into jugadores (slug, apodo, pin_hash, creado) values (?,?,?,?)",
+                     (slug, apodo, generate_password_hash(pin), datetime.now().isoformat(timespec='seconds')))
+        conn.commit()
+        conn.close()
+    except sqlite3.IntegrityError:
+        return jsonify({'status': 'error', 'message': 'Ese apodo ya está registrado. Elige otro o entra como usuario existente.'}), 409
+    return jsonify({'status': 'creado', 'apodo': apodo})
+
+@app.route('/api/login', methods=['POST'])
+def login_jugador():
+    """Usuario existente: comprueba apodo + PIN."""
+    apodo, slug, pin = _leer_credenciales()
+    if len(slug) < 2:
+        return jsonify({'status': 'error', 'message': 'Escribe tu apodo.'}), 400
+    ok, codigo, msg = _comprobar_pin(slug, pin)
+    if not ok:
+        return jsonify({'status': 'error', 'message': msg}), codigo
+    return jsonify({'status': 'ok', 'apodo': _jugador(slug)[0] or apodo})
+
+def _pin_autorizado(apodo):
+    """Comprueba el PIN que llega en la cabecera X-Pin. Devuelve una respuesta de error o None."""
+    ok, codigo, msg = _comprobar_pin(_slug_apodo(apodo), request.headers.get('X-Pin', ''))
+    if not ok:
+        return jsonify({'status': 'error', 'message': msg}), codigo
+    return None
+
+def _ruta_partida(juego, apodo):
+    slug = _slug_apodo(apodo)
+    if juego not in LIMITE_PARTIDA or len(slug) < 2:
+        return None
+    return os.path.join(CARPETA_PARTIDAS, juego, f"{slug}.sav")
+
+@app.route('/api/partida/<juego>/<apodo>', methods=['GET'])
+def cargar_partida(juego, apodo):
+    ruta = _ruta_partida(juego, apodo)
+    if not ruta:
+        return jsonify({'status': 'error', 'message': 'Datos no válidos'}), 400
+    error = _pin_autorizado(apodo)
+    if error:
+        return error
+    if not os.path.isfile(ruta):
+        return jsonify({'status': 'vacio'}), 404
+    r = make_response(send_file(ruta, mimetype='application/octet-stream', max_age=0, conditional=False))
+    r.headers['Cache-Control'] = 'no-store'
+    r.headers['X-Guardado'] = str(int(os.path.getmtime(ruta) * 1000))
+    return r
+
+@app.route('/api/partida/<juego>/<apodo>', methods=['POST'])
+def guardar_partida(juego, apodo):
+    ruta = _ruta_partida(juego, apodo)
+    if not ruta:
+        return jsonify({'status': 'error', 'message': 'Datos no válidos'}), 400
+    error = _pin_autorizado(apodo)
+    if error:
+        return error
+    limite = LIMITE_PARTIDA[juego]
+    if request.content_length and request.content_length > limite:
+        return jsonify({'status': 'error', 'message': 'Partida demasiado grande'}), 413
+    datos = request.get_data(cache=False)
+    if not datos or len(datos) > limite:
+        return jsonify({'status': 'error', 'message': 'Partida vacía o demasiado grande'}), 400
+    try:
+        os.makedirs(os.path.dirname(ruta), exist_ok=True)
+        tmp = f"{ruta}.{os.getpid()}.tmp"
+        with open(tmp, 'wb') as f:
+            f.write(datos)
+        os.replace(tmp, ruta)  # escritura atómica: nunca queda una partida a medias
+    except Exception as e:
+        print(f"Error guardando partida: {e}")
+        return jsonify({'status': 'error', 'message': 'No se pudo guardar'}), 500
+    return jsonify({'status': 'success', 'guardado': int(os.path.getmtime(ruta) * 1000)})
+
+@app.route('/api/partidas/<apodo>')
+def info_partidas(apodo):
+    error = _pin_autorizado(apodo)
+    if error:
+        return error
+    res = {}
+    for juego in LIMITE_PARTIDA:
+        ruta = _ruta_partida(juego, apodo)
+        res[juego] = {'guardado': int(os.path.getmtime(ruta) * 1000)} if ruta and os.path.isfile(ruta) else None
+    r = jsonify(res)
+    r.headers['Cache-Control'] = 'no-store'
+    return r
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
