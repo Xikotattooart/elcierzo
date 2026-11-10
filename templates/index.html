@@ -1819,8 +1819,9 @@ async function enviarAcceso() {
     else toast('👋 Hola de nuevo, ' + valor);
     return mostrarMenuArcade();
   }
-  if (res.codigo === 409) return errorAcceso(res.mensaje, inp, 'login');        // apodo ya registrado
-  if (res.codigo === 404) return errorAcceso(res.mensaje, inp, 'registro');     // apodo no existe
+  if (res.codigo === 'servidor' || res.codigo === 0) return errorAcceso(res.mensaje);
+  if (res.codigo === 409 && modoAcceso === 'registro') return errorAcceso(res.mensaje, inp, 'login');   // apodo ya registrado
+  if (res.codigo === 404 && modoAcceso === 'login') return errorAcceso(res.mensaje, inp, 'registro');   // apodo no existe
   inpPin.value = '';
   errorAcceso(res.mensaje, inpPin);
 }
@@ -1834,7 +1835,14 @@ async function accederServidor(modo, apodo, pin) {
     datos = await r.json().catch(() => ({}));
   } catch (e) {}
   if (!r) return { ok: false, codigo: 0, mensaje: 'Sin conexión con el servidor. Inténtalo de nuevo.' };
-  if (!r.ok) return { ok: false, codigo: r.status, mensaje: datos.message || 'No se pudo acceder.' };
+  if (!r.ok && !datos.message) {
+    // Respuesta sin mensaje propio: la ruta no existe en el servidor (app.py sin actualizar) o el servidor falló
+    console.error('Secret Games: /api/' + modo + ' respondió ' + r.status + ' sin datos. ¿Está subido el app.py nuevo?');
+    return { ok: false, codigo: 'servidor', mensaje: r.status === 404 || r.status === 405
+      ? 'El servidor aún no tiene el sistema de usuarios. Sube el app.py nuevo y reinicia el servidor.'
+      : 'Error del servidor (' + r.status + '). Inténtalo de nuevo en un momento.' };
+  }
+  if (!r.ok) return { ok: false, codigo: r.status, mensaje: datos.message };
   apodoActual = datos.apodo || apodo; apodoSlug = slugApodo(apodo); pinActual = pin;
   localStorage.setItem('arcade_ultimo_apodo', apodoActual);
   sessionStorage.setItem('arcade_apodo', apodoActual);
@@ -2198,4 +2206,3 @@ window.addEventListener('resize', () => {
 </script>
 </body>
 </html>
-
