@@ -1659,10 +1659,11 @@ if ('serviceWorker' in navigator) window.addEventListener('load', function(){ na
 /* =====================================================================
    SECRET GAMES · apodos, menú, consola vertical, controles y guardado
    ===================================================================== */
-// Juegos de GBA: sube cada ROM a GitHub en static/roms/ con estos nombres
+// Juegos de GBA: sube cada juego a GitHub directamente en la carpeta static/ con estos nombres
+// (si no está ahí, también se busca en static/roms/)
 const JUEGOS_GBA = {
-  pokemon: { titulo: "Let's Go Cierzo", rom: "{{ url_for('static', filename='roms/lets_go_cierzo.gba') }}" },
-  rojito:  { titulo: "Rojito Fuego",    rom: "{{ url_for('static', filename='roms/rojito_fuego.gba') }}" },
+  pokemon: { titulo: "Let's Go Cierzo", roms: ["{{ url_for('static', filename='lets_go_cierzo.gba') }}", "{{ url_for('static', filename='roms/lets_go_cierzo.gba') }}"] },
+  rojito:  { titulo: "Rojito Fuego",    roms: ["{{ url_for('static', filename='rojito_fuego.gba') }}",    "{{ url_for('static', filename='roms/rojito_fuego.gba') }}"] },
 };
 function esGBA(j) { return Object.prototype.hasOwnProperty.call(JUEGOS_GBA, j || ''); }
 const EJS_DATA_URL = "https://cdn.emulatorjs.org/stable/data/";
@@ -2017,9 +2018,10 @@ async function iniciarPokemon() {
   partidaPokemonPromesa = cargarPartida(juegoActual);          // se descarga mientras carga el juego
   document.getElementById('poke-cargando').style.display = 'flex';
   let hayRom = false;
-  const romUrl = JUEGOS_GBA[juegoActual].rom;
-  try { hayRom = (await fetch(romUrl, { method: 'HEAD', cache: 'no-store' })).ok; } catch (e) {}
-  if (hayRom) return arrancarEmulador(romUrl);
+  for (const romUrl of JUEGOS_GBA[juegoActual].roms) {
+    try { hayRom = (await fetch(romUrl, { method: 'HEAD', cache: 'no-store' })).ok; } catch (e) {}
+    if (hayRom) return arrancarEmulador(romUrl);
+  }
   document.getElementById('poke-cargando').style.display = 'none';
   const picker = document.getElementById('rom-picker');
   picker.style.display = 'flex';
