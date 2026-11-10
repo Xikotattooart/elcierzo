@@ -315,42 +315,73 @@ def service_worker():
     r.headers['Cache-Control'] = 'no-cache'
     return r
 
-# --- SECRET GAMES: GUARDADO DE PARTIDAS POR APODO ---
+# --- SECRET GAMES: USUARIOS (apodo + PIN) Y PARTIDAS GUARDADAS ---
+# Dónde se guardan:
+#   * Si existe la variable de entorno DATABASE_URL (PostgreSQL, p. ej. Neon gratis),
+#     todo se guarda ahí y NO se borra aunque el hosting se reinicie o se vuelva a desplegar.
+#   * Si no existe, se usa reservas.db (SQLite local). Ojo: en hostings que se
+#     redespliegan desde GitHub ese archivo se borra en cada actualización.
 import re
+import time
 import unicodedata
-from flask import send_file
+from werkzeug.security import generate_password_hash, check_password_hash
 
-# Carpeta donde se guardan las partidas. En hosting con disco efímero, apunta
-# PARTIDAS_DIR a un disco persistente (p. ej. /var/data/partidas).
-CARPETA_PARTIDAS = os.environ.get('PARTIDAS_DIR') or os.path.join(BASE_DIR, 'partidas')
+DATABASE_URL = (os.environ.get('DATABASE_URL') or '').strip()
+if DATABASE_URL.startswith('postgres://'):
+    DATABASE_URL = 'postgresql://' + DATABASE_URL[len('postgres://'):]
+USA_POSTGRES = DATABASE_URL.startswith('postgresql://')
+if USA_POSTGRES:
+    import psycopg2  # requiere "psycopg2-binary" en requirements.txt
+    ErrorDuplicado = psycopg2.IntegrityError
+else:
+    ErrorDuplicado = sqlite3.IntegrityError
+
 LIMITE_PARTIDA = {'marcianitos': 256 * 1024, 'pokemon': 16 * 1024 * 1024}
+
+def _db():
+    if USA_POSTGRES:
+        return psycopg2.connect(DATABASE_URL, connect_timeout=10)
+    return sqlite3.connect(ruta_db)
+
+def _sql(consulta):
+    """Las consultas se escriben con '?'; PostgreSQL usa '%s'."""
+    return consulta.replace('?', '%s') if USA_POSTGRES else consulta
+
+def _ejecutar(consulta, parametros=(), una=False, todas=False):
+    conn = _db()
+    try:
+        cur = conn.cursor()
+        cur.execute(_sql(consulta), parametros)
+        res = cur.fetchone() if una else (cur.fetchall() if todas else None)
+        conn.commit()
+        return res
+    finally:
+        conn.close()
+
+def init_secret_games():
+    tipo_binario = 'bytea' if USA_POSTGRES else 'blob'
+    _ejecutar("create table if not exists jugadores "
+              "(slug text primary key, apodo text, pin_hash text, creado text)")
+    _ejecutar("create table if not exists partidas "
+              f"(slug text not null, juego text not null, datos {tipo_binario} not null, "
+              "guardado bigint not null, primary key (slug, juego))")
+    print(f"🎮 Secret Games: guardando en {'PostgreSQL (permanente)' if USA_POSTGRES else 'SQLite local (se borra al redesplegar)'}")
+
+try:
+    init_secret_games()
+except Exception as e:
+    print(f"❌ Error iniciando la base de datos de Secret Games: {e}")
 
 def _slug_apodo(apodo):
     n = unicodedata.normalize('NFKD', (apodo or '').strip().lower()).encode('ascii', 'ignore').decode()
     return re.sub(r'[^a-z0-9_-]+', '_', n).strip('_')[:24]
-
-# --- PIN por apodo (se guarda cifrado, nunca en claro) ---
-import time
-from werkzeug.security import generate_password_hash, check_password_hash
-
-def init_jugadores():
-    conn = sqlite3.connect(ruta_db)
-    conn.execute('''create table if not exists jugadores
-                    (slug text primary key, apodo text, pin_hash text, creado text)''')
-    conn.commit()
-    conn.close()
-
-init_jugadores()
 
 MAX_FALLOS_PIN = 5
 BLOQUEO_PIN_SEG = 5 * 60
 _fallos_pin = {}  # slug -> [fallos, bloqueado_hasta]
 
 def _jugador(slug):
-    conn = sqlite3.connect(ruta_db)
-    fila = conn.execute("select apodo, pin_hash from jugadores where slug = ?", (slug,)).fetchone()
-    conn.close()
-    return fila
+    return _ejecutar("select apodo, pin_hash from jugadores where slug = ?", (slug,), una=True)
 
 def _comprobar_pin(slug, pin):
     """Verifica el PIN de un apodo YA registrado. Devuelve (ok, codigo_http, mensaje)."""
@@ -378,6 +409,10 @@ def _leer_credenciales():
     apodo = re.sub(r'\s+', ' ', (datos.get('apodo') or '').strip())[:32]
     return apodo, _slug_apodo(apodo), str(datos.get('pin') or '').strip()
 
+def _error_servidor(e):
+    print(f"❌ Error de base de datos (Secret Games): {e}")
+    return jsonify({'status': 'error', 'message': 'Error del servidor guardando los datos. Inténtalo de nuevo.'}), 500
+
 @app.route('/api/registro', methods=['POST'])
 def registro_jugador():
     """Nuevo usuario: crea el apodo con su PIN. Falla si el apodo ya existe."""
@@ -387,13 +422,12 @@ def registro_jugador():
     if not re.fullmatch(r'\d{4}', pin):
         return jsonify({'status': 'error', 'message': 'El PIN debe tener exactamente 4 cifras.'}), 400
     try:
-        conn = sqlite3.connect(ruta_db)
-        conn.execute("insert into jugadores (slug, apodo, pin_hash, creado) values (?,?,?,?)",
-                     (slug, apodo, generate_password_hash(pin), datetime.now().isoformat(timespec='seconds')))
-        conn.commit()
-        conn.close()
-    except sqlite3.IntegrityError:
+        _ejecutar("insert into jugadores (slug, apodo, pin_hash, creado) values (?,?,?,?)",
+                  (slug, apodo, generate_password_hash(pin), datetime.now().isoformat(timespec='seconds')))
+    except ErrorDuplicado:
         return jsonify({'status': 'error', 'message': 'Ese apodo ya está registrado. Elige otro o entra como usuario existente.'}), 409
+    except Exception as e:
+        return _error_servidor(e)
     return jsonify({'status': 'creado', 'apodo': apodo})
 
 @app.route('/api/login', methods=['POST'])
@@ -402,76 +436,89 @@ def login_jugador():
     apodo, slug, pin = _leer_credenciales()
     if len(slug) < 2:
         return jsonify({'status': 'error', 'message': 'Escribe tu apodo.'}), 400
-    ok, codigo, msg = _comprobar_pin(slug, pin)
-    if not ok:
-        return jsonify({'status': 'error', 'message': msg}), codigo
-    return jsonify({'status': 'ok', 'apodo': _jugador(slug)[0] or apodo})
+    try:
+        ok, codigo, msg = _comprobar_pin(slug, pin)
+        if not ok:
+            return jsonify({'status': 'error', 'message': msg}), codigo
+        return jsonify({'status': 'ok', 'apodo': _jugador(slug)[0] or apodo})
+    except Exception as e:
+        return _error_servidor(e)
 
-def _pin_autorizado(apodo):
-    """Comprueba el PIN que llega en la cabecera X-Pin. Devuelve una respuesta de error o None."""
-    ok, codigo, msg = _comprobar_pin(_slug_apodo(apodo), request.headers.get('X-Pin', ''))
-    if not ok:
-        return jsonify({'status': 'error', 'message': msg}), codigo
-    return None
-
-def _ruta_partida(juego, apodo):
+def _validar(juego, apodo):
+    """Comprueba juego, apodo y el PIN de la cabecera X-Pin. Devuelve (slug, respuesta_error)."""
     slug = _slug_apodo(apodo)
     if juego not in LIMITE_PARTIDA or len(slug) < 2:
-        return None
-    return os.path.join(CARPETA_PARTIDAS, juego, f"{slug}.sav")
+        return slug, (jsonify({'status': 'error', 'message': 'Datos no válidos'}), 400)
+    ok, codigo, msg = _comprobar_pin(slug, request.headers.get('X-Pin', ''))
+    if not ok:
+        return slug, (jsonify({'status': 'error', 'message': msg}), codigo)
+    return slug, None
 
 @app.route('/api/partida/<juego>/<apodo>', methods=['GET'])
 def cargar_partida(juego, apodo):
-    ruta = _ruta_partida(juego, apodo)
-    if not ruta:
-        return jsonify({'status': 'error', 'message': 'Datos no válidos'}), 400
-    error = _pin_autorizado(apodo)
-    if error:
-        return error
-    if not os.path.isfile(ruta):
+    try:
+        slug, error = _validar(juego, apodo)
+        if error:
+            return error
+        fila = _ejecutar("select datos, guardado from partidas where slug = ? and juego = ?", (slug, juego), una=True)
+    except Exception as e:
+        return _error_servidor(e)
+    if not fila:
         return jsonify({'status': 'vacio'}), 404
-    r = make_response(send_file(ruta, mimetype='application/octet-stream', max_age=0, conditional=False))
+    r = make_response(bytes(fila[0]))
+    r.headers['Content-Type'] = 'application/octet-stream'
     r.headers['Cache-Control'] = 'no-store'
-    r.headers['X-Guardado'] = str(int(os.path.getmtime(ruta) * 1000))
+    r.headers['X-Guardado'] = str(fila[1])
     return r
 
 @app.route('/api/partida/<juego>/<apodo>', methods=['POST'])
 def guardar_partida(juego, apodo):
-    ruta = _ruta_partida(juego, apodo)
-    if not ruta:
-        return jsonify({'status': 'error', 'message': 'Datos no válidos'}), 400
-    error = _pin_autorizado(apodo)
-    if error:
-        return error
-    limite = LIMITE_PARTIDA[juego]
-    if request.content_length and request.content_length > limite:
-        return jsonify({'status': 'error', 'message': 'Partida demasiado grande'}), 413
-    datos = request.get_data(cache=False)
-    if not datos or len(datos) > limite:
-        return jsonify({'status': 'error', 'message': 'Partida vacía o demasiado grande'}), 400
     try:
-        os.makedirs(os.path.dirname(ruta), exist_ok=True)
-        tmp = f"{ruta}.{os.getpid()}.tmp"
-        with open(tmp, 'wb') as f:
-            f.write(datos)
-        os.replace(tmp, ruta)  # escritura atómica: nunca queda una partida a medias
+        slug, error = _validar(juego, apodo)
+        if error:
+            return error
+        limite = LIMITE_PARTIDA[juego]
+        if request.content_length and request.content_length > limite:
+            return jsonify({'status': 'error', 'message': 'Partida demasiado grande'}), 413
+        datos = request.get_data(cache=False)
+        if not datos or len(datos) > limite:
+            return jsonify({'status': 'error', 'message': 'Partida vacía o demasiado grande'}), 400
+        ahora = int(time.time() * 1000)
+        binario = psycopg2.Binary(datos) if USA_POSTGRES else sqlite3.Binary(datos)
+        _ejecutar("insert into partidas (slug, juego, datos, guardado) values (?,?,?,?) "
+                  "on conflict (slug, juego) do update set datos = excluded.datos, guardado = excluded.guardado",
+                  (slug, juego, binario, ahora))
     except Exception as e:
-        print(f"Error guardando partida: {e}")
-        return jsonify({'status': 'error', 'message': 'No se pudo guardar'}), 500
-    return jsonify({'status': 'success', 'guardado': int(os.path.getmtime(ruta) * 1000)})
+        return _error_servidor(e)
+    return jsonify({'status': 'success', 'guardado': ahora})
 
 @app.route('/api/partidas/<apodo>')
 def info_partidas(apodo):
-    error = _pin_autorizado(apodo)
-    if error:
-        return error
-    res = {}
-    for juego in LIMITE_PARTIDA:
-        ruta = _ruta_partida(juego, apodo)
-        res[juego] = {'guardado': int(os.path.getmtime(ruta) * 1000)} if ruta and os.path.isfile(ruta) else None
-    r = jsonify(res)
+    try:
+        slug, error = _validar('marcianitos', apodo)
+        if error:
+            return error
+        filas = _ejecutar("select juego, guardado from partidas where slug = ?", (slug,), todas=True) or []
+    except Exception as e:
+        return _error_servidor(e)
+    guardadas = {j: g for j, g in filas}
+    r = jsonify({j: ({'guardado': guardadas[j]} if j in guardadas else None) for j in LIMITE_PARTIDA})
     r.headers['Cache-Control'] = 'no-store'
     return r
+
+@app.route('/api/estado-juegos')
+def estado_juegos():
+    """Para comprobar desde el navegador dónde se están guardando los usuarios."""
+    try:
+        total = _ejecutar("select count(*) from jugadores", una=True)[0]
+        conexion = 'ok'
+    except Exception as e:
+        total, conexion = None, f'error: {e.__class__.__name__}'
+    return jsonify({
+        'almacen': 'postgresql (permanente)' if USA_POSTGRES else 'sqlite local (se borra al redesplegar)',
+        'conexion': conexion,
+        'usuarios_registrados': total,
+    })
 
 
 if __name__ == '__main__':
