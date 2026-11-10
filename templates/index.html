@@ -590,6 +590,11 @@ img{max-width:100%}
       <span class="txt"><b>Let's Go Cierzo</b><small>Aventura de GBA creada por la comunidad</small><small class="creditos-gba">Juego: Minicraft for GBA · Vulcalien · <a href="https://github.com/Vulcalien/minicraft-gba" target="_blank" rel="noopener" onclick="event.stopPropagation()">código GPL-3.0</a></small><span class="juego-estado vacio" id="estado-pokemon">Comprobando…</span></span>
       <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
     </button>
+    <button class="btn-servicio juego-card" onclick="abrirJuego('rojito')">
+      <span class="juego-ico"><img src="{{ url_for('static', filename='rojito.png') }}" alt="" class="pixel" onerror="this.replaceWith(document.createTextNode('🔥'))"></span>
+      <span class="txt"><b>Rojito Fuego</b><small>Aventura de GBA</small><span class="juego-estado vacio" id="estado-rojito">Comprobando…</span></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
     <button type="button" class="btn-ghost" onclick="cambiarApodo()">Cerrar sesión / cambiar usuario</button>
     <button type="button" class="btn-ghost" onclick="cerrarArcade()">← Volver a la web</button>
   </div>
@@ -1654,8 +1659,12 @@ if ('serviceWorker' in navigator) window.addEventListener('load', function(){ na
 /* =====================================================================
    SECRET GAMES · apodos, menú, consola vertical, controles y guardado
    ===================================================================== */
-// ROM del juego de GBA: súbela a GitHub en static/roms/ con este nombre
-const ROM_POKEMON_URL = "{{ url_for('static', filename='roms/lets_go_cierzo.gba') }}";
+// Juegos de GBA: sube cada ROM a GitHub en static/roms/ con estos nombres
+const JUEGOS_GBA = {
+  pokemon: { titulo: "Let's Go Cierzo", rom: "{{ url_for('static', filename='roms/lets_go_cierzo.gba') }}" },
+  rojito:  { titulo: "Rojito Fuego",    rom: "{{ url_for('static', filename='roms/rojito_fuego.gba') }}" },
+};
+function esGBA(j) { return Object.prototype.hasOwnProperty.call(JUEGOS_GBA, j || ''); }
 const EJS_DATA_URL = "https://cdn.emulatorjs.org/stable/data/";
 
 let apodoActual = "";
@@ -1756,7 +1765,7 @@ async function cargarPartida(juego) {
 async function refrescarEstadosMenu() {
   let info = {};
   try { const r = await fetch('/api/partidas/' + encodeURIComponent(apodoSlug), { cache: 'no-store', headers: cab() }); if (r.ok) info = await r.json(); } catch (e) {}
-  for (const juego of ['marcianitos', 'pokemon']) {
+  for (const juego of ['marcianitos', 'pokemon', 'rojito']) {
     const el = document.getElementById('estado-' + juego);
     const local = await idb.get(juego + ':' + apodoSlug);
     const t = Math.max((info[juego] && info[juego].guardado) || 0, (local && local.t) || 0);
@@ -1919,15 +1928,15 @@ async function abrirJuego(juego) {
   maximizarPantalla();                       // debe ir antes de cualquier await (gesto del usuario)
   juegoActual = juego;
   const c = document.getElementById('consola');
-  c.classList.toggle('modo-pokemon', juego === 'pokemon');
+  c.classList.toggle('modo-pokemon', esGBA(juego));
   c.classList.toggle('modo-marcianitos', juego === 'marcianitos');
-  document.getElementById('gb-titulo-juego').textContent = juego === 'pokemon' ? "Let's Go Cierzo" : 'Marcianitos Cierzo';
+  document.getElementById('gb-titulo-juego').textContent = esGBA(juego) ? JUEGOS_GBA[juego].titulo : 'Marcianitos Cierzo';
   document.getElementById('gb-apodo').textContent = '👤 ' + apodoActual;
   document.getElementById('arcade').style.display = 'none';
   document.documentElement.style.overflow = 'hidden';
   c.style.display = 'flex';
   document.getElementById('game-container').style.display = juego === 'marcianitos' ? 'block' : 'none';
-  document.getElementById('pokemon-screen').style.display = juego === 'pokemon' ? 'block' : 'none';
+  document.getElementById('pokemon-screen').style.display = esGBA(juego) ? 'block' : 'none';
 
   if (juego === 'marcianitos') {
     await cargarDatosMarcianitos();
@@ -2005,11 +2014,12 @@ function detenerMarcianitos() {
 /* ---------- Pokémon (emulador GBA) ---------- */
 async function iniciarPokemon() {
   pokemonListo = false;
-  partidaPokemonPromesa = cargarPartida('pokemon');          // se descarga mientras carga el juego
+  partidaPokemonPromesa = cargarPartida(juegoActual);          // se descarga mientras carga el juego
   document.getElementById('poke-cargando').style.display = 'flex';
   let hayRom = false;
-  try { hayRom = (await fetch(ROM_POKEMON_URL, { method: 'HEAD', cache: 'no-store' })).ok; } catch (e) {}
-  if (hayRom) return arrancarEmulador(ROM_POKEMON_URL);
+  const romUrl = JUEGOS_GBA[juegoActual].rom;
+  try { hayRom = (await fetch(romUrl, { method: 'HEAD', cache: 'no-store' })).ok; } catch (e) {}
+  if (hayRom) return arrancarEmulador(romUrl);
   document.getElementById('poke-cargando').style.display = 'none';
   const picker = document.getElementById('rom-picker');
   picker.style.display = 'flex';
@@ -2026,7 +2036,7 @@ function arrancarEmulador(url) {
   window.EJS_player = '#ejs-game';
   window.EJS_core = 'gba';
   window.EJS_gameUrl = url;
-  window.EJS_gameName = 'pokemon_' + apodoSlug;    // separa los guardados internos por apodo
+  window.EJS_gameName = juegoActual + '_' + apodoSlug;    // separa los guardados internos por apodo
   window.EJS_pathtodata = EJS_DATA_URL;
   window.EJS_startOnLoaded = true;
   window.EJS_color = '#d9b65f';
@@ -2048,16 +2058,16 @@ async function alArrancarPokemon() {
     pokemonListo = true;
   }, 700);
   clearInterval(autoguardadoPokemon);
-  autoguardadoPokemon = setInterval(() => { if (juegoActual === 'pokemon' && pokemonListo) guardarPartidaActual(true); }, 180000);
+  autoguardadoPokemon = setInterval(() => { if (esGBA(juegoActual) && pokemonListo) guardarPartidaActual(true); }, 180000);
 }
 function estadoPokemon() {
   try { return EJS_emulator.gameManager.getState(); } catch (e) { return null; }
 }
 // Copia local rápida al salir de la app o cambiar de pestaña
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'hidden' || juegoActual !== 'pokemon' || !pokemonListo) return;
+  if (document.visibilityState !== 'hidden' || !esGBA(juegoActual) || !pokemonListo) return;
   const st = estadoPokemon();
-  if (st) idb.set('pokemon:' + apodoSlug, { t: Date.now(), data: new Uint8Array(st).buffer });
+  if (st) idb.set(juegoActual + ':' + apodoSlug, { t: Date.now(), data: new Uint8Array(st).buffer });
 });
 
 /* ---------- Guardar / salir ---------- */
@@ -2068,17 +2078,17 @@ async function guardarPartidaActual(silencioso) {
     datosMarcianitos.actualizado = Date.now();
     return subirPartida('marcianitos', new TextEncoder().encode(JSON.stringify(datosMarcianitos)), silencioso);
   }
-  if (juegoActual === 'pokemon') {
+  if (esGBA(juegoActual)) {
     if (!pokemonListo) { if (!silencioso) toast('El juego aún se está cargando…'); return false; }
     const st = estadoPokemon();
     if (!st) { if (!silencioso) toast('No se pudo leer la partida', 3000); return false; }
     btn.disabled = true;
-    try { return await subirPartida('pokemon', st, silencioso); } finally { btn.disabled = false; }
+    try { return await subirPartida(juegoActual, st, silencioso); } finally { btn.disabled = false; }
   }
   return false;
 }
 function pedirSalirJuego() {
-  const hayAlgoQueGuardar = (juegoActual === 'marcianitos' && gameActive) || (juegoActual === 'pokemon' && pokemonListo);
+  const hayAlgoQueGuardar = (juegoActual === 'marcianitos' && gameActive) || (esGBA(juegoActual) && pokemonListo);
   if (!hayAlgoQueGuardar) return salirJuego();
   if (juegoActual === 'marcianitos') { pausadoAntesDeModal = gamePaused; gamePaused = true; }
   document.getElementById('modal-salir-juego').style.display = 'flex';
@@ -2094,7 +2104,7 @@ async function guardarYSalir() {
 function salirJuego() {
   document.getElementById('modal-salir-juego').style.display = 'none';
   soltarTodo();
-  if (juegoActual === 'pokemon' && window.EJS_emulator) {
+  if (esGBA(juegoActual) && window.EJS_emulator) {
     // El emulador no se puede descargar en caliente: se recarga y se vuelve al menú con el mismo apodo
     sessionStorage.setItem('arcade_volver', '1');
     salirPantallaCompleta();
@@ -2113,7 +2123,7 @@ const EJS_BOTON = { b: 0, select: 2, start: 3, up: 4, down: 5, left: 6, right: 7
 const dirs = { up: false, down: false, left: false, right: false };
 
 function pulsar(boton, pulsado) {
-  if (juegoActual === 'pokemon') {
+  if (esGBA(juegoActual)) {
     const gm = window.EJS_emulator && EJS_emulator.gameManager;
     if (gm && EJS_BOTON[boton] !== undefined) { try { gm.simulateInput(0, EJS_BOTON[boton], pulsado ? 1 : 0); } catch (e) {} }
     return;
@@ -2176,7 +2186,7 @@ function dpadDesde(e) {
   const muerta = r.width * 0.1;
   const n = { up: false, down: false, left: false, right: false };
   if (Math.hypot(x, y) < muerta) return aplicarDirs(n);
-  if (juegoActual === 'pokemon') {                   // una sola dirección (evita diagonales)
+  if (esGBA(juegoActual)) {                   // una sola dirección (evita diagonales)
     if (Math.abs(x) > Math.abs(y)) n[x < 0 ? 'left' : 'right'] = true; else n[y < 0 ? 'up' : 'down'] = true;
   } else {                                           // diagonales permitidas para la nave
     const ax = Math.abs(x), ay = Math.abs(y);
