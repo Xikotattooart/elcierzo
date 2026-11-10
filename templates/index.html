@@ -348,9 +348,9 @@ img{max-width:100%}
 .gb-brand{flex:none;display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 0 2px;font-size:.62rem;font-weight:800;letter-spacing:.22em;color:#77777f}
 .gb-brand span{color:var(--gold)}
 .gb-brand .led{width:7px;height:7px;border-radius:50%;background:#ff453a;box-shadow:0 0 8px #ff453a}
-.gb-controls{flex:none;height:clamp(196px,35dvh,300px);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto;
-  grid-template-areas:"lr lr" "dpad ab" "ss ss";padding:6px 16px 12px}
-.modo-pokemon .gb-controls{flex:1 1 auto;height:auto;min-height:196px;max-height:360px;margin:auto 0}
+.gb-controls{flex:none;height:clamp(196px,35dvh,300px);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto auto;
+  grid-template-areas:"lr lr" "dpad ab" "ss ss" "tm tm";padding:6px 16px 12px}
+.modo-pokemon .gb-controls{flex:1 1 auto;height:auto;min-height:230px;max-height:400px;margin:auto 0}
 .lr{grid-area:lr;display:flex;justify-content:space-between;padding-top:6px}
 .modo-marcianitos .lr{display:none}
 .creditos-gba{display:block;margin-top:2px;font-size:.66rem!important;color:#6e6e76!important}
@@ -431,6 +431,57 @@ img{max-width:100%}
   background:rgba(28,28,30,.92);border:1px solid rgba(217,182,95,.4);color:var(--text);font-size:.86rem;font-weight:600;text-align:center;
   opacity:0;transform:translate(-50%,16px);transition:opacity .3s var(--ease),transform .4s var(--spring);pointer-events:none}
 #toast.show{opacity:1;transform:translate(-50%,0)}
+
+
+/* ===== Ediciones de color de la consola ===== */
+.tema-wrap{grid-area:tm;position:relative;display:flex;justify-content:center;padding-top:8px}
+.btn-tema{display:flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.28);color:var(--t-tinta2,#8a8a92);font-size:.58rem;font-weight:800;letter-spacing:.18em;touch-action:manipulation}
+.btn-tema i{display:block;width:14px;height:14px;border-radius:50%;background:conic-gradient(#f5c400,#e3350d,#c9c6bd,#5b2a86,#1f4fbf,#2f9a57,#f5c400);box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+.btn-tema:active{transform:scale(.94)}
+.abanico{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:7px;
+  padding:14px 12px 10px;border-radius:26px;background:rgba(14,14,17,.88);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.12);box-shadow:0 16px 36px rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.abanico.abierto{opacity:1;pointer-events:auto}
+.abanico-nombre{position:absolute;top:-24px;left:0;right:0;text-align:center;font-size:.66rem;font-weight:700;letter-spacing:.06em;color:#fff;
+  text-shadow:0 1px 4px rgba(0,0,0,.8);white-space:nowrap}
+.muestra{flex:none;width:34px;height:34px;padding:0;border-radius:50%;border:2px solid rgba(255,255,255,.3);touch-action:manipulation;
+  opacity:0;transform:translateY(22px) scale(.2);transition:transform .5s var(--spring),opacity .25s,border-color .2s;transition-delay:calc(var(--i) * 40ms)}
+.abanico.abierto .muestra{opacity:1;transform:translateY(var(--dy)) rotate(var(--rot))}
+.muestra.activa{border-color:#fff;box-shadow:0 0 0 2px var(--gold),0 4px 10px rgba(0,0,0,.5)}
+@media (max-width:360px){.muestra{width:29px;height:29px}.abanico{gap:5px;padding:12px 9px 9px}}
+
+#consola .gb.tematizada{background:var(--t-fondo)}
+#consola .gb.tematizada .btn-ab{background:var(--t-ab);color:var(--t-ab-txt);box-shadow:0 5px 0 var(--t-ab-sh),0 12px 22px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.45)}
+#consola .gb.tematizada .btn-ab.pressed{box-shadow:0 1px 0 var(--t-ab-sh),0 4px 10px rgba(0,0,0,.4)}
+#consola .gb.tematizada .gb-titulo b{color:var(--t-tinta)}
+#consola .gb.tematizada .gb-titulo small{color:var(--t-tinta2)}
+#consola .gb.tematizada .btn-ss{color:var(--t-tinta2)}
+#consola .gb.tematizada .btn-ss.pressed{color:var(--t-tinta)}
+#consola .gb.tematizada .gb-brand{color:var(--t-tinta2);background:transparent}
+#consola .gb.tematizada .gb-brand span{color:var(--t-tinta)}
+#consola .gb.tematizada .gb-topbtn:not(.gb-save){background:var(--t-topbtn);color:var(--t-topbtn-txt);border-color:transparent}
+#consola .gb.tematizada .btn-tema{color:var(--t-tinta);background:var(--t-topbtn);border-color:transparent}
+.gb{transition:background .4s}
+
+.gb.tema-pikachu{--t-fondo:linear-gradient(180deg,#ffdf4a,#f5c400 55%,#dfa900);--t-ab:radial-gradient(circle at 35% 30%,#ff8a7a,#e3350d 50%,#a3240a);
+  --t-ab-txt:#fff;--t-ab-sh:#7a1a06;--t-tinta:#3b2a00;--t-tinta2:#6e5300;--t-topbtn:rgba(0,0,0,.16);--t-topbtn-txt:#2b1f00}
+.gb.tema-rojo{--t-fondo:linear-gradient(180deg,#e8323a,#c8102e 55%,#a00c24);--t-ab:radial-gradient(circle at 35% 30%,#6a6a73,#2e2e34 50%,#141417);
+  --t-ab-txt:#fff;--t-ab-sh:#050506;--t-tinta:#fff;--t-tinta2:rgba(255,255,255,.78);--t-topbtn:rgba(0,0,0,.22);--t-topbtn-txt:#fff}
+.gb.tema-transparente{--t-fondo:linear-gradient(180deg,rgba(160,130,255,.32),rgba(110,80,220,.24)),
+  repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),#120e1e;
+  --t-ab:radial-gradient(circle at 35% 30%,rgba(225,210,255,.95),rgba(150,120,240,.8) 50%,rgba(95,65,190,.85));
+  --t-ab-txt:#fff;--t-ab-sh:rgba(45,25,100,.95);--t-tinta:#fff;--t-tinta2:#cbbcff;--t-topbtn:rgba(255,255,255,.1);--t-topbtn-txt:#fff}
+.gb.tema-azul{--t-fondo:linear-gradient(180deg,#4479ea,#1f4fbf 55%,#163b92);--t-ab:radial-gradient(circle at 35% 30%,#fff5b8,#f2d14b 50%,#c9a520);
+  --t-ab-txt:#2a2200;--t-ab-sh:#7a6410;--t-tinta:#fff;--t-tinta2:rgba(255,255,255,.78);--t-topbtn:rgba(0,0,0,.2);--t-topbtn-txt:#fff}
+.gb.tema-gengar{--t-fondo:linear-gradient(180deg,#8450b8,#5b2a86 55%,#41186a);--t-ab:radial-gradient(circle at 35% 30%,#ff9cbd,#e0457b 50%,#a8264f);
+  --t-ab-txt:#fff;--t-ab-sh:#6a1430;--t-tinta:#fff;--t-tinta2:#e5c9ff;--t-topbtn:rgba(0,0,0,.22);--t-topbtn-txt:#fff}
+.gb.tema-verde{--t-fondo:linear-gradient(180deg,#5cc47f,#2f9a57 55%,#217642);--t-ab:radial-gradient(circle at 35% 30%,#ffb07e,#f0652f 50%,#b8451a);
+  --t-ab-txt:#fff;--t-ab-sh:#6e2a0c;--t-tinta:#fff;--t-tinta2:#d8ffe4;--t-topbtn:rgba(0,0,0,.2);--t-topbtn-txt:#fff}
+.gb.tema-clasica{--t-fondo:linear-gradient(180deg,#dedbd2,#c9c6bd 55%,#b3b0a6);--t-ab:radial-gradient(circle at 35% 30%,#d9629a,#9b2257 50%,#6e143c);
+  --t-ab-txt:#fff;--t-ab-sh:#4a0d28;--t-tinta:#2a3a8f;--t-tinta2:#47507e;--t-topbtn:rgba(0,0,0,.12);--t-topbtn-txt:#1d2440}
+.gb.tema-hielo{--t-fondo:linear-gradient(180deg,#e9f6ff,#bfe3f7 55%,#97cbe8);--t-ab:radial-gradient(circle at 35% 30%,#8fd3ff,#2f9be0 50%,#1b6fa8);
+  --t-ab-txt:#fff;--t-ab-sh:#0f4a73;--t-tinta:#123b5c;--t-tinta2:#2e5f84;--t-topbtn:rgba(0,0,0,.1);--t-topbtn-txt:#0f2f4a}
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
 </style>
@@ -691,6 +742,10 @@ img{max-width:100%}
     <div class="ss">
       <button type="button" class="btn-ss" data-btn="select" aria-label="Select"><i></i>SELECT</button>
       <button type="button" class="btn-ss" data-btn="start" aria-label="Start"><i></i>START</button>
+    </div>
+    <div class="tema-wrap" id="tema-wrap">
+      <div class="abanico" id="abanico" role="listbox" aria-label="Ediciones de color"><span class="abanico-nombre" id="abanico-nombre"></span></div>
+      <button type="button" class="btn-tema" id="btn-tema" onclick="alternarAbanico()" aria-label="Cambiar color de la consola"><i></i>COLOR</button>
     </div>
   </div>
  </div>
@@ -2230,6 +2285,62 @@ window.addEventListener('resize', () => {
   if (juegoActual !== 'marcianitos') return;
   if (gameActive) moverJugador(playerX, playerY); else colocarJugadorInicio();
 });
+
+
+/* ---------- Ediciones de color de la consola ---------- */
+const TEMAS_CONSOLA = [
+  { id: 'cierzo',       nombre: 'Edición Cierzo',       muestra: 'linear-gradient(135deg,#1f1f23 50%,#d9b65f 50%)' },
+  { id: 'pikachu',      nombre: 'Edición Pikachu',      muestra: 'linear-gradient(135deg,#f5c400 55%,#e3350d 55%)' },
+  { id: 'rojo',         nombre: 'Edición Rojo',         muestra: 'linear-gradient(135deg,#c8102e 55%,#2e2e34 55%)' },
+  { id: 'transparente', nombre: 'Edición Transparente', muestra: 'linear-gradient(135deg,rgba(170,140,255,.55),rgba(90,60,190,.55)),#1a1428' },
+  { id: 'azul',         nombre: 'Edición Azul',         muestra: 'linear-gradient(135deg,#1f4fbf 55%,#f2d14b 55%)' },
+  { id: 'gengar',       nombre: 'Edición Gengar',       muestra: 'linear-gradient(135deg,#5b2a86 55%,#e0457b 55%)' },
+  { id: 'verde',        nombre: 'Edición Verde Hoja',   muestra: 'linear-gradient(135deg,#2f9a57 55%,#f0652f 55%)' },
+  { id: 'clasica',      nombre: 'Edición Clásica',      muestra: 'linear-gradient(135deg,#c9c6bd 55%,#9b2257 55%)' },
+  { id: 'hielo',        nombre: 'Edición Hielo',        muestra: 'linear-gradient(135deg,#bfe3f7 55%,#2f9be0 55%)' },
+];
+function aplicarTemaConsola(id, avisar) {
+  const tema = TEMAS_CONSOLA.find(t => t.id === id) || TEMAS_CONSOLA[0];
+  const gb = document.querySelector('#consola .gb');
+  TEMAS_CONSOLA.forEach(t => gb.classList.remove('tema-' + t.id));
+  gb.classList.toggle('tematizada', tema.id !== 'cierzo');
+  if (tema.id !== 'cierzo') gb.classList.add('tema-' + tema.id);
+  document.querySelectorAll('#abanico .muestra').forEach(m => m.classList.toggle('activa', m.dataset.tema === tema.id));
+  try { localStorage.setItem('consola_tema', tema.id); } catch (e) {}
+  if (avisar) toast('🎨 ' + tema.nombre);
+}
+function alternarAbanico(forzar) {
+  const ab = document.getElementById('abanico');
+  const abrir = typeof forzar === 'boolean' ? forzar : !ab.classList.contains('abierto');
+  ab.classList.toggle('abierto', abrir);
+  if (abrir) {
+    const actual = (localStorage.getItem('consola_tema') || 'cierzo');
+    document.getElementById('abanico-nombre').textContent = (TEMAS_CONSOLA.find(t => t.id === actual) || TEMAS_CONSOLA[0]).nombre;
+  }
+}
+(function crearAbanico() {
+  const ab = document.getElementById('abanico');
+  const medio = (TEMAS_CONSOLA.length - 1) / 2;
+  TEMAS_CONSOLA.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'muestra'; b.dataset.tema = t.id;
+    b.title = t.nombre; b.setAttribute('aria-label', t.nombre);
+    b.style.background = t.muestra;
+    const d = i - medio;                                   // forma de abanico: los extremos bajan y giran
+    b.style.setProperty('--i', String(Math.abs(d)));
+    b.style.setProperty('--dy', (d * d * 2.2).toFixed(1) + 'px');
+    b.style.setProperty('--rot', (d * 6) + 'deg');
+    b.addEventListener('pointerenter', () => { document.getElementById('abanico-nombre').textContent = t.nombre; });
+    b.addEventListener('click', (e) => { e.stopPropagation(); aplicarTemaConsola(t.id, true); vibrar(); setTimeout(() => alternarAbanico(false), 180); });
+    ab.appendChild(b);
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('#tema-wrap')) alternarAbanico(false);
+  });
+  let guardado = 'cierzo';
+  try { guardado = localStorage.getItem('consola_tema') || 'cierzo'; } catch (e) {}
+  aplicarTemaConsola(guardado, false);
+})();
 
 // Al volver de Pokémon (recarga), se reabre el menú con el mismo apodo
 (function () {
