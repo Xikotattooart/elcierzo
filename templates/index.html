@@ -156,7 +156,9 @@ label{display:block;margin:18px 0 2px 4px;font-size:.72rem;font-weight:600;color
 .game-title{margin:0;font-size:2.4rem;font-weight:800;letter-spacing:-.03em;color:var(--danger)}
 #new-record-msg{display:none;color:var(--gold);font-size:.85rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 .rank-title{margin:0 0 12px;font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
-#ranking-list{display:flex;flex-direction:column;gap:6px;text-align:left;font-size:.95rem}
+#ranking-list,.lista-ranking{display:flex;flex-direction:column;gap:6px;text-align:left;font-size:.95rem}
+.rank-row.yo{outline:1px solid var(--gold)}
+.lista-ranking .rank-row{padding:7px 12px;font-size:.88rem}
 .rank-row{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.05)}
 .rank-row.top{background:rgba(217,182,95,.16)}
 .rank-row.deletable{cursor:pointer;outline:1px dashed var(--danger)}
@@ -427,6 +429,24 @@ img{max-width:100%}
 #poke-cargando{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:var(--muted);font-size:.8rem;pointer-events:none}
 
 #modal-salir-juego{z-index:10007}
+#punto-admin{width:9px;height:9px;margin:14px auto 0;border-radius:50%;background:#ff453a;opacity:.28;cursor:pointer}
+#modal-admin{z-index:10008;align-items:flex-start;overflow-y:auto;padding:max(16px,env(safe-area-inset-top)) 12px max(16px,env(safe-area-inset-bottom))}
+.sheet-admin{max-width:620px;margin:auto;text-align:left}
+.sheet-admin h3{text-align:center}
+.adm-resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.adm-dato{padding:10px;border-radius:14px;background:rgba(255,255,255,.05);text-align:center}
+.adm-dato b{display:block;font-size:1.2rem;color:var(--gold)}
+.adm-dato small{font-size:.68rem;color:var(--muted)}
+.adm-sec{margin:18px 0 8px;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.adm-jug{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid var(--line);margin-bottom:8px}
+.adm-jug-cab{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.adm-jug-cab b{font-size:1rem}
+.adm-jug-cab small{color:var(--muted);font-size:.72rem;text-align:right}
+.adm-juego{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:.8rem;color:var(--text)}
+.adm-juego span:last-child{color:var(--muted);text-align:right}
+.adm-nada{margin-top:6px;font-size:.78rem;color:#6e6e76}
+.adm-rank{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.05);margin-bottom:6px;font-size:.88rem}
+.adm-rank button{border:0;background:rgba(255,69,58,.15);color:var(--danger);border-radius:10px;padding:6px 10px;font-size:.75rem}
 #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));z-index:10010;max-width:calc(100% - 32px);padding:11px 18px;border-radius:14px;
   background:rgba(28,28,30,.92);border:1px solid rgba(217,182,95,.4);color:var(--text);font-size:.86rem;font-weight:600;text-align:center;
   opacity:0;transform:translate(-50%,16px);transition:opacity .3s var(--ease),transform .4s var(--spring);pointer-events:none}
@@ -653,6 +673,7 @@ img{max-width:100%}
     </button>
     <button type="button" class="btn-ghost" onclick="cambiarApodo()">Cerrar sesión / cambiar usuario</button>
     <button type="button" class="btn-ghost" onclick="cerrarArcade()">← Volver a la web</button>
+    <div id="punto-admin" role="button" aria-label="·" onclick="tocarPuntoAdmin()"></div>
   </div>
 </div>
 
@@ -678,6 +699,10 @@ img{max-width:100%}
       <p class="mc-info">Tu récord: <b id="mc-record-personal">0</b> pts</p>
       <p class="mc-info" id="mc-guardada" style="display:none"></p>
     </div>
+    <div class="game-card glass">
+      <p class="rank-title">🌍 Top 5 mundial</p>
+      <div id="ranking-inicio" class="lista-ranking"><div class="rank-empty">Cargando…</div></div>
+    </div>
     <button id="btn-continuar-partida" class="btn-game" style="display:none" onclick="continuarPartidaGuardada()">CONTINUAR PARTIDA</button>
     <button id="btn-start-game" class="btn-game" onclick="validarYComenzarJuego()">START</button>
     <p class="mc-hint">Arrastra el dedo por la pantalla para mover la nave · pausa con el botón de arriba</p>
@@ -693,12 +718,11 @@ img{max-width:100%}
     <h2 class="game-title">Game over</h2>
     <div id="new-record-msg">🔥 ¡Nuevo récord Barber! 🔥</div>
     <div class="game-card glass">
-      <p class="rank-title">🏆 Top 5 récords Barber</p>
+      <p class="rank-title">🌍 Top 5 mundial</p>
       <div id="ranking-list"></div>
     </div>
     <button class="btn-game" onclick="reiniciarPartida()">RESTART</button>
     <button class="btn-game sec" onclick="salirJuego()">EXIT</button>
-    <div id="secret-admin-trigger" onclick="gestionarAdminRanking()" title="Admin" role="button" aria-label="Admin"></div>
   </div>
 
   <div id="header-game">
@@ -708,7 +732,7 @@ img{max-width:100%}
         <div id="timer-display">00:00</div>
         <div id="ui-lives">Vidas <span id="game-lives">0/3</span></div>
       </div>
-      <div class="hud">Récord Barber<span id="best-score">0</span></div>
+      <div class="hud">Récord mundial<span id="best-score">0</span></div>
     </div>
   </div>
 
@@ -763,6 +787,18 @@ img{max-width:100%}
     <button type="button" class="btn-final" onclick="guardarYSalir()">💾 Guardar y salir</button>
     <button type="button" class="btn-link" onclick="salirJuego()">Salir sin guardar</button>
     <button type="button" class="btn-ghost" onclick="seguirJugando()">Seguir jugando</button>
+  </div>
+</div>
+<div id="modal-admin" class="overlay">
+  <div class="sheet sheet-admin">
+    <button class="cerrar" onclick="cerrarAdmin()" aria-label="Cerrar">&times;</button>
+    <div id="admin-login">
+      <h3>Acceso privado</h3>
+      <input type="password" id="admin-pin" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="Contraseña">
+      <button type="button" class="btn-final" style="margin-top:10px" onclick="entrarAdmin()">Entrar</button>
+      <p id="admin-error" style="color:var(--danger);margin-top:10px;display:none"></p>
+    </div>
+    <div id="admin-panel" style="display:none"></div>
   </div>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -1072,7 +1108,8 @@ if (categoria === 'tatuaje') {
             document.getElementById('game-score').innerText = "0";
             document.getElementById('game-lives').innerText = "0/3";
             document.getElementById('timer-display').innerText = "00:00";
-            document.getElementById('best-score').innerText = localStorage.getItem('barber_game_record') || 0;
+            document.getElementById('best-score').innerText = recordMundial;
+            cargarRankingMundial();
             
             const container = document.getElementById('game-container');
             colocarJugadorInicio();
@@ -1466,90 +1503,66 @@ if (categoria === 'tatuaje') {
             comenzarCiclos();
         }
 
-        let adminClicks = 0;
-        let modoEliminarActivo = false;
-
-        function gestionarAdminRanking() {
-            adminClicks++;
-            if (adminClicks >= 10) {
-                adminClicks = 0;
-                modoEliminarActivo = !modoEliminarActivo;
-                let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
-                gameOverVisualUpdate(ranking);
-                if (modoEliminarActivo) {
-                    alert("🔓 MODO ADMIN ACTIVADO: Toca directamente sobre cualquier jugador de la lista para eliminarlo.");
-                } else {
-                    alert("🔒 MODO ADMIN DESACTIVADO.");
-                }
+        // ===== Ranking mundial (Top 5 de todo el mundo, guardado en el servidor) =====
+        let recordMundial = 0;
+        function pintarRanking(contenedorId, top, resaltarApodo) {
+            const cont = document.getElementById(contenedorId);
+            if (!cont) return;
+            cont.innerHTML = '';
+            if (!top || !top.length) { cont.innerHTML = '<div class="rank-empty">Aún no hay récords. ¡Sé el primero!</div>'; return; }
+            top.forEach((item, i) => {
+                const row = document.createElement('div');
+                const esYo = resaltarApodo && slugApodo(item.apodo) === slugApodo(resaltarApodo);
+                row.className = 'rank-row' + (i === 0 ? ' top' : '') + (esYo ? ' yo' : '');
+                const left = document.createElement('b');
+                left.textContent = (i === 0 ? '👑 ' : (i + 1) + '. ') + item.apodo;
+                const right = document.createElement('i');
+                right.textContent = item.puntos + ' pts';
+                row.append(left, right);
+                cont.appendChild(row);
+            });
+        }
+        async function cargarRankingMundial() {
+            try {
+                const r = await fetch('/api/ranking/marcianitos', { cache: 'no-store' });
+                const d = await r.json();
+                const top = d.top || [];
+                recordMundial = top.length ? top[0].puntos : 0;
+                document.getElementById('best-score').innerText = recordMundial;
+                pintarRanking('ranking-inicio', top, apodoActual);
+                return top;
+            } catch (e) {
+                const c = document.getElementById('ranking-inicio');
+                if (c) c.innerHTML = '<div class="rank-empty">Ranking no disponible sin conexión</div>';
+                return [];
             }
         }
-
-        function gameOverVisualUpdate(ranking) {
-            const listContainer = document.getElementById('ranking-list');
-            if (!listContainer) return;
-            listContainer.innerHTML = '';
-            if (ranking.length === 0) {
-                listContainer.innerHTML = '<div class="rank-empty">No hay récords aún</div>';
-                return;
-            }
-            ranking.forEach((item, index) => {
-                const row = document.createElement('div');
-                row.className = 'rank-row' + (index === 0 ? ' top' : '') + (modoEliminarActivo ? ' deletable' : '');
-                if (modoEliminarActivo) {
-                    row.title = "Toca para eliminar";
-                    row.onclick = () => {
-                        if (confirm(`¿Seguro que deseas eliminar a "${item.name}" (${item.score} pts)?`)) {
-                            ranking.splice(index, 1);
-                            localStorage.setItem('barber_ranking', JSON.stringify(ranking));
-                            if (ranking.length > 0) {
-                                localStorage.setItem('barber_game_record', ranking[0].score);
-                                localStorage.setItem('barber_game_player', ranking[0].name);
-                            } else {
-                                localStorage.removeItem('barber_game_record');
-                                localStorage.removeItem('barber_game_player');
-                            }
-                            gameOverVisualUpdate(ranking);
-                        }
-                    };
-                }
-                const left = document.createElement('b');
-                left.textContent = `${index === 0 ? '👑' : (index + 1) + '.'} ${item.name}` + (modoEliminarActivo ? '  [ELIMINAR]' : '');
-                const right = document.createElement('i');
-                right.textContent = `${item.score} pts`;
-                row.append(left, right);
-                listContainer.appendChild(row);
-            });
+        async function enviarPuntuacionMundial(puntos) {
+            const lista = document.getElementById('ranking-list');
+            lista.innerHTML = '<div class="rank-empty">Guardando puntuación…</div>';
+            const msg = document.getElementById('new-record-msg');
+            msg.style.display = 'none';
+            let d = null;
+            try {
+                const r = await fetch('/api/ranking/marcianitos/' + encodeURIComponent(apodoSlug), {
+                    method: 'POST', cache: 'no-store', headers: cab({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ puntos: puntos })
+                });
+                d = await r.json();
+            } catch (e) {}
+            if (!d || !d.top) { await cargarRankingMundial(); pintarRanking('ranking-list', null); lista.innerHTML = '<div class="rank-empty">No se pudo guardar (sin conexión)</div>'; return; }
+            pintarRanking('ranking-list', d.top, apodoActual);
+            recordMundial = d.top.length ? d.top[0].puntos : 0;
+            if (d.posicion === 1) { msg.textContent = '👑 ¡Nuevo récord mundial! 👑'; msg.style.display = 'block'; }
+            else if (d.posicion) { msg.textContent = '🔥 ¡Entras en el Top 5 mundial! (puesto ' + d.posicion + ') 🔥'; msg.style.display = 'block'; }
         }
 
         function gameOver() {
             gameActive = false;
             clearInterval(timerInterval);
             gameIntervals.forEach(clearInterval);
-            adminClicks = 0;
-
-            let ranking = JSON.parse(localStorage.getItem('barber_ranking') || "[]");
-            
-            ranking.push({ name: nombreJugadorActual, score: score });
-            ranking.sort((a, b) => b.score - a.score);
-            ranking = ranking.slice(0, 5); // Top 5
-
-            localStorage.setItem('barber_ranking', JSON.stringify(ranking));
-
-            if (ranking.length > 0) {
-                localStorage.setItem('barber_game_record', ranking[0].score);
-                localStorage.setItem('barber_game_player', ranking[0].name);
-            }
-
-            const esNuevoTop1 = ranking.length > 0 && ranking[0].name === nombreJugadorActual && ranking[0].score === score && score > 0;
-            
-            const msgRecord = document.getElementById('new-record-msg');
-            if (msgRecord) {
-                msgRecord.style.display = esNuevoTop1 ? 'block' : 'none';
-            }
-
-            gameOverVisualUpdate(ranking);
-
             document.getElementById('game-over-overlay').style.display = 'flex';
+            enviarPuntuacionMundial(score);
             if (typeof alTerminarMarcianitos === 'function') alTerminarMarcianitos(score);
         }
 
@@ -1567,10 +1580,7 @@ if (categoria === 'tatuaje') {
 
         function actualizarScore() {
             document.getElementById('game-score').innerText = score;
-            if(score > (localStorage.getItem('tattoo_record') || 0)) {
-                localStorage.setItem('tattoo_record', score);
-                document.getElementById('best-score').innerText = score;
-            }
+            if (score > recordMundial) document.getElementById('best-score').innerText = score;
         }
 
         function explosion(x, y, color, num = 10) {
@@ -2036,6 +2046,7 @@ function salirPantallaCompleta() {
 async function abrirJuego(juego) {
   maximizarPantalla();                       // debe ir antes de cualquier await (gesto del usuario)
   juegoActual = juego;
+  actividadEmpezar(juego);
   const c = document.getElementById('consola');
   c.classList.toggle('modo-pokemon', esGBA(juego));
   c.classList.toggle('modo-marcianitos', juego === 'marcianitos');
@@ -2218,6 +2229,7 @@ async function guardarYSalir() {
   salirJuego();
 }
 function salirJuego() {
+  actividadTerminar();
   document.getElementById('modal-salir-juego').style.display = 'none';
   soltarTodo();
   if (esGBA(juegoActual) && window.EJS_emulator) {
@@ -2400,6 +2412,113 @@ function alternarAbanico(forzar) {
   try { guardado = localStorage.getItem('consola_tema') || 'cierzo'; } catch (e) {}
   aplicarTemaConsola(guardado, false);
 })();
+
+
+/* ---------- Actividad: tiempo jugado (para el panel privado) ---------- */
+let actJuego = null, actUltimo = 0;
+function enviarActividad(juego, segundos, nuevaSesion) {
+  if (!apodoSlug || !pinActual) return;
+  try {
+    fetch('/api/actividad/' + juego + '/' + encodeURIComponent(apodoSlug), {
+      method: 'POST', keepalive: true, headers: cab({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ segundos: segundos, nueva_sesion: !!nuevaSesion })
+    }).catch(() => {});
+  } catch (e) {}
+}
+function actividadTick() {
+  if (!actJuego) return;
+  const ahora = Date.now();
+  const seg = Math.round((ahora - actUltimo) / 1000);
+  actUltimo = ahora;
+  if (seg > 0) enviarActividad(actJuego, Math.min(seg, 600), false);
+}
+function actividadEmpezar(juego) { actividadTerminar(); actJuego = juego; actUltimo = Date.now(); enviarActividad(juego, 0, true); }
+function actividadTerminar() { if (actJuego) { actividadTick(); actJuego = null; } }
+setInterval(() => { if (document.visibilityState === 'visible') actividadTick(); }, 60000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') actividadTick(); else actUltimo = Date.now();
+});
+
+/* ---------- Panel privado: 8 toques en el punto rojo + contraseña ---------- */
+let toquesAdmin = 0, temporizadorAdmin = null, pinAdmin = '';
+function tocarPuntoAdmin() {
+  toquesAdmin++;
+  clearTimeout(temporizadorAdmin);
+  temporizadorAdmin = setTimeout(() => { toquesAdmin = 0; }, 4000);
+  if (toquesAdmin >= 8) {
+    toquesAdmin = 0;
+    document.getElementById('admin-login').style.display = 'block';
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('admin-error').style.display = 'none';
+    document.getElementById('admin-pin').value = '';
+    document.getElementById('modal-admin').style.display = 'flex';
+    setTimeout(() => document.getElementById('admin-pin').focus(), 200);
+  }
+}
+function cerrarAdmin() { document.getElementById('modal-admin').style.display = 'none'; pinAdmin = ''; }
+document.getElementById('admin-pin').addEventListener('keydown', e => { if (e.key === 'Enter') entrarAdmin(); });
+function esc(t) { const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+function duracion(seg) {
+  seg = Math.round(seg || 0);
+  const h = Math.floor(seg / 3600), m = Math.floor((seg % 3600) / 60), s = seg % 60;
+  return h ? h + ' h ' + m + ' min' : (m ? m + ' min ' + s + ' s' : s + ' s');
+}
+const NOMBRES_JUEGOS = { marcianitos: 'Marcianitos Cierzo', pokemon: "Let's Go Cierzo", rojito: 'Rojito Fuego', crash: 'Crash Cierzo' };
+async function entrarAdmin() {
+  const pin = pinAdmin || document.getElementById('admin-pin').value.trim();
+  const err = document.getElementById('admin-error');
+  let r = null, d = {};
+  try {
+    r = await fetch('/api/admin/resumen', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: pin }) });
+    d = await r.json().catch(() => ({}));
+  } catch (e) {}
+  if (!r || !r.ok) { err.textContent = (d && d.message) || 'Sin conexión'; err.style.display = 'block'; return; }
+  pinAdmin = pin;
+  document.getElementById('admin-login').style.display = 'none';
+  pintarAdmin(d);
+}
+function pintarAdmin(d) {
+  const jug = d.jugadores || [];
+  const jugaron = jug.filter(j => j.segundos > 0 || Object.keys(j.juegos).length);
+  const total = jug.reduce((a, j) => a + (j.segundos || 0), 0);
+  let html = '<h3>Panel privado</h3>';
+  html += '<div class="adm-resumen">'
+    + '<div class="adm-dato"><b>' + jug.length + '</b><small>registrados</small></div>'
+    + '<div class="adm-dato"><b>' + jugaron.length + '</b><small>han jugado</small></div>'
+    + '<div class="adm-dato"><b>' + esc(duracion(total)) + '</b><small>tiempo total</small></div></div>';
+  html += '<p class="adm-sec">🌍 Ranking Marcianitos</p>';
+  if (!(d.ranking || []).length) html += '<p class="adm-nada">Sin puntuaciones todavía</p>';
+  (d.ranking || []).forEach((f, i) => {
+    html += '<div class="adm-rank"><span>' + (i + 1) + '. <b>' + esc(f.apodo) + '</b> · ' + f.puntos + ' pts</span>'
+      + '<button type="button" data-borrar="' + esc(f.slug) + '">Borrar</button></div>';
+  });
+  html += '<p class="adm-sec">👥 Jugadores</p>';
+  if (!jug.length) html += '<p class="adm-nada">Nadie registrado todavía</p>';
+  jug.forEach(j => {
+    const reg = j.creado ? new Date(j.creado).toLocaleDateString('es-ES') : '—';
+    html += '<div class="adm-jug"><div class="adm-jug-cab"><b>' + esc(j.apodo) + '</b><small>Registro: ' + esc(reg)
+      + (j.ultima ? '<br>Última vez: ' + esc(fechaCorta(j.ultima)) : '') + '</small></div>';
+    const juegos = Object.entries(j.juegos || {});
+    if (!juegos.length) html += '<p class="adm-nada">Todavía no ha jugado</p>';
+    juegos.sort((a, b) => b[1].segundos - a[1].segundos).forEach(([id, g]) => {
+      html += '<div class="adm-juego"><span>' + esc(NOMBRES_JUEGOS[id] || id) + '</span><span>'
+        + esc(duracion(g.segundos)) + ' · ' + g.sesiones + (g.sesiones === 1 ? ' vez' : ' veces')
+        + (g.ultima ? ' · ' + esc(fechaCorta(g.ultima)) : '') + '</span></div>';
+    });
+    html += '</div>';
+  });
+  html += '<button type="button" class="btn-ghost" onclick="entrarAdmin()">↻ Actualizar</button>';
+  const panel = document.getElementById('admin-panel');
+  panel.innerHTML = html;
+  panel.style.display = 'block';
+  panel.querySelectorAll('[data-borrar]').forEach(b => b.onclick = async () => {
+    if (!confirm('¿Borrar esta puntuación del ranking?')) return;
+    try {
+      await fetch('/api/admin/ranking/borrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: pinAdmin, slug: b.dataset.borrar }) });
+    } catch (e) {}
+    entrarAdmin();
+  });
+}
 
 // Al volver de Pokémon (recarga), se reabre el menú con el mismo apodo
 (function () {
