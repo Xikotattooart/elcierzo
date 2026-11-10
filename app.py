@@ -365,6 +365,11 @@ def init_secret_games():
     _ejecutar("create table if not exists partidas "
               f"(slug text not null, juego text not null, datos {tipo_binario} not null, "
               "guardado bigint not null, primary key (slug, juego))")
+    _ejecutar("create table if not exists actividad "
+              "(slug text not null, juego text not null, segundos bigint not null default 0, "
+              "sesiones integer not null default 0, ultima bigint not null default 0, primary key (slug, juego))")
+    _ejecutar("create table if not exists ranking_marcianitos "
+              "(slug text primary key, apodo text, puntos bigint not null, fecha bigint not null)")
     print(f"🎮 Secret Games: guardando en {'PostgreSQL (permanente)' if USA_POSTGRES else 'SQLite local (se borra al redesplegar)'}")
 
 try:
@@ -505,6 +510,120 @@ def info_partidas(apodo):
     r = jsonify({j: ({'guardado': guardadas[j]} if j in guardadas else None) for j in LIMITE_PARTIDA})
     r.headers['Cache-Control'] = 'no-store'
     return r
+
+
+# --- ACTIVIDAD: tiempo jugado por usuario y juego ---
+@app.route('/api/actividad/<juego>/<apodo>', methods=['POST'])
+def registrar_actividad(juego, apodo):
+    try:
+        slug, error = _validar(juego, apodo)
+        if error:
+            return error
+        datos = request.get_json(silent=True) or {}
+        segundos = max(0, min(int(datos.get('segundos') or 0), 600))   # como mucho 10 min por aviso
+        sesion = 1 if datos.get('nueva_sesion') else 0
+        if not segundos and not sesion:
+            return jsonify({'status': 'ok'})
+        _ejecutar("insert into actividad (slug, juego, segundos, sesiones, ultima) values (?,?,?,?,?) "
+                  "on conflict (slug, juego) do update set segundos = actividad.segundos + excluded.segundos, "
+                  "sesiones = actividad.sesiones + excluded.sesiones, ultima = excluded.ultima",
+                  (slug, juego, segundos, sesion, int(time.time() * 1000)))
+    except Exception as e:
+        return _error_servidor(e)
+    return jsonify({'status': 'ok'})
+
+# --- RANKING MUNDIAL DE MARCIANITOS (mejor puntuación de cada jugador) ---
+def _top_marcianitos(limite=5):
+    filas = _ejecutar("select apodo, puntos, fecha, slug from ranking_marcianitos order by puntos desc, fecha asc limit ?",
+                      (limite,), todas=True) or []
+    return [{'apodo': f[0], 'puntos': int(f[1]), 'fecha': int(f[2]), 'slug': f[3]} for f in filas]
+
+@app.route('/api/ranking/marcianitos')
+def ver_ranking():
+    try:
+        r = jsonify({'top': [{k: v for k, v in f.items() if k != 'slug'} for f in _top_marcianitos()]})
+    except Exception as e:
+        return _error_servidor(e)
+    r.headers['Cache-Control'] = 'no-store'
+    return r
+
+@app.route('/api/ranking/marcianitos/<apodo>', methods=['POST'])
+def enviar_puntuacion(apodo):
+    try:
+        slug, error = _validar('marcianitos', apodo)
+        if error:
+            return error
+        puntos = int((request.get_json(silent=True) or {}).get('puntos') or 0)
+        if puntos < 0 or puntos > 50_000_000:
+            return jsonify({'status': 'error', 'message': 'Puntuación no válida'}), 400
+        fila = _jugador(slug)
+        nombre = (fila[0] if fila else apodo)[:32]
+        if puntos > 0:
+            _ejecutar("insert into ranking_marcianitos (slug, apodo, puntos, fecha) values (?,?,?,?) "
+                      "on conflict (slug) do update set puntos = excluded.puntos, fecha = excluded.fecha, apodo = excluded.apodo "
+                      "where excluded.puntos > ranking_marcianitos.puntos",
+                      (slug, nombre, puntos, int(time.time() * 1000)))
+        top = _top_marcianitos()
+        posicion = next((i + 1 for i, f in enumerate(top) if f['slug'] == slug and f['puntos'] == puntos and puntos > 0), None)
+    except Exception as e:
+        return _error_servidor(e)
+    return jsonify({'status': 'ok', 'posicion': posicion,
+                    'top': [{k: v for k, v in f.items() if k != 'slug'} for f in top]})
+
+# --- PANEL SECRETO DE ADMINISTRACIÓN ---
+# El PIN se lee de la variable de entorno ADMIN_PIN (recomendado ponerla en Render).
+ADMIN_PIN = (os.environ.get('ADMIN_PIN') or '3698').strip()
+_fallos_admin = [0, 0]  # [fallos, bloqueado_hasta]
+
+def _admin_autorizado():
+    import hmac
+    fallos, hasta = _fallos_admin
+    if hasta > time.time():
+        return jsonify({'status': 'error', 'message': 'Demasiados intentos. Espera unos minutos.'}), 429
+    pin = str((request.get_json(silent=True) or {}).get('pin') or '')
+    if hmac.compare_digest(pin, ADMIN_PIN):
+        _fallos_admin[0], _fallos_admin[1] = 0, 0
+        return None
+    _fallos_admin[0] = fallos + 1
+    if _fallos_admin[0] >= 5:
+        _fallos_admin[0], _fallos_admin[1] = 0, time.time() + 15 * 60
+    return jsonify({'status': 'error', 'message': 'Contraseña incorrecta'}), 401
+
+@app.route('/api/admin/resumen', methods=['POST'])
+def admin_resumen():
+    error = _admin_autorizado()
+    if error:
+        return error
+    try:
+        jugadores = {}
+        for slug, apodo, creado in _ejecutar("select slug, apodo, creado from jugadores", todas=True) or []:
+            jugadores[slug] = {'apodo': apodo or slug, 'creado': creado, 'juegos': {}, 'ultima': 0, 'segundos': 0}
+        for slug, juego, segundos, sesiones, ultima in _ejecutar(
+                "select slug, juego, segundos, sesiones, ultima from actividad", todas=True) or []:
+            j = jugadores.setdefault(slug, {'apodo': slug, 'creado': None, 'juegos': {}, 'ultima': 0, 'segundos': 0})
+            j['juegos'][juego] = {'segundos': int(segundos), 'sesiones': int(sesiones), 'ultima': int(ultima)}
+            j['ultima'] = max(j['ultima'], int(ultima))
+            j['segundos'] += int(segundos)
+        lista = sorted(jugadores.items(), key=lambda kv: (kv[1]['ultima'], kv[1]['creado'] or ''), reverse=True)
+        r = jsonify({'status': 'ok',
+                     'jugadores': [dict(v, slug=k) for k, v in lista],
+                     'ranking': _top_marcianitos(20)})
+    except Exception as e:
+        return _error_servidor(e)
+    r.headers['Cache-Control'] = 'no-store'
+    return r
+
+@app.route('/api/admin/ranking/borrar', methods=['POST'])
+def admin_borrar_ranking():
+    error = _admin_autorizado()
+    if error:
+        return error
+    slug = _slug_apodo((request.get_json(silent=True) or {}).get('slug') or '')
+    try:
+        _ejecutar("delete from ranking_marcianitos where slug = ?", (slug,))
+        return jsonify({'status': 'ok', 'ranking': _top_marcianitos(20)})
+    except Exception as e:
+        return _error_servidor(e)
 
 @app.route('/api/estado-juegos')
 def estado_juegos():
