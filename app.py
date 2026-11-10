@@ -336,7 +336,7 @@ if USA_POSTGRES:
 else:
     ErrorDuplicado = sqlite3.IntegrityError
 
-LIMITE_PARTIDA = {'marcianitos': 256 * 1024, 'pokemon': 16 * 1024 * 1024}
+LIMITE_PARTIDA = {'marcianitos': 256 * 1024, 'pokemon': 16 * 1024 * 1024, 'rojito': 16 * 1024 * 1024}
 
 def _db():
     if USA_POSTGRES:
