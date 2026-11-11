@@ -2586,9 +2586,16 @@ function pintarAdmin(d) {
         try{(a.requestFullscreen||a.webkitRequestFullscreen||function(){}).call(a)}catch(x){}
       }).catch(fail);
   });
-  $('tps-x').addEventListener('click',function(){
+  function cerrarTps(){
     $('tps-app').classList.remove('on');document.documentElement.style.overflow='';
     try{if(document.fullscreenElement)document.exitFullscreen()}catch(x){}
+  }
+  $('tps-x').addEventListener('click',cerrarTps);
+  // TattooPro avisa cuando ha cargado (su botón ⌂ sustituye a la ✕) y cuando se pulsa ⌂
+  window.addEventListener('message',function(e){
+    if(e.origin!==location.origin||e.source!==$('tps-frame').contentWindow)return;
+    if(e.data==='tps-listo')$('tps-x').style.display='none';
+    if(e.data==='tps-cerrar')cerrarTps();
   });
 })();
 </script>
