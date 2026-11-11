@@ -315,6 +315,41 @@ def service_worker():
     r.headers['Cache-Control'] = 'no-cache'
     return r
 
+# --- TATTOOPRO SKETCH (acceso oculto desde index.html) ---
+import hmac
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+
+_tps_ser = URLSafeTimedSerializer(os.environ.get('SECRET_KEY') or (pin_seguridad + token_telegram), salt='tattoopro')
+TATTOOPRO_CLAVE = os.environ.get('TATTOOPRO_CLAVE', 'chanero')
+_tps_fallos = {}
+
+@app.route('/api/tattoopro/acceso', methods=['POST'])
+def tattoopro_acceso():
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+    ahora = time.time()
+    intentos = [t for t in _tps_fallos.get(ip, []) if ahora - t < 300]
+    if len(intentos) >= 8:
+        return jsonify({'ok': False}), 429
+    clave = str((request.get_json(silent=True) or {}).get('clave', ''))
+    if hmac.compare_digest(clave.encode('utf-8'), TATTOOPRO_CLAVE.encode('utf-8')):
+        _tps_fallos.pop(ip, None)
+        return jsonify({'ok': True, 'url': '/tattoopro?t=' + _tps_ser.dumps('ok')})
+    intentos.append(ahora)
+    _tps_fallos[ip] = intentos
+    return jsonify({'ok': False})
+
+@app.route('/tattoopro')
+@app.route('/tattoopro/')
+def tattoopro():
+    try:
+        _tps_ser.loads(request.args.get('t', ''), max_age=60 * 60 * 12)
+    except (BadSignature, SignatureExpired):
+        return ('', 404)
+    r = make_response(send_from_directory(os.path.join(app.static_folder, 'tattoopro'), 'tattoopro.html'))
+    r.headers['Cache-Control'] = 'no-store'
+    r.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    return r
+
 # --- SECRET GAMES: USUARIOS (apodo + PIN) Y PARTIDAS GUARDADAS ---
 # Dónde se guardan:
 #   * Si existe la variable de entorno DATABASE_URL (PostgreSQL, p. ej. Neon gratis),
