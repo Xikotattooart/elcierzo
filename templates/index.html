@@ -504,6 +504,24 @@ img{max-width:100%}
   --t-ab-txt:#fff;--t-ab-sh:#0f4a73;--t-tinta:#123b5c;--t-tinta2:#2e5f84;--t-topbtn:rgba(0,0,0,.1);--t-topbtn-txt:#0f2f4a}
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
+
+/* ===== TattooPro Sketch · acceso oculto ===== */
+#tps-box{display:flex;justify-content:center;margin:20px 0 8px}
+#tps-ico{width:62px;height:62px;padding:0;border:0;border-radius:22%;background:#F5F5F3;display:grid;place-items:center;cursor:pointer;outline:0;
+  box-shadow:0 8px 22px rgba(0,0,0,.45),inset 0 2px 1px rgba(255,255,255,.9),inset 0 -3px 6px rgba(0,0,0,.08);-webkit-tap-highlight-color:transparent;transition:transform .15s}
+#tps-ico:active{transform:scale(.93)}
+#tps-ico svg{filter:drop-shadow(0 3px 2px rgba(0,0,0,.35))}
+#tps-modal{position:fixed;inset:0;z-index:10050;display:none;place-items:center;background:rgba(0,0,0,.65);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#tps-modal.on{display:grid}
+#tps-form{display:flex;gap:8px;align-items:center;padding:14px;border-radius:18px;background:rgba(22,22,26,.92);border:1px solid rgba(255,255,255,.1)}
+#tps-form input{width:200px;height:46px;margin:0;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:#fff;font-size:16px}
+#tps-form button{height:46px;padding:0 18px;border:0;border-radius:12px;background:#F5F5F3;color:#111;font-weight:700;cursor:pointer}
+#tps-form.err{animation:tpsx .35s}
+@keyframes tpsx{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#tps-app{position:fixed;inset:0;z-index:10060;background:#09090B;display:none}
+#tps-app.on{display:block}
+#tps-frame{width:100%;height:100%;border:0;display:block}
+#tps-x{position:absolute;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));width:36px;height:36px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(20,20,24,.75);color:#ddd;cursor:pointer;z-index:2}
 </style>
 </head>
 <body>
@@ -536,6 +554,19 @@ img{max-width:100%}
     <div class="bottom-bar">
       <button type="button" class="secret" onclick="abrirArcade()">secret games</button>
       <button type="button" class="secret glass install js-install" onclick="instalarApp()"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/></svg>Instalar aplicación</button>
+    </div>
+    <div id="tps-box">
+      <button id="tps-ico" type="button" aria-label="." tabindex="-1">
+        <svg viewBox="0 0 100 130" width="30" height="39" aria-hidden="true">
+          <defs><radialGradient id="tps-g" cx=".38" cy=".62" r=".75"><stop offset="0" stop-color="#52525c"/><stop offset=".45" stop-color="#16161b"/><stop offset="1" stop-color="#000"/></radialGradient></defs>
+          <path d="M50 4C50 4 12 52 12 82c0 26 17 44 38 44s38-18 38-44C88 52 50 4 50 4z" fill="url(#tps-g)"/>
+          <path d="M28 86C25 66 36 48 47 32C42 54 41 76 44 98C36 100 29 96 28 86z" fill="rgba(255,255,255,.28)"/>
+          <ellipse cx="56" cy="106" rx="17" ry="6" fill="rgba(255,255,255,.1)"/>
+          <path d="M23 82C23 67 31 52 40 40" stroke="#fff" stroke-opacity=".9" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+          <ellipse cx="30" cy="94" rx="3.2" ry="6" fill="#fff" fill-opacity=".85" transform="rotate(14 30 94)"/>
+          <path d="M73 102C67 113 57 119 46 119" stroke="rgba(255,255,255,.4)" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -2530,6 +2561,35 @@ function pintarAdmin(d) {
   document.documentElement.style.overflow = 'hidden';
   if (!(ap && pn)) return mostrarInicioArcade();
   accederServidor('login', ap, pn).then(res => res.ok ? mostrarMenuArcade() : mostrarFormAcceso('login'));
+})();
+</script>
+<div id="tps-modal"><form id="tps-form" autocomplete="off"><input id="tps-key" type="password" placeholder="Clave" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="submit">Entrar</button></form></div>
+<div id="tps-app"><iframe id="tps-frame" title="app" allow="fullscreen; clipboard-read; clipboard-write; downloads"></iframe><button id="tps-x" type="button" aria-label="Cerrar">&#10005;</button></div>
+<script>
+(function(){
+  var NEED=10,WIN=5000,taps=[],$=function(i){return document.getElementById(i)};
+  $('tps-ico').addEventListener('click',function(){
+    var n=Date.now();taps.push(n);
+    while(taps.length&&n-taps[0]>WIN)taps.shift();
+    if(taps.length>=NEED){taps=[];$('tps-modal').classList.add('on');$('tps-key').value='';setTimeout(function(){$('tps-key').focus()},60)}
+  });
+  $('tps-modal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('on')});
+  function fail(){var f=$('tps-form');f.classList.remove('err');void f.offsetWidth;f.classList.add('err');$('tps-key').value=''}
+  $('tps-form').addEventListener('submit',function(e){
+    e.preventDefault();
+    fetch('/api/tattoopro/acceso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clave:$('tps-key').value})})
+      .then(function(r){return r.json()}).then(function(j){
+        if(!j.ok)return fail();
+        $('tps-modal').classList.remove('on');
+        var fr=$('tps-frame');if(!fr.getAttribute('src'))fr.src=j.url;
+        var a=$('tps-app');a.classList.add('on');document.documentElement.style.overflow='hidden';
+        try{(a.requestFullscreen||a.webkitRequestFullscreen||function(){}).call(a)}catch(x){}
+      }).catch(fail);
+  });
+  $('tps-x').addEventListener('click',function(){
+    $('tps-app').classList.remove('on');document.documentElement.style.overflow='';
+    try{if(document.fullscreenElement)document.exitFullscreen()}catch(x){}
+  });
 })();
 </script>
 </body>
