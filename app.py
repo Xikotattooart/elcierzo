@@ -9,6 +9,7 @@ from googleapiclient.discovery import build
 from zoneinfo import ZoneInfo
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
 
 # --- CONFIGURACIÓN DE RUTAS DINÁMICAS ---
 # Esto detecta automáticamente la carpeta local o del entorno
@@ -16,10 +17,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ruta_credenciales = os.path.join(BASE_DIR, 'credenciales.json')
 ruta_db = os.path.join(BASE_DIR, 'reservas.db')
 
-pin_seguridad = "030299"  # PIN de seguridad
-token_telegram = "8592802702:AAFiF_W7YvJNl20z-5PWL0wsawNKVRvMgoI"
-chat_id = "899109232"
+pin_seguridad = os.environ.get("PIN_SEGURIDAD") or "030299"  # PIN de seguridad
+token_telegram = os.environ.get("TELEGRAM_TOKEN") or "8592802702:AAFiF_W7YvJNl20z-5PWL0wsawNKVRvMgoI"
+chat_id = os.environ.get("TELEGRAM_CHAT_ID") or "899109232"
 id_calendario = "edgarfa46@gmail.com"
+
+EXT_IMAGEN = {'jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'}
 
 def agregar_a_calendar(reserva):
     try:
@@ -92,7 +95,10 @@ def index():
 
 @app.route('/obtener_estado_horas/<fecha>')
 def obtener_estado_horas(fecha):
-    dia_semana = datetime.strptime(fecha, '%Y-%m-%d').weekday()
+    try:
+        dia_semana = datetime.strptime(fecha, '%Y-%m-%d').weekday()
+    except ValueError:
+        return jsonify([])
     
     if dia_semana in [0, 1, 2, 3, 4, 5]:
         horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30"]
@@ -111,7 +117,7 @@ def obtener_estado_horas(fecha):
         
         time_min = f"{fecha}T00:00:00Z"
         time_max = f"{fecha}T23:59:59Z"
-        events_result = service.events().list(calendarId=id_calendario, timeMin=time_min, timeMax=time_max, singleEvents=True).execute()
+        events_result = service.events().list(calendarId=id_calendario, timeMin=time_min, timeMax=time_max, singleEvents=True, timeZone='Europe/Madrid').execute()
         
         ocupadas = []
         for e in events_result.get('items', []):
@@ -150,6 +156,8 @@ def recuperar():
             if file and file.filename != '':
                 # Limpiamos el nombre y creamos uno único con fecha y hora para que no se repita
                 ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
+                if ext not in EXT_IMAGEN:
+                    return jsonify({"status": "error", "message": "La referencia debe ser una imagen (jpg, png, webp, heic o gif)."}), 400
                 unique_filename = f"tattoo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
                 
                 upload_folder = os.path.join(BASE_DIR, 'static', 'uploads')
@@ -200,7 +208,7 @@ def recuperar():
                 msg_tele += f"\n🖼️ Referencia: {imagen_url}"
             
         try:
-            requests.post(f"https://api.telegram.org/bot{token_telegram}/sendmessage", data={'chat_id': chat_id, 'text': msg_tele})
+            requests.post(f"https://api.telegram.org/bot{token_telegram}/sendmessage", data={'chat_id': chat_id, 'text': msg_tele}, timeout=10)
         except Exception as telegram_err:
             print(f"Error enviando Telegram: {telegram_err}")
         
@@ -243,7 +251,7 @@ def cancelar_cita():
             time_max = f"{fecha}T23:59:59Z"
             
             events_result = service.events().list(
-                calendarId=id_calendario, timeMin=time_min, timeMax=time_max, singleEvents=True
+                calendarId=id_calendario, timeMin=time_min, timeMax=time_max, singleEvents=True, timeZone='Europe/Madrid'
             ).execute()
             
             for evento in events_result.get('items', []):
@@ -255,7 +263,7 @@ def cancelar_cita():
             print(f"Error borrando de Calendar: {e}")
 
         msg_cancelacion = f"❌ CITA CANCELADA:\n📅 Fecha: {fecha}\n⏰ Hora: {hora}"
-        requests.post(f"https://api.telegram.org/bot{token_telegram}/sendmessage", data={'chat_id': chat_id, 'text': msg_cancelacion})
+        requests.post(f"https://api.telegram.org/bot{token_telegram}/sendmessage", data={'chat_id': chat_id, 'text': msg_cancelacion}, timeout=10)
 
         return jsonify({'status': 'success', 'message': 'Cita eliminada correctamente'})
 
@@ -274,7 +282,7 @@ def notificar_record():
     puntuacion = datos.get('score', 0)
 
     remitente = "edgarfa46@gmail.com"
-    password = "dwafiymjdgglumsz"
+    password = os.environ.get("GMAIL_APP_PASSWORD") or "dwafiymjdgglumsz"
     destinatario = "edgarfa46@gmail.com"
 
     asunto = f"🎮 ¡Nuevo Récord en El Cierzo! {nombre} - {puntuacion} pts"
@@ -345,7 +353,10 @@ def tattoopro():
         _tps_ser.loads(request.args.get('t', ''), max_age=60 * 60 * 12)
     except (BadSignature, SignatureExpired):
         return ('', 404)
-    r = make_response(send_from_directory(os.path.join(app.static_folder, 'tattoopro'), 'tattoopro.html'))
+    carpeta = os.path.join(app.static_folder, 'tattoopro')
+    if not os.path.isfile(os.path.join(carpeta, 'tattoopro.html')):
+        carpeta = app.static_folder
+    r = make_response(send_from_directory(carpeta, 'tattoopro.html'))
     r.headers['Cache-Control'] = 'no-store'
     r.headers['X-Frame-Options'] = 'SAMEORIGIN'
     return r
@@ -676,4 +687,4 @@ def estado_juegos():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=os.environ.get('FLASK_DEBUG') == '1')
