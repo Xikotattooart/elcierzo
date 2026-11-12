@@ -561,10 +561,8 @@ img{max-width:100%}
           <defs><radialGradient id="tps-g" cx=".38" cy=".62" r=".75"><stop offset="0" stop-color="#52525c"/><stop offset=".45" stop-color="#16161b"/><stop offset="1" stop-color="#000"/></radialGradient></defs>
           <path d="M50 4C50 4 12 52 12 82c0 26 17 44 38 44s38-18 38-44C88 52 50 4 50 4z" fill="url(#tps-g)"/>
           <path d="M28 86C25 66 36 48 47 32C42 54 41 76 44 98C36 100 29 96 28 86z" fill="rgba(255,255,255,.28)"/>
-          <ellipse cx="56" cy="106" rx="17" ry="6" fill="rgba(255,255,255,.1)"/>
           <path d="M23 82C23 67 31 52 40 40" stroke="#fff" stroke-opacity=".9" stroke-width="2.6" fill="none" stroke-linecap="round"/>
           <ellipse cx="30" cy="94" rx="3.2" ry="6" fill="#fff" fill-opacity=".85" transform="rotate(14 30 94)"/>
-          <path d="M73 102C67 113 57 119 46 119" stroke="rgba(255,255,255,.4)" stroke-width="2" fill="none" stroke-linecap="round"/>
         </svg>
       </button>
           <button id="tpm-ico" type="button" aria-label="." tabindex="-1">
@@ -572,10 +570,8 @@ img{max-width:100%}
           <defs><radialGradient id="tpm-g" cx=".38" cy=".62" r=".75"><stop offset="0" stop-color="#d4465e"/><stop offset=".45" stop-color="#8a0f24"/><stop offset="1" stop-color="#3d000a"/></radialGradient></defs>
           <path d="M50 4C50 4 12 52 12 82c0 26 17 44 38 44s38-18 38-44C88 52 50 4 50 4z" fill="url(#tpm-g)"/>
           <path d="M28 86C25 66 36 48 47 32C42 54 41 76 44 98C36 100 29 96 28 86z" fill="rgba(255,255,255,.28)"/>
-          <ellipse cx="56" cy="106" rx="17" ry="6" fill="rgba(255,255,255,.1)"/>
           <path d="M23 82C23 67 31 52 40 40" stroke="#fff" stroke-opacity=".9" stroke-width="2.6" fill="none" stroke-linecap="round"/>
           <ellipse cx="30" cy="94" rx="3.2" ry="6" fill="#fff" fill-opacity=".85" transform="rotate(14 30 94)"/>
-          <path d="M73 102C67 113 57 119 46 119" stroke="rgba(255,255,255,.4)" stroke-width="2" fill="none" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
@@ -2580,7 +2576,7 @@ function pintarAdmin(d) {
 (function(){
   // Gota negra = versión iPad · gota roja grana = versión móvil (las dos: 5 toques + clave)
   var $=function(i){return document.getElementById(i)},WIN=5000,destino=null,actual=null;
-  var ACCESOS={tps:{ico:'tps-ico',toques:5,api:'/api/tattoopro/acceso'},tpm:{ico:'tpm-ico',toques:5,api:'/api/tattoopro-movil/acceso'}};
+  var ACCESOS={tps:{ico:'tps-ico',toques:3,api:'/api/tattoopro/acceso'},tpm:{ico:'tpm-ico',toques:3,api:'/api/tattoopro-movil/acceso'}};
   Object.keys(ACCESOS).forEach(function(k){var A=ACCESOS[k],taps=[];
     $(A.ico).addEventListener('click',function(){
       var n=Date.now();taps.push(n);
