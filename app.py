@@ -1,690 +1,2618 @@
-import os
-import json
-import sqlite3
-import requests
-from flask import Flask, render_template, request, jsonify
-from datetime import datetime, timedelta
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from zoneinfo import ZoneInfo
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="El Cierzo">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>
+/* Se registra aquí, pronto, para no perder el evento de instalación */
+window.__deferredInstall = null;
+window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); window.__deferredInstall = e; });
+window.addEventListener('appinstalled', function(){ window.__deferredInstall = null; document.documentElement.classList.add('is-standalone'); });
+if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) document.documentElement.classList.add('is-standalone');
+</script>
+<title>El Cierzo Tattoo & Barbershop | Talayuelas</title>
+<meta name="description" content="Estudio profesional de tatuajes y barbería en Talayuelas, Cuenca. Pide tu cita o envíanos tu idea de tatuaje directamente.">
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='ICONO.png') }}">
+<style>
+:root{
+  --bg:#000; --glass:rgba(255,255,255,.06); --glass-2:rgba(255,255,255,.11);
+  --line:rgba(255,255,255,.11); --text:#f5f5f7; --muted:#9a9aa1;
+  --gold:#d9b65f; --gold-ink:#1a1405; --danger:#ff453a; --ok:#30d158;
+  --ease:cubic-bezier(.22,1,.36,1); --spring:cubic-bezier(.34,1.56,.64,1);
+  --blur:blur(34px) saturate(150%);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:#050506}
+body{
+  margin:0;min-height:100dvh;color:var(--text);background:transparent;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter","Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;letter-spacing:-.011em;overflow-x:hidden;
+}
+button,input,select,textarea{font:inherit;letter-spacing:inherit}
+button{cursor:pointer;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
-app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
+/* ---------- Layout ---------- */
+.capa-oscura{width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column;align-items:center;
+  padding:max(28px,env(safe-area-inset-top)) 20px max(36px,env(safe-area-inset-bottom))}
+.logo{width:74%;max-width:280px;margin:16px 0 30px;view-transition-name:logo;animation:rise .8s var(--ease) both}
+@supports not (view-transition-name:none){.logo{transition:width .6s var(--ease),margin .6s var(--ease)}}
+.logo-pequeno{width:108px;margin:8px 0 20px}
+.contenedor-botones{width:100%;display:flex;flex-direction:column;gap:12px}
+.contenedor-botones>*{animation:rise .75s var(--ease) both}
+.contenedor-botones>*:nth-child(1){animation-delay:.10s}.contenedor-botones>*:nth-child(2){animation-delay:.17s}
+.contenedor-botones>*:nth-child(3){animation-delay:.24s}.contenedor-botones>*:nth-child(4){animation-delay:.31s}
+.contenedor-botones>*:nth-child(5){animation-delay:.38s}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.94)}to{opacity:1;transform:none}}
 
-# --- CONFIGURACIÓN DE RUTAS DINÁMICAS ---
-# Esto detecta automáticamente la carpeta local o del entorno
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ruta_credenciales = os.path.join(BASE_DIR, 'credenciales.json')
-ruta_db = os.path.join(BASE_DIR, 'reservas.db')
+/* ---------- Glass ---------- */
+.glass{background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 32px rgba(0,0,0,.35)}
 
-pin_seguridad = os.environ.get("PIN_SEGURIDAD") or "030299"  # PIN de seguridad
-token_telegram = os.environ.get("TELEGRAM_TOKEN") or "8592802702:AAFiF_W7YvJNl20z-5PWL0wsawNKVRvMgoI"
-chat_id = os.environ.get("TELEGRAM_CHAT_ID") or "899109232"
-id_calendario = "edgarfa46@gmail.com"
+/* ---------- Menu rows ---------- */
+.btn-servicio{display:flex;align-items:center;gap:14px;width:100%;padding:16px 18px;border-radius:22px;text-align:left;
+  background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);transition:transform .45s var(--spring),background .3s var(--ease)}
+.btn-servicio:active{transform:scale(.965);background-color:rgba(46,46,50,.6);transition-duration:.12s}
+@media(hover:hover){.btn-servicio:hover{background-color:rgba(40,40,44,.58)}}
+.ico{flex:none;width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:rgba(217,182,95,.12);color:var(--gold)}
+.ico svg{width:22px;height:22px}
+.txt{flex:1;display:flex;flex-direction:column;gap:2px}
+.txt b{font-weight:600;font-size:1.02rem}
+.txt small{color:var(--muted);font-size:.8rem}
+.chev{width:18px;height:18px;color:var(--muted);flex:none}
+svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-EXT_IMAGEN = {'jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'}
+.titulo-seccion{margin:6px 0 4px;text-align:center;font-size:1.25rem;font-weight:700}
+.btn-ghost{background:none;border:0;color:var(--muted);padding:12px;font-size:.88rem;width:100%;transition:color .25s,transform .3s var(--spring)}
+.btn-ghost:active{transform:scale(.96);color:var(--text)}
+.map-card{display:block;border-radius:22px;overflow:hidden;color:inherit;text-decoration:none;transition:transform .45s var(--spring)}
+.map-card:active{transform:scale(.975)}
+.map-frame{position:relative;width:100%;height:172px;overflow:hidden;border-radius:24px 24px 0 0;isolation:isolate;transform:translateZ(0);-webkit-mask-image:-webkit-radial-gradient(white,black)}
+.map-card iframe{display:block;width:100%;height:100%;border:0;pointer-events:none;filter:invert(.92) hue-rotate(180deg) saturate(.5) brightness(.9)}
+.map-card p{margin:0;padding:12px 16px;font-size:.78rem;color:var(--muted);display:flex;gap:8px;align-items:center}
+.map-card p svg{width:15px;height:15px;color:var(--gold);flex:none}
+.secret{align-self:center;width:auto;padding:8px 18px;border-radius:999px;background:none;border:1px dashed var(--line);
+  color:var(--muted);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;transition:all .3s var(--ease)}
+.secret:active{transform:scale(.94)}@media(hover:hover){.secret:hover{color:var(--gold);border-color:var(--gold)}}
 
-def agregar_a_calendar(reserva):
-    try:
-        scopes = ['https://www.googleapis.com/auth/calendar']
-        creds_json = os.environ.get('google_credentials')
+/* ---------- Form ---------- */
+#formulario-cita{display:none;width:100%;padding:22px;border-radius:28px;animation:pop .6s var(--ease) both}
+#titulo-dinamico{margin:4px 0 18px;text-align:center;font-size:1.3rem;font-weight:700}
+.fila-doble{display:flex;gap:10px}
+input,select,textarea{width:100%;height:52px;padding:0 16px;margin:6px 0;color:var(--text);font-size:1rem;
+  background:rgba(255,255,255,.07);border:1px solid transparent;border-radius:14px;transition:border-color .25s,background .25s,box-shadow .25s}
+input::placeholder,textarea::placeholder{color:#6e6e76}
+input:focus,select:focus,textarea:focus{outline:none;background:rgba(255,255,255,.1);border-color:var(--gold);box-shadow:0 0 0 4px rgba(217,182,95,.16)}
+select{appearance:none;-webkit-appearance:none;padding-right:40px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239a9aa1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 16px center}
+textarea{height:96px;padding:14px 16px;line-height:1.5;resize:none}
+input[type=file]{height:auto;padding:12px;border:1.5px dashed rgba(217,182,95,.5);color:var(--muted);font-size:.9rem;cursor:pointer}
+input[type=file]::file-selector-button{margin-right:12px;padding:8px 14px;border:0;border-radius:10px;background:var(--gold);color:var(--gold-ink);font-weight:600;cursor:pointer}
+label{display:block;margin:18px 0 2px 4px;font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.horas-head{display:flex;justify-content:space-between;align-items:baseline;margin-top:18px}
+.horas-head label{margin:0 0 0 4px}
+#contador-libres{font-size:.75rem;color:var(--muted)}
+.grid-horas{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px}
+.hora-btn{height:46px;border-radius:14px;font-weight:600;font-size:.95rem;font-variant-numeric:tabular-nums;color:var(--text);
+  background:rgba(255,255,255,.07);border:1px solid transparent;transition:transform .4s var(--spring),background .25s,color .25s}
+.hora-btn:active{transform:scale(.92)}
+.hora-btn:disabled{opacity:.35}
+.hora-seleccionada{background:var(--gold)!important;color:var(--gold-ink)!important}
+.hora-ocupada{background:transparent!important;color:#5d5d64!important;border:1px solid rgba(255,255,255,.06)!important;text-decoration:line-through}
+.btn-final{width:100%;height:56px;margin-top:20px;border:0;border-radius:16px;background:var(--gold);color:var(--gold-ink);
+  font-weight:700;font-size:1.02rem;transition:transform .45s var(--spring),opacity .3s,filter .3s}
+.btn-final:active{transform:scale(.96);filter:brightness(.92);transition-duration:.12s}
+.btn-final:disabled{opacity:.55;transform:none}
 
-        if creds_json:
-            creds_dict = json.loads(creds_json)
-            creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
-        else:
-            creds = service_account.Credentials.from_service_account_file(ruta_credenciales, scopes=scopes)
-        service = build('calendar', 'v3', credentials=creds)
-        
-        inicio = f"{reserva['fecha']}T{reserva['hora']}:00"
-        fin_dt = datetime.strptime(inicio, "%Y-%m-%dT%H:%M:%S") + timedelta(minutes=30) 
-        
-        # Se añade la ubicación exacta en Paseo del Prado, 30, Talayuelas, Cuenca
-        evento = {
-            'summary': f"{reserva['categoria'].lower()}: {reserva['nombre']}",
-            'description': f"tel: {reserva['telefono']}\nservicio: {reserva['servicio']}",
-            'location': 'Paseo del Prado, 30, 16320 Talayuelas, Cuenca',
-            'start': {'dateTime': inicio, 'timeZone': 'Europe/Madrid'},
-            'end': {'dateTime': fin_dt.isoformat(), 'timeZone': 'Europe/Madrid'},
+/* ---------- Overlays / modales ---------- */
+.overlay{display:none;position:fixed;inset:0;align-items:center;justify-content:center;padding:20px;
+  background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);animation:fade .35s var(--ease)}
+#pantalla-exito{z-index:9999}#modal-cancelar{z-index:9999}#popup-aviso-cita{z-index:10005}
+.sheet{position:relative;width:100%;max-width:360px;padding:26px;border-radius:28px;text-align:center;
+  background:rgba(28,28,30,.72);border:1px solid var(--line);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  box-shadow:0 30px 80px rgba(0,0,0,.6);animation:pop .55s var(--spring) both}
+.sheet h3{margin:0 0 8px;font-size:1.15rem}
+.sheet p{margin:0 0 6px;color:var(--muted);font-size:.92rem;line-height:1.45}
+.sheet hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+.sheet input{text-align:center}
+.cerrar{position:absolute;top:12px;right:14px;width:32px;height:32px;border-radius:50%;border:0;background:var(--glass-2);color:var(--muted);font-size:1.2rem;line-height:1}
+#msg-error-modal{color:var(--danger);margin-top:10px;display:none}
+.ok-ico{width:60px;height:60px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:rgba(48,209,88,.14);color:var(--ok)}
+.ok-ico svg{width:30px;height:30px;stroke-width:2.4}
+.btn-link{display:block;width:100%;padding:14px;margin-top:10px;border-radius:14px;text-decoration:none;font-weight:600;font-size:.92rem;color:var(--text);
+  background:var(--glass-2);transition:transform .4s var(--spring)}
+.btn-link:active{transform:scale(.96)}
+.btn-wa{background:#25d366;color:#04230f}
+
+/* ---------- Juego ---------- */
+#game-container{display:none;position:relative;width:100%;height:100%;overflow:hidden;
+  touch-action:none;
+  background:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.55)),url("{{ url_for('static', filename='fondo_game.jpg') }}") no-repeat center/cover}
+#start-overlay,#game-over-overlay{position:absolute;inset:0;flex-direction:column;justify-content:center;align-items:center;gap:14px;padding:20px;
+  background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+#start-overlay{display:flex;z-index:9000}
+#game-over-overlay{display:none;z-index:10001}
+.game-card{width:100%;max-width:320px;padding:20px;border-radius:24px;text-align:center}
+.game-card label{margin:0 0 6px;text-align:center}
+#player-nickname-input{text-align:center;height:48px}
+.btn-game{width:100%;max-width:320px;height:54px;border:0;border-radius:16px;background:var(--gold);color:var(--gold-ink);font-size:1.05rem;font-weight:700;letter-spacing:.04em;
+  transition:transform .45s var(--spring),filter .3s}
+.btn-game:active{transform:scale(.95);filter:brightness(.92)}
+.btn-game.sec{background:var(--glass-2);color:var(--text);font-weight:600;height:46px}
+.game-title{margin:0;font-size:2.4rem;font-weight:800;letter-spacing:-.03em;color:var(--danger)}
+#new-record-msg{display:none;color:var(--gold);font-size:.85rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.rank-title{margin:0 0 12px;font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+#ranking-list,.lista-ranking{display:flex;flex-direction:column;gap:6px;text-align:left;font-size:.95rem}
+.rank-row.yo{outline:1px solid var(--gold)}
+.lista-ranking .rank-row{padding:7px 12px;font-size:.88rem}
+.rank-row{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.05)}
+.rank-row.top{background:rgba(217,182,95,.16)}
+.rank-row.deletable{cursor:pointer;outline:1px dashed var(--danger)}
+.rank-row b{font-weight:600}.rank-row i{font-style:normal;color:var(--gold);font-weight:600;font-variant-numeric:tabular-nums}
+.rank-empty{text-align:center;color:var(--muted);padding:10px}
+#secret-admin-trigger{width:10px;height:10px;margin-top:18px;border-radius:50%;background:var(--danger);opacity:.35;cursor:pointer}
+#header-game{position:absolute;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:center;z-index:8000;pointer-events:none}
+.ui-top-row{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;padding:10px 14px;border-radius:20px;
+  background:rgba(20,20,22,.55);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid var(--line)}
+.hud{text-align:center;font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);line-height:1.5}
+.hud span{display:block;font-size:1.25rem;color:var(--text);letter-spacing:0;font-variant-numeric:tabular-nums}
+.timer-container{display:flex;flex-direction:column;align-items:center;gap:2px}
+#timer-display{font-size:1.05rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--gold)}
+#ui-lives{font-size:.68rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+#ui-lives span{color:var(--text);font-weight:600}
+#boss-ui{display:none;margin-top:2px;color:var(--danger);font-size:.68rem;font-weight:600;letter-spacing:.06em}
+#boss-ui span{display:inline;font-size:inherit;color:inherit}
+
+#player{position:absolute;width:85px;height:85px;background:url("{{ url_for('static', filename='nave.png') }}") no-repeat center/contain;z-index:5000}
+.support-ship{position:absolute;width:45px;height:45px;background:url("{{ url_for('static', filename='nave.png') }}") no-repeat center/contain;z-index:4900;opacity:.8;filter:sepia(1) hue-rotate(10deg) saturate(2);pointer-events:none}
+.bubble-active{box-shadow:0 0 0 45px rgba(0,150,255,.35),inset 0 0 20px rgba(0,150,255,.5);border-radius:50%}
+.bomb-bullet{position:absolute;width:14px;height:14px;background:#ff3b30;border-radius:50%;box-shadow:0 0 8px #ff3b30;z-index:2000}
+.enemy{position:absolute;background-size:contain;background-repeat:no-repeat;background-position:center;z-index:1000;filter:drop-shadow(0 0 6px rgba(217,182,95,.7))}
+.coin,.coin-2{position:absolute;width:50px;height:50px;background-repeat:no-repeat;background-position:center;background-size:contain;z-index:1500}
+.coin{background-image:url("{{ url_for('static', filename='moneda.png') }}");filter:drop-shadow(0 0 10px #ffd700)}
+.coin-2{background-image:url("{{ url_for('static', filename='moneda_2.png') }}");filter:drop-shadow(0 0 10px #30d158)}
+.vida-item{position:absolute;width:40px;height:40px;background:url("{{ url_for('static', filename='vida.png') }}") no-repeat center/contain;z-index:1550}
+.bullet{position:absolute;width:4px;height:12px;background:var(--gold);border-radius:5px;box-shadow:0 0 8px var(--gold);z-index:2000}
+.boss-ship{position:absolute;width:212px;height:212px;background:url("{{ url_for('static', filename='nave_poderosa.png') }}") no-repeat center/contain;z-index:4500;filter:drop-shadow(0 0 24px #ff3b30)}
+.boss-fireball{position:absolute;width:70px;height:70px;background:radial-gradient(circle,#ffcc00,#ff6600,#ff0000);border-radius:50%;box-shadow:0 0 34px #ff3300;z-index:4600}
+.exp-part{position:absolute;background:var(--gold);border-radius:50%;z-index:3000;animation:flyout .4s ease-out forwards}
+@keyframes flyout{from{transform:translate(0,0) scale(1);opacity:1}to{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0}}
+
+
+/* ===== Black glass (esmerilado oscuro + borde luminoso fino + grano) ===== */
+:root{
+  --glass-grad:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.02) 45%,rgba(0,0,0,.2));
+  --rim:linear-gradient(180deg,rgba(255,255,255,.36),rgba(255,255,255,.06) 40%,rgba(255,255,255,.04) 70%,rgba(255,255,255,.17));
+  --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.bg-shards{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+.glass,.btn-servicio,.sheet,#formulario-cita,.ui-top-row{
+  position:relative;background-image:var(--glass-grad);background-color:rgba(22,22,25,.55);
+  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:1px solid transparent;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 -1px 0 rgba(0,0,0,.45),0 22px 60px rgba(0,0,0,.55)}
+.glass::before,.btn-servicio::before,.sheet::before,#formulario-cita::before,.ui-top-row::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:var(--rim);pointer-events:none;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.glass::after,.btn-servicio::after,.sheet::after,#formulario-cita::after,.ui-top-row::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;background:var(--noise);opacity:.06;mix-blend-mode:overlay;pointer-events:none}
+.btn-servicio{border-radius:24px}
+#formulario-cita,.sheet{border-radius:30px}
+.map-card{border-radius:24px}
+
+/* ===== Campos y desplegables (legibles desde el primer momento) ===== */
+input,select,textarea{background-color:#161618;border:1px solid rgba(255,255,255,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+select{background-color:#1c1c1f;color:var(--text)}
+select option,select optgroup{background-color:#1c1c1f;color:#f5f5f7;font-size:1rem}
+select option:checked{background:#34343a linear-gradient(#34343a,#34343a);color:#fff}
+select option:disabled{color:#6e6e76}
+.hora-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.06)}
+.hora-seleccionada{animation:selpop .5s var(--spring)}
+@keyframes selpop{0%{transform:scale(.9)}100%{transform:none}}
+
+/* ===== Efecto táctil (pulso elegante al pulsar) ===== */
+.btn-servicio,.btn-final,.btn-game,.hora-btn,.btn-link,.btn-ghost,.secret,.cerrar{position:relative;overflow:hidden}
+.cerrar{position:absolute}
+.rp{position:absolute;border-radius:50%;background:currentColor;opacity:.22;transform:scale(0);pointer-events:none;animation:rp .75s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes rp{to{transform:scale(1);opacity:0}}
+
+/* ===== Transiciones entre pantallas (View Transitions) ===== */
+::view-transition-group(root){animation-duration:.55s}
+::view-transition-old(root){animation:vt-out .3s cubic-bezier(.4,0,1,1) both;mix-blend-mode:normal}
+::view-transition-new(root){animation:vt-in .6s cubic-bezier(.22,1,.36,1) .04s both;mix-blend-mode:normal}
+::view-transition-group(logo){animation-duration:.6s;animation-timing-function:cubic-bezier(.22,1,.36,1)}
+@keyframes vt-out{to{opacity:0;transform:scale(.985) translateY(-6px);filter:blur(6px)}}
+@keyframes vt-in{from{opacity:0;transform:scale(1.012) translateY(14px);filter:blur(6px)}}
+
+/* ===== Barra inferior ===== */
+.bottom-bar{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;width:100%;margin-top:4px}
+.secret{width:auto;padding:9px 12px;font-size:.66rem;letter-spacing:.1em;white-space:nowrap}
+.install{display:inline-flex;align-items:center;gap:7px;color:var(--text);letter-spacing:.04em;border-radius:999px;transition:transform .45s var(--spring)}
+.install svg{width:14px;height:14px;color:var(--gold);flex:none}
+.install:active{transform:scale(.94)}
+.is-standalone .js-install{display:none!important}
+#modal-instalar{z-index:10006}
+#modal-instalar{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:max(20px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom))}
+#modal-instalar .sheet{margin:auto;padding:22px 18px;text-align:center}
+.app-ico{display:block;width:64px;height:64px;margin:0 auto 10px;border-radius:18px;box-shadow:0 0 0 1px rgba(217,182,95,.45),0 10px 28px rgba(0,0,0,.5)}
+.os-block{margin:12px 0 4px;padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(217,182,95,.22);text-align:left}
+.os-block h4{margin:0 0 10px;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.os-block .btn-final{margin-top:4px}
+.os-block .pasos ol{margin:0}
+.os-note{margin:10px 0 0;font-size:.8rem;line-height:1.4;color:var(--muted)}
+
+.bottom-bar .secret.glass{border:1px solid transparent;color:var(--text)}
+@media(hover:hover){.bottom-bar .secret:hover{color:var(--gold)}}
+.hora-ocupada{cursor:default}
+
+/* ===== Instalar (pantalla de éxito) y pasos ===== */
+.btn-install{display:flex;align-items:center;justify-content:center;gap:8px;background:transparent;border:1px solid rgba(217,182,95,.45);color:var(--gold)}
+.btn-install svg{width:16px;height:16px}
+.pasos ol{list-style:none;counter-reset:p;margin:6px 0 18px;padding:0;text-align:left}
+.pasos li{counter-increment:p;display:flex;gap:12px;align-items:flex-start;padding:7px 0;font-size:.88rem;line-height:1.4;color:var(--text)}
+.pasos li::before{content:counter(p);flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;font-weight:700;color:var(--gold-ink);background:var(--gold)}
+.inline-ico{width:16px;height:16px;vertical-align:-3px;color:var(--gold)}
+
+/* ===== Horas: disponible vs ocupada ===== */
+.legend{display:flex;gap:16px;margin:8px 4px 0;font-size:.7rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{display:inline-block;width:12px;height:12px;border-radius:4px}
+.lg-free{background:rgba(255,255,255,.09);border:1px solid rgba(217,182,95,.5)}
+.lg-sel{background:var(--gold)}
+.lg-busy{border:1px solid rgba(255,255,255,.14);background:linear-gradient(to top right,transparent 44%,rgba(255,255,255,.5) 46% 54%,transparent 56%);opacity:.6}
+.hora-btn{background:rgba(255,255,255,.09);border:1px solid rgba(217,182,95,.38);color:#fff;font-weight:600}
+.hora-btn:not(.hora-ocupada):not(.hora-seleccionada):not(:disabled):active{background:rgba(217,182,95,.24);border-color:var(--gold);transform:scale(.94)}
+@media(hover:hover){.hora-btn:not(.hora-ocupada):not(.hora-seleccionada):not(:disabled):hover{background:rgba(217,182,95,.16);border-color:var(--gold);color:var(--gold);transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.4)}}
+.hora-seleccionada{background:var(--gold)!important;color:var(--gold-ink)!important;border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(217,182,95,.22)}
+.hora-ocupada{background:rgba(255,255,255,.015)!important;color:#5a5a61!important;border:1px solid rgba(255,255,255,.05)!important;
+  text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:rgba(255,255,255,.4);opacity:.55;font-weight:500}
+
+/* ===== Toques gold ===== */
+:root{--rim-gold:linear-gradient(180deg,rgba(217,182,95,.7),rgba(217,182,95,.12) 45%,rgba(217,182,95,.08) 70%,rgba(217,182,95,.3))}
+::selection{background:rgba(217,182,95,.32)}
+input,select,textarea{caret-color:var(--gold)}
+.ico{box-shadow:inset 0 0 0 1px rgba(217,182,95,.28)}
+.chev{transition:transform .35s var(--ease),color .3s}
+#titulo-dinamico::after{display:none!important}
+.titulo-seccion::after{content:"";display:block;width:28px;height:2px;margin:10px auto 0;border-radius:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.btn-servicio:active::before,.install:active::before{background:var(--rim-gold)}
+@media(hover:hover){.btn-servicio:hover::before,.install:hover::before{background:var(--rim-gold)}.btn-servicio:hover .chev{color:var(--gold);transform:translateX(3px)}}
+.ok-ico{background:rgba(217,182,95,.14);color:var(--gold)}
+
+/* ===== Responsive móvil: sin desbordes laterales, manteniendo el diseño redondeado ===== */
+html{width:100%;overflow-x:hidden;overflow-x:clip;background:#050506}
+body{width:100%;max-width:100vw;overflow-x:hidden;overflow-x:clip;background-color:transparent}
+.fila-doble>*{min-width:0;flex:1 1 0}          /* evita que Nombre/Apellidos ensanchen la página */
+.capa-oscura>*{max-width:100%}
+.map-card iframe{max-width:100%}
+img{max-width:100%}
+@media (max-width:480px){
+  .capa-oscura{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+  #formulario-cita{padding:20px 16px}
+  .btn-servicio{padding:15px 16px}
+}
+
+/* ===== Secret Games: apodo + menú ===== */
+#arcade{display:none;position:fixed;inset:0;z-index:10000;flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;
+  padding:max(24px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));
+  background:radial-gradient(120% 70% at 50% 0%,rgba(217,182,95,.12),transparent 60%),#050506;animation:fade .4s var(--ease)}
+.arcade-panel{width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;margin:auto 0;animation:rise .6s var(--ease) both}
+.arcade-title{margin:0;text-align:center;font-size:2rem;font-weight:800;letter-spacing:-.03em}
+.arcade-title span{color:var(--gold)}
+.arcade-sub{margin:0 0 6px;text-align:center;color:var(--muted);font-size:.9rem;line-height:1.5}
+#arcade .game-card,#arcade .btn-game{max-width:none}
+#arcade-apodo{text-align:center;height:52px;font-size:1.1rem}
+#arcade-error{display:none;margin:6px 0 0;color:var(--danger);font-size:.84rem;text-align:center}
+.chip-apodo{display:inline-block;padding:4px 12px;border-radius:999px;background:rgba(217,182,95,.14);color:var(--gold);font-weight:700}
+.juego-card{border-radius:24px!important;padding:16px!important}
+.juego-ico{flex:none;width:64px;height:64px;border-radius:16px;display:grid;place-items:center;font-size:1.75rem;background:rgba(217,182,95,.12);box-shadow:inset 0 0 0 1px rgba(217,182,95,.28)}
+.juego-ico img{width:84%;height:84%;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.juego-ico img.pixel{image-rendering:pixelated}
+#arcade .campo-pin{text-align:center;height:52px;font-size:1.25rem;letter-spacing:.5em}
+#acceso-alternar a{color:var(--gold);font-weight:600;text-decoration:none;cursor:pointer}
+#arcade .juego-card .ico{width:52px;height:52px;border-radius:15px}
+.arcade-nota{margin:8px 0 0;font-size:.74rem;color:var(--muted);text-align:center;line-height:1.45}
+.juego-estado{display:block;margin-top:4px;font-size:.74rem;color:var(--gold);font-weight:600}
+.juego-estado.vacio{color:#6e6e76;font-weight:500}
+
+/* ===== Consola vertical tipo Game Boy ===== */
+#consola{display:none;position:fixed;inset:0;z-index:10002;background:#070708;justify-content:center;touch-action:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;animation:fade .35s var(--ease)}
+.gb{position:relative;display:flex;flex-direction:column;width:100%;max-width:calc(100dvh * .66);height:100%;min-height:0;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background:linear-gradient(180deg,#1f1f23 0%,#151518 55%,#101012 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.gb-top{flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px}
+.gb-topbtn{flex:none;height:36px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--text);font-size:.8rem;font-weight:600;white-space:nowrap}
+.gb-topbtn:active{transform:scale(.95)}
+.gb-save{background:var(--gold);color:var(--gold-ink);border-color:transparent}
+.gb-save:disabled{opacity:.5}
+.gb-titulo{flex:1;min-width:0;text-align:center;line-height:1.15}
+.gb-titulo b{display:block;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gb-titulo small{display:block;font-size:.7rem;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gb-bezel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin:0 10px;padding:10px 10px 6px;border-radius:14px 14px 38px 14px;
+  background:linear-gradient(180deg,#2c2c33,#232328);box-shadow:inset 0 2px 6px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.05)}
+.gb-screen{position:relative;flex:1 1 auto;min-height:0;border-radius:6px;overflow:hidden;background:#000;box-shadow:0 0 0 2px #0a0a0b}
+.modo-pokemon .gb-bezel{flex:none}
+.modo-pokemon .gb-screen{flex:none;width:100%;aspect-ratio:3/2}
+.gb-brand{flex:none;display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 0 2px;font-size:.62rem;font-weight:800;letter-spacing:.22em;color:#77777f}
+.gb-brand span{color:var(--gold)}
+.gb-brand .led{width:7px;height:7px;border-radius:50%;background:#ff453a;box-shadow:0 0 8px #ff453a}
+.gb-controls{flex:none;height:clamp(196px,35dvh,300px);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto auto;
+  grid-template-areas:"lr lr" "dpad ab" "ss ss" "tm tm";padding:6px 16px 12px}
+.modo-pokemon .gb-controls{flex:1 1 auto;height:auto;min-height:230px;max-height:400px;margin:auto 0}
+.lr{grid-area:lr;display:flex;justify-content:space-between;padding-top:6px}
+.modo-marcianitos .lr{display:none}
+.creditos-gba{display:block;margin-top:2px;font-size:.66rem!important;color:#6e6e76!important}
+.creditos-gba a{color:inherit}
+#btn-pausa-top{display:none;width:40px;padding:0}
+.modo-marcianitos #btn-pausa-top{display:grid;place-items:center}
+.modo-marcianitos .txt-partida{display:none}
+.modo-marcianitos #btn-pausa-top{display:block}
+
+/* Let's Go Cierzo: pantalla de lado a lado arriba, mandos abajo (media Game Boy) */
+.modo-pokemon .gb-bezel{margin:0;padding:0;border-radius:0;background:#000;box-shadow:0 1px 0 rgba(255,255,255,.06)}
+.modo-pokemon .gb-screen{border-radius:0;box-shadow:none}
+.modo-pokemon .gb-brand{padding:8px 0 4px;background:linear-gradient(180deg,#1f1f23,#1a1a1d)}
+.modo-pokemon .gb-controls{padding:10px 18px 16px}
+.modo-pokemon .dpad{width:clamp(130px,40vw,176px)}
+.modo-pokemon .btn-ab{width:clamp(64px,19vw,82px)}
+
+/* Marcianitos Cierzo: pantalla completa táctil con marco, sin mandos */
+.modo-marcianitos .gb{max-width:none}
+.modo-marcianitos .gb-controls,.modo-marcianitos .gb-brand{display:none}
+.modo-marcianitos .gb-bezel{flex:1 1 auto;margin:0 6px 6px;padding:0;border-radius:22px;background:none;
+  border:2px solid rgba(217,182,95,.55);box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 24px rgba(217,182,95,.15),inset 0 0 0 1px rgba(0,0,0,.6)}
+.modo-marcianitos .gb-screen{border-radius:20px;box-shadow:none}
+.btn-lr{width:clamp(72px,24vw,96px);height:32px;border:0;border-radius:12px 12px 6px 6px;background:linear-gradient(#34343b,#26262b);color:#a1a1a8;font-weight:800;font-size:.8rem;
+  box-shadow:0 3px 0 #0d0d0f,inset 0 1px 0 rgba(255,255,255,.08);touch-action:none}
+.dpad{grid-area:dpad;position:relative;align-self:center;justify-self:center;width:clamp(118px,34vw,156px);aspect-ratio:1;touch-action:none}
+.dpad .eje{position:absolute;background:linear-gradient(145deg,#2a2a30,#0f0f12);border-radius:9px;box-shadow:0 4px 0 #050506,0 10px 20px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07)}
+.dpad .h{left:0;right:0;top:33.4%;height:33.2%}
+.dpad .v{top:0;bottom:0;left:33.4%;width:33.2%}
+.dpad .centro{position:absolute;left:42%;top:42%;width:16%;height:16%;border-radius:50%;background:radial-gradient(circle,#1a1a1e,#0c0c0e)}
+.dpad .fl{position:absolute;width:0;height:0;border:7px solid transparent;opacity:.55;transition:opacity .1s}
+.dpad .f-up{left:50%;top:9%;transform:translateX(-50%);border-bottom-color:#9a9aa1;border-top:0}
+.dpad .f-down{left:50%;bottom:9%;transform:translateX(-50%);border-top-color:#9a9aa1;border-bottom:0}
+.dpad .f-left{top:50%;left:9%;transform:translateY(-50%);border-right-color:#9a9aa1;border-left:0}
+.dpad .f-right{top:50%;right:9%;transform:translateY(-50%);border-left-color:#9a9aa1;border-right:0}
+.dpad.d-up .f-up{border-bottom-color:var(--gold);opacity:1}.dpad.d-down .f-down{border-top-color:var(--gold);opacity:1}
+.dpad.d-left .f-left{border-right-color:var(--gold);opacity:1}.dpad.d-right .f-right{border-left-color:var(--gold);opacity:1}
+.ab{grid-area:ab;align-self:center;justify-self:center;display:flex;align-items:center;gap:clamp(12px,4vw,20px);transform:rotate(-24deg)}
+.btn-ab{width:clamp(58px,17vw,74px);aspect-ratio:1;border:0;border-radius:50%;font-weight:800;font-size:1.15rem;color:var(--gold-ink);touch-action:none;
+  background:radial-gradient(circle at 35% 30%,#f3dc9c,#d9b65f 48%,#a8863a);box-shadow:0 5px 0 #6b5421,0 12px 22px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.5)}
+.btn-ab span{display:inline-block;transform:rotate(24deg)}
+.btn-ss{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 12px 6px;overflow:visible;border:0;background:none;color:#7c7c84;font-size:.6rem;font-weight:800;letter-spacing:.16em;touch-action:none}
+.btn-ss i{display:block;width:56px;height:14px;border-radius:9px;background:linear-gradient(#3a3a41,#26262b);box-shadow:0 3px 0 #0b0b0d,inset 0 1px 0 rgba(255,255,255,.08)}
+.ss{grid-area:ss;display:flex;justify-content:center;gap:clamp(18px,8vw,40px)}
+.btn-ab.pressed{transform:translateY(4px);box-shadow:0 1px 0 #6b5421,0 4px 10px rgba(0,0,0,.5);filter:brightness(.92)}
+.btn-lr.pressed,.btn-ss.pressed i{transform:translateY(2px);box-shadow:0 1px 0 #0b0b0d}
+.btn-ss.pressed i{transform:translateY(2px)}
+.btn-lr.pressed{color:var(--gold)}
+.btn-ss.pressed{color:var(--gold)}
+
+/* Marcianitos dentro de la pantalla */
+#consola #header-game{top:8px;left:8px;right:8px}
+#consola .ui-top-row{padding:7px 10px;border-radius:16px}
+#consola .hud span{font-size:1.05rem}
+#start-overlay,#game-over-overlay,#pausa-overlay{overflow-y:auto;justify-content:safe center}
+#game-over-overlay{gap:10px}
+#consola .game-title{font-size:1.9rem}
+#consola .btn-game{height:48px}
+#consola .btn-game.sec{height:42px}
+#consola .game-card{padding:14px 16px}
+#pausa-overlay{display:none;position:absolute;inset:0;z-index:9500;flex-direction:column;align-items:center;gap:10px;background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.mc-jugador{font-size:1.3rem;font-weight:800;color:var(--text)}
+.mc-info{margin:6px 0 0;font-size:.82rem;color:var(--muted)}
+.mc-info b{color:var(--gold)}
+.mc-hint{margin:2px 0 0;font-size:.7rem;color:var(--muted);text-align:center;letter-spacing:.04em}
+
+/* Pokémon (emulador GBA) */
+#pokemon-screen{display:none;position:absolute;inset:0;background:#000}
+#ejs-game{width:100%;height:100%}
+#consola .ejs_menu_bar,#consola .ejs_virtualGamepad_parent{display:none!important}
+#rom-picker{display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;font-size:.82rem;color:var(--muted);background:#000}
+#rom-picker b{color:var(--text)}
+#rom-picker input{max-width:280px;margin:0}
+#poke-cargando{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:var(--muted);font-size:.8rem;pointer-events:none}
+
+#modal-salir-juego{z-index:10007}
+#punto-admin{width:9px;height:9px;margin:14px auto 0;border-radius:50%;background:#ff453a;opacity:.28;cursor:pointer}
+#modal-admin{z-index:10008;align-items:flex-start;overflow-y:auto;padding:max(16px,env(safe-area-inset-top)) 12px max(16px,env(safe-area-inset-bottom))}
+.sheet-admin{max-width:620px;margin:auto;text-align:left}
+.sheet-admin h3{text-align:center}
+.adm-resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.adm-dato{padding:10px;border-radius:14px;background:rgba(255,255,255,.05);text-align:center}
+.adm-dato b{display:block;font-size:1.2rem;color:var(--gold)}
+.adm-dato small{font-size:.68rem;color:var(--muted)}
+.adm-sec{margin:18px 0 8px;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.adm-jug{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid var(--line);margin-bottom:8px}
+.adm-jug-cab{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.adm-jug-cab b{font-size:1rem}
+.adm-jug-cab small{color:var(--muted);font-size:.72rem;text-align:right}
+.adm-juego{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:.8rem;color:var(--text)}
+.adm-juego span:last-child{color:var(--muted);text-align:right}
+.adm-nada{margin-top:6px;font-size:.78rem;color:#6e6e76}
+.adm-rank{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.05);margin-bottom:6px;font-size:.88rem}
+.adm-rank button{border:0;background:rgba(255,69,58,.15);color:var(--danger);border-radius:10px;padding:6px 10px;font-size:.75rem}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));z-index:10010;max-width:calc(100% - 32px);padding:11px 18px;border-radius:14px;
+  background:rgba(28,28,30,.92);border:1px solid rgba(217,182,95,.4);color:var(--text);font-size:.86rem;font-weight:600;text-align:center;
+  opacity:0;transform:translate(-50%,16px);transition:opacity .3s var(--ease),transform .4s var(--spring);pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+
+/* ===== Ediciones de color de la consola ===== */
+.tema-wrap{grid-area:tm;position:relative;display:flex;justify-content:center;padding-top:8px}
+.btn-tema{display:flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.28);color:var(--t-tinta2,#8a8a92);font-size:.58rem;font-weight:800;letter-spacing:.18em;touch-action:manipulation}
+.btn-tema i{display:block;width:14px;height:14px;border-radius:50%;background:conic-gradient(#f5c400,#e3350d,#c9c6bd,#5b2a86,#1f4fbf,#2f9a57,#f5c400);box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+.btn-tema:active{transform:scale(.94)}
+.abanico{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:7px;
+  padding:14px 12px 10px;border-radius:26px;background:rgba(14,14,17,.88);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.12);box-shadow:0 16px 36px rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.abanico.abierto{opacity:1;pointer-events:auto}
+.abanico-nombre{position:absolute;top:-24px;left:0;right:0;text-align:center;font-size:.66rem;font-weight:700;letter-spacing:.06em;color:#fff;
+  text-shadow:0 1px 4px rgba(0,0,0,.8);white-space:nowrap}
+.muestra{flex:none;width:34px;height:34px;padding:0;border-radius:50%;border:2px solid rgba(255,255,255,.3);touch-action:manipulation;
+  opacity:0;transform:translateY(22px) scale(.2);transition:transform .5s var(--spring),opacity .25s,border-color .2s;transition-delay:calc(var(--i) * 40ms)}
+.abanico.abierto .muestra{opacity:1;transform:translateY(var(--dy)) rotate(var(--rot))}
+.muestra.activa{border-color:#fff;box-shadow:0 0 0 2px var(--gold),0 4px 10px rgba(0,0,0,.5)}
+@media (max-width:360px){.muestra{width:29px;height:29px}.abanico{gap:5px;padding:12px 9px 9px}}
+
+#consola .gb.tematizada{background:var(--t-fondo)}
+#consola .gb.tematizada .btn-ab{background:var(--t-ab);color:var(--t-ab-txt);box-shadow:0 5px 0 var(--t-ab-sh),0 12px 22px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.45)}
+#consola .gb.tematizada .btn-ab.pressed{box-shadow:0 1px 0 var(--t-ab-sh),0 4px 10px rgba(0,0,0,.4)}
+#consola .gb.tematizada .gb-titulo b{color:var(--t-tinta)}
+#consola .gb.tematizada .gb-titulo small{color:var(--t-tinta2)}
+#consola .gb.tematizada .btn-ss{color:var(--t-tinta2)}
+#consola .gb.tematizada .btn-ss.pressed{color:var(--t-tinta)}
+#consola .gb.tematizada .gb-brand{color:var(--t-tinta2);background:transparent}
+#consola .gb.tematizada .gb-brand span{color:var(--t-tinta)}
+#consola .gb.tematizada .gb-topbtn:not(.gb-save){background:var(--t-topbtn);color:var(--t-topbtn-txt);border-color:transparent}
+#consola .gb.tematizada .btn-tema{color:var(--t-tinta);background:var(--t-topbtn);border-color:transparent}
+.gb{transition:background .4s}
+
+.gb.tema-pikachu{--t-fondo:linear-gradient(180deg,#ffdf4a,#f5c400 55%,#dfa900);--t-ab:radial-gradient(circle at 35% 30%,#ff8a7a,#e3350d 50%,#a3240a);
+  --t-ab-txt:#fff;--t-ab-sh:#7a1a06;--t-tinta:#3b2a00;--t-tinta2:#6e5300;--t-topbtn:rgba(0,0,0,.16);--t-topbtn-txt:#2b1f00}
+.gb.tema-rojo{--t-fondo:linear-gradient(180deg,#e8323a,#c8102e 55%,#a00c24);--t-ab:radial-gradient(circle at 35% 30%,#6a6a73,#2e2e34 50%,#141417);
+  --t-ab-txt:#fff;--t-ab-sh:#050506;--t-tinta:#fff;--t-tinta2:rgba(255,255,255,.78);--t-topbtn:rgba(0,0,0,.22);--t-topbtn-txt:#fff}
+.gb.tema-transparente{--t-fondo:linear-gradient(180deg,rgba(160,130,255,.32),rgba(110,80,220,.24)),
+  repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),#120e1e;
+  --t-ab:radial-gradient(circle at 35% 30%,rgba(225,210,255,.95),rgba(150,120,240,.8) 50%,rgba(95,65,190,.85));
+  --t-ab-txt:#fff;--t-ab-sh:rgba(45,25,100,.95);--t-tinta:#fff;--t-tinta2:#cbbcff;--t-topbtn:rgba(255,255,255,.1);--t-topbtn-txt:#fff}
+.gb.tema-azul{--t-fondo:linear-gradient(180deg,#4479ea,#1f4fbf 55%,#163b92);--t-ab:radial-gradient(circle at 35% 30%,#fff5b8,#f2d14b 50%,#c9a520);
+  --t-ab-txt:#2a2200;--t-ab-sh:#7a6410;--t-tinta:#fff;--t-tinta2:rgba(255,255,255,.78);--t-topbtn:rgba(0,0,0,.2);--t-topbtn-txt:#fff}
+.gb.tema-gengar{--t-fondo:linear-gradient(180deg,#8450b8,#5b2a86 55%,#41186a);--t-ab:radial-gradient(circle at 35% 30%,#ff9cbd,#e0457b 50%,#a8264f);
+  --t-ab-txt:#fff;--t-ab-sh:#6a1430;--t-tinta:#fff;--t-tinta2:#e5c9ff;--t-topbtn:rgba(0,0,0,.22);--t-topbtn-txt:#fff}
+.gb.tema-verde{--t-fondo:linear-gradient(180deg,#5cc47f,#2f9a57 55%,#217642);--t-ab:radial-gradient(circle at 35% 30%,#ffb07e,#f0652f 50%,#b8451a);
+  --t-ab-txt:#fff;--t-ab-sh:#6e2a0c;--t-tinta:#fff;--t-tinta2:#d8ffe4;--t-topbtn:rgba(0,0,0,.2);--t-topbtn-txt:#fff}
+.gb.tema-clasica{--t-fondo:linear-gradient(180deg,#dedbd2,#c9c6bd 55%,#b3b0a6);--t-ab:radial-gradient(circle at 35% 30%,#d9629a,#9b2257 50%,#6e143c);
+  --t-ab-txt:#fff;--t-ab-sh:#4a0d28;--t-tinta:#2a3a8f;--t-tinta2:#47507e;--t-topbtn:rgba(0,0,0,.12);--t-topbtn-txt:#1d2440}
+.gb.tema-hielo{--t-fondo:linear-gradient(180deg,#e9f6ff,#bfe3f7 55%,#97cbe8);--t-ab:radial-gradient(circle at 35% 30%,#8fd3ff,#2f9be0 50%,#1b6fa8);
+  --t-ab-txt:#fff;--t-ab-sh:#0f4a73;--t-tinta:#123b5c;--t-tinta2:#2e5f84;--t-topbtn:rgba(0,0,0,.1);--t-topbtn-txt:#0f2f4a}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
+
+/* ===== TattooPro Sketch · acceso oculto ===== */
+#tps-box{display:flex;justify-content:center;gap:16px;margin:20px 0 8px}
+#tps-ico,#tpm-ico{width:62px;height:62px;padding:0;border:0;border-radius:22%;background:#F5F5F3;display:grid;place-items:center;cursor:pointer;outline:0;
+  box-shadow:0 8px 22px rgba(0,0,0,.45),inset 0 2px 1px rgba(255,255,255,.9),inset 0 -3px 6px rgba(0,0,0,.08);-webkit-tap-highlight-color:transparent;transition:transform .15s}
+#tps-ico:active,#tpm-ico:active{transform:scale(.93)}
+#tps-ico svg,#tpm-ico svg{filter:drop-shadow(0 3px 2px rgba(0,0,0,.35))}
+#tps-modal{position:fixed;inset:0;z-index:10050;display:none;place-items:center;background:rgba(0,0,0,.65);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#tps-modal.on{display:grid}
+#tps-form{display:flex;gap:8px;align-items:center;padding:14px;border-radius:18px;background:rgba(22,22,26,.92);border:1px solid rgba(255,255,255,.1)}
+#tps-form input{width:200px;height:46px;margin:0;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:#fff;font-size:16px}
+#tps-form button{height:46px;padding:0 18px;border:0;border-radius:12px;background:#F5F5F3;color:#111;font-weight:700;cursor:pointer}
+#tps-form.err{animation:tpsx .35s}
+@keyframes tpsx{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#tps-app{position:fixed;inset:0;z-index:10060;background:#09090B;display:none;box-sizing:border-box;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+#tps-app.on{display:block}
+#tps-frame{width:100%;height:100%;border:0;display:block}
+#tps-x{position:absolute;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));width:36px;height:36px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(20,20,24,.75);color:#ddd;cursor:pointer;z-index:2}
+</style>
+</head>
+<body>
+<svg class="bg-shards" viewBox="0 0 500 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><polygon points="0,0 97,0 105,82" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,0 105,82 0,100" fill="rgb(28,28,29)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="97,0 203,0 105,82" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="203,0 201,107 105,82" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="203,0 324,0 316,77" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="203,0 316,77 201,107" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="324,0 398,0 316,77" fill="rgb(19,19,20)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="398,0 389,77 316,77" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="398,0 500,0 389,77" fill="rgb(17,17,18)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="500,0 500,117 389,77" fill="rgb(21,21,22)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,100 105,82 74,227" fill="rgb(28,28,29)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,100 74,227 0,211" fill="rgb(28,28,29)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="105,82 201,107 226,209" fill="rgb(30,30,31)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="105,82 226,209 74,227" fill="rgb(17,17,18)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="201,107 316,77 306,181" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="201,107 306,181 226,209" fill="rgb(30,30,31)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="316,77 389,77 373,202" fill="rgb(22,22,23)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="316,77 373,202 306,181" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="389,77 500,117 500,175" fill="rgb(13,13,14)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="389,77 500,175 373,202" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,211 74,227 0,283" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="74,227 86,274 0,283" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="74,227 226,209 86,274" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="226,209 198,297 86,274" fill="rgb(25,25,26)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="226,209 306,181 198,297" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="306,181 319,301 198,297" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="306,181 373,202 408,300" fill="rgb(10,10,11)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="306,181 408,300 319,301" fill="rgb(23,23,24)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="373,202 500,175 500,309" fill="rgb(15,15,16)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="373,202 500,309 408,300" fill="rgb(26,26,27)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,283 86,274 88,428" fill="rgb(21,21,22)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,283 88,428 0,398" fill="rgb(24,24,25)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="86,274 198,297 88,428" fill="rgb(26,26,27)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="198,297 228,419 88,428" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="198,297 319,301 228,419" fill="rgb(25,25,26)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="319,301 312,390 228,419" fill="rgb(19,19,20)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="319,301 408,300 385,388" fill="rgb(30,30,31)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="319,301 385,388 312,390" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="408,300 500,309 500,376" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="408,300 500,376 385,388" fill="rgb(27,27,28)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,398 88,428 94,519" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,398 94,519 0,515" fill="rgb(20,20,21)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="88,428 228,419 94,519" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="228,419 194,526 94,519" fill="rgb(23,23,24)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="228,419 312,390 319,472" fill="rgb(25,25,26)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="228,419 319,472 194,526" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="312,390 385,388 384,523" fill="rgb(10,10,11)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="312,390 384,523 319,472" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="385,388 500,376 500,498" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="385,388 500,498 384,523" fill="rgb(20,20,21)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,515 94,519 0,627" fill="rgb(28,28,29)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="94,519 94,576 0,627" fill="rgb(24,24,25)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="94,519 194,526 207,616" fill="rgb(26,26,27)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="94,519 207,616 94,576" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="194,526 319,472 287,577" fill="rgb(13,13,14)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="194,526 287,577 207,616" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="319,472 384,523 391,626" fill="rgb(10,10,11)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="319,472 391,626 287,577" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="384,523 500,498 500,614" fill="rgb(15,15,16)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="384,523 500,614 391,626" fill="rgb(20,20,21)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,627 94,576 86,678" fill="rgb(17,17,18)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,627 86,678 0,679" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="94,576 207,616 175,717" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="94,576 175,717 86,678" fill="rgb(22,22,23)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="207,616 287,577 175,717" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="287,577 282,703 175,717" fill="rgb(25,25,26)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="287,577 391,626 282,703" fill="rgb(11,11,12)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="391,626 397,683 282,703" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="391,626 500,614 500,713" fill="rgb(25,25,26)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="391,626 500,713 397,683" fill="rgb(16,16,17)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,679 86,678 79,800" fill="rgb(26,26,27)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="0,679 79,800 0,800" fill="rgb(20,20,21)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="86,678 175,717 79,800" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="175,717 208,800 79,800" fill="rgb(12,12,13)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="175,717 282,703 279,800" fill="rgb(29,29,30)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="175,717 279,800 208,800" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="282,703 397,683 396,800" fill="rgb(28,28,29)" stroke="rgba(255,255,255,.09)" stroke-width="1"/><polygon points="282,703 396,800 279,800" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="397,683 500,713 500,800" fill="rgb(18,18,19)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><polygon points="397,683 500,800 396,800" fill="rgb(14,14,15)" stroke="rgba(255,255,255,.04)" stroke-width="1"/><defs><radialGradient id="vg" cx="50%" cy="50%" r="75%"><stop offset="40%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".78"/></radialGradient></defs><rect width="500" height="800" fill="url(#vg)"/><rect width="500" height="800" fill="#000" opacity=".28"/></svg>
+<div class="capa-oscura">
+  <img src="{{ url_for('static', filename='LOGO.png') }}" class="logo" id="main-logo" alt="El Cierzo Tattoo & Barbershop">
+
+  <div id="menu-servicios" class="contenedor-botones">
+    <button class="btn-servicio" onclick="mostrarForm('barberia')">
+      <span class="ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/></svg></span>
+      <span class="txt"><b>Reservar barbería</b><small>Elige día y hora</small></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button class="btn-servicio" onclick="mostrarForm('tatuaje')">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+      <span class="txt"><b>Reservar tatuaje</b><small>Cuéntanos tu idea</small></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button class="btn-servicio" onclick="mostrarRedes()">
+      <span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/></svg></span>
+      <span class="txt"><b>Redes sociales</b><small>Síguenos en Instagram</small></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+
+    <a class="map-card glass" href="https://www.google.com/maps/search/?api=1&query=El+Cierzo+Talayuelas" target="_blank" rel="noopener noreferrer">
+      <div class="map-frame"><iframe src="https://maps.google.com/maps?q=El%20Cierzo%20Talayuelas&t=&z=17&ie=UTF8&iwloc=&output=embed" loading="lazy" allowfullscreen="" title="Mapa"></iframe></div>
+      <p><svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Paseo del Prado, 30, 16320 Talayuelas, Cuenca</p>
+    </a>
+
+    <div class="bottom-bar">
+      <button type="button" class="secret" onclick="abrirArcade()">secret games</button>
+      <button type="button" class="secret glass install js-install" onclick="instalarApp()"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/></svg>Instalar aplicación</button>
+    </div>
+    <div id="tps-box">
+      <button id="tps-ico" type="button" aria-label="." tabindex="-1">
+        <svg viewBox="0 0 100 130" width="30" height="39" aria-hidden="true">
+          <defs><radialGradient id="tps-g" cx=".38" cy=".62" r=".75"><stop offset="0" stop-color="#52525c"/><stop offset=".45" stop-color="#16161b"/><stop offset="1" stop-color="#000"/></radialGradient></defs>
+          <path d="M50 4C50 4 12 52 12 82c0 26 17 44 38 44s38-18 38-44C88 52 50 4 50 4z" fill="url(#tps-g)"/>
+          <path d="M28 86C25 66 36 48 47 32C42 54 41 76 44 98C36 100 29 96 28 86z" fill="rgba(255,255,255,.28)"/>
+          <ellipse cx="56" cy="106" rx="17" ry="6" fill="rgba(255,255,255,.1)"/>
+          <path d="M23 82C23 67 31 52 40 40" stroke="#fff" stroke-opacity=".9" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+          <ellipse cx="30" cy="94" rx="3.2" ry="6" fill="#fff" fill-opacity=".85" transform="rotate(14 30 94)"/>
+          <path d="M73 102C67 113 57 119 46 119" stroke="rgba(255,255,255,.4)" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </button>
+          <button id="tpm-ico" type="button" aria-label="." tabindex="-1">
+        <svg viewBox="0 0 100 130" width="30" height="39" aria-hidden="true">
+          <defs><radialGradient id="tpm-g" cx=".38" cy=".62" r=".75"><stop offset="0" stop-color="#d4465e"/><stop offset=".45" stop-color="#8a0f24"/><stop offset="1" stop-color="#3d000a"/></radialGradient></defs>
+          <path d="M50 4C50 4 12 52 12 82c0 26 17 44 38 44s38-18 38-44C88 52 50 4 50 4z" fill="url(#tpm-g)"/>
+          <path d="M28 86C25 66 36 48 47 32C42 54 41 76 44 98C36 100 29 96 28 86z" fill="rgba(255,255,255,.28)"/>
+          <ellipse cx="56" cy="106" rx="17" ry="6" fill="rgba(255,255,255,.1)"/>
+          <path d="M23 82C23 67 31 52 40 40" stroke="#fff" stroke-opacity=".9" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+          <ellipse cx="30" cy="94" rx="3.2" ry="6" fill="#fff" fill-opacity=".85" transform="rotate(14 30 94)"/>
+          <path d="M73 102C67 113 57 119 46 119" stroke="rgba(255,255,255,.4)" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="menu-redes" class="contenedor-botones" style="display:none;">
+    <h2 class="titulo-seccion">Nuestras redes</h2>
+    <button class="btn-servicio" onclick="abrirInstagram('elcierzoestudio')">
+      <span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/></svg></span>
+      <span class="txt"><b>Instagram estudio</b><small>@elcierzoestudio</small></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button class="btn-servicio" onclick="abrirInstagram('xikotattooart')">
+      <span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/></svg></span>
+      <span class="txt"><b>Instagram tatuajes</b><small>@xikotattooart</small></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button type="button" class="btn-ghost" onclick="volverAlMenu()">← Volver atrás</button>
+  </div>
+
+  <div id="formulario-cita" class="glass">
+    <h2 id="titulo-dinamico"></h2>
+    <form id="reserva-form" enctype="multipart/form-data">
+      <input type="hidden" name="categoria" id="input-categoria">
+      <div class="fila-doble">
+        <input type="text" name="Nombre" placeholder="Nombre" autocomplete="given-name" required>
+        <input type="text" name="Apellidos" placeholder="Apellidos" autocomplete="family-name" required>
+      </div>
+      <input type="tel" name="Telefono" id="input-telefono" placeholder="Teléfono" autocomplete="tel" required>
+
+      <div id="campos-tatuaje" style="display:none;">
+        <label>Zona a tatuar</label>
+        <input type="text" name="zona_tatuaje" placeholder="Ej: Antebrazo, gemelo, bíceps...">
+        <label>Tamaño aproximado</label>
+        <input type="text" name="tamano_tatuaje" placeholder="Ej: 3, 6, 10 cm...">
+        <label>¿Qué horario te va mejor?</label>
+        <select name="fecha_tatuaje">
+          <option value="Martes por la mañana">Martes por la mañana</option>
+          <option value="Miércoles por la mañana">Miércoles por la mañana</option>
+          <option value="Miércoles por la tarde">Miércoles por la tarde</option>
+          <option value="Sábado por la tarde">Sábado por la tarde</option>
+          <option value="Indiferente">Indiferente</option>
+        </select>
+        <label>Cuéntanos tu idea</label>
+        <textarea name="descripcion" placeholder="Estilo, detalles..." rows="3"></textarea>
+        <label>Imagen de referencia</label>
+        <input type="file" name="imagen_referencia" accept="image/*">
+      </div>
+
+      <div id="campos-barberia" style="display:none;">
+        <label>Servicio</label>
+        <select name="servicio_barberia">
+          {% for s in barberia %}<option value="{{ s.nombre }}">{{ s.nombre }}</option>{% endfor %}
+        </select>
+        <label>Fecha</label>
+        <select name="fecha_barberia" id="select-fecha" onchange="cargarHoras()">
+          {% for d in dias %}<option value="{{ d.valor }}">{{ d.texto }}</option>{% endfor %}
+        </select>
+        <div class="horas-head"><label>Horas disponibles</label><span id="contador-libres"></span></div>
+        <div class="legend"><span><i class="lg lg-free"></i>Disponible</span><span><i class="lg lg-sel"></i>Elegida</span><span><i class="lg lg-busy"></i>Ocupada</span></div>
+        <input type="hidden" name="hora" id="input-hora" required>
+        <div id="grid-horas" class="grid-horas"></div>
+      </div>
+
+      <button type="submit" class="btn-final" id="btn-submit">Confirmar reserva</button>
+      <button type="button" class="btn-ghost" onclick="location.reload()">← Volver atrás</button>
+    </form>
+  </div>
+</div>
+
+<div id="pantalla-exito" class="overlay">
+  <div class="sheet" id="contenido-exito"></div>
+</div>
+
+<!-- ===== SECRET GAMES: apodo obligatorio + menú de juegos ===== -->
+<div id="arcade" role="dialog" aria-label="Secret Games">
+  <!-- Paso 1: elegir tipo de acceso -->
+  <div class="arcade-panel" id="arcade-paso-inicio">
+    <h2 class="arcade-title">Secret <span>Games</span></h2>
+    <p class="arcade-sub">Tus partidas se guardan con tu apodo y un PIN de 4 cifras.</p>
+    <button type="button" class="btn-servicio juego-card" onclick="mostrarFormAcceso('registro')">
+      <span class="ico"><svg viewBox="0 0 24 24"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 12.5-6.6"/><path d="M19 15v6M16 18h6"/></svg></span>
+      <span class="txt"><b>Nuevo usuario</b><small>Crea tu apodo y elige tu PIN</small></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button type="button" class="btn-servicio juego-card" onclick="mostrarFormAcceso('login')">
+      <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+      <span class="txt"><b>Usuario existente</b><small>Entra con tu apodo y tu PIN</small></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button type="button" class="btn-ghost" onclick="cerrarArcade()">← Volver a la web</button>
+  </div>
+
+  <!-- Paso 2: formulario (registro o inicio de sesión) -->
+  <div class="arcade-panel" id="arcade-paso-apodo" style="display:none">
+    <h2 class="arcade-title" id="acceso-titulo">Nuevo <span>usuario</span></h2>
+    <p class="arcade-sub" id="acceso-sub"></p>
+    <form class="game-card glass" id="form-acceso" autocomplete="off" novalidate>
+      <label for="arcade-apodo">Nickname / Apodo</label>
+      <input type="text" id="arcade-apodo" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" placeholder="Tu apodo">
+      <label for="arcade-pin" style="margin-top:14px">PIN (4 cifras)</label>
+      <input type="password" id="arcade-pin" class="campo-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="next" placeholder="••••">
+      <div id="grupo-pin2">
+        <label for="arcade-pin2" style="margin-top:14px">Repite el PIN</label>
+        <input type="password" id="arcade-pin2" class="campo-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="go" placeholder="••••">
+      </div>
+      <p id="arcade-error"></p>
+      <button type="button" class="btn-ghost" id="arcade-cambiar-modo" style="display:none;padding:8px"></button>
+      <button type="submit" class="btn-game" id="btn-acceso" style="margin-top:12px">CREAR USUARIO</button>
+    </form>
+    <p class="arcade-nota" id="acceso-alternar"></p>
+    <button type="button" class="btn-ghost" onclick="mostrarInicioArcade()">← Atrás</button>
+  </div>
+
+  <div class="arcade-panel" id="arcade-paso-menu" style="display:none">
+    <h2 class="arcade-title">Secret <span>Games</span></h2>
+    <p class="arcade-sub">Jugando como <span class="chip-apodo" id="arcade-chip"></span></p>
+    <button class="btn-servicio juego-card" onclick="abrirJuego('marcianitos')">
+      <span class="juego-ico"><img src="data:image/png;base64,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" alt=""></span>
+      <span class="txt"><b>Marcianitos Cierzo</b><small>El clásico de naves con estilo barbería</small><span class="juego-estado vacio" id="estado-marcianitos">Comprobando…</span></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button class="btn-servicio juego-card" onclick="abrirJuego('pokemon')">
+      <span class="juego-ico"><img src="data:image/png;base64,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" alt="" class="pixel"></span>
+      <span class="txt"><b>Let's Go Cierzo</b><small>Aventura de GBA creada por la comunidad</small><small class="creditos-gba">Juego: Anguna · Nathan Tolbert · <a href="https://gauauu.itch.io/anguna" target="_blank" rel="noopener" onclick="event.stopPropagation()">gauauu.itch.io</a></small><span class="juego-estado vacio" id="estado-pokemon">Comprobando…</span></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button class="btn-servicio juego-card" onclick="abrirJuego('rojito')">
+      <span class="juego-ico"><img src="{{ url_for('static', filename='rojito.png') }}" alt="" class="pixel" onerror="this.replaceWith(document.createTextNode('🔥'))"></span>
+      <span class="txt"><b>Rojito Fuego</b><small>Aventura de GBA</small><span class="juego-estado vacio" id="estado-rojito">Comprobando…</span></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button class="btn-servicio juego-card" onclick="abrirJuego('crash')">
+      <span class="juego-ico"><img src="{{ url_for('static', filename='crash_cierzo.png') }}" alt="" class="pixel" onerror="this.replaceWith(document.createTextNode('💥'))"></span>
+      <span class="txt"><b>Crash Cierzo</b><small>Aventura de GBA</small><span class="juego-estado vacio" id="estado-crash">Comprobando…</span></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <button type="button" class="btn-ghost" onclick="cambiarApodo()">Cerrar sesión / cambiar usuario</button>
+    <button type="button" class="btn-ghost" onclick="cerrarArcade()">← Volver a la web</button>
+    <div id="punto-admin" role="button" aria-label="·" onclick="tocarPuntoAdmin()"></div>
+  </div>
+</div>
+
+<!-- ===== CONSOLA VERTICAL (pantalla arriba, controles abajo) ===== -->
+<div id="consola">
+ <div class="gb">
+  <div class="gb-top">
+    <button type="button" class="gb-topbtn" onclick="pedirSalirJuego()">← Salir</button>
+    <div class="gb-titulo"><b id="gb-titulo-juego"></b><small id="gb-apodo"></small></div>
+    <button type="button" class="gb-topbtn" id="btn-pausa-top" onclick="alternarPausa()" aria-label="Pausa"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;stroke:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+    <button type="button" class="gb-topbtn gb-save" id="btn-guardar-partida" onclick="guardarPartidaActual()">💾 Guardar<span class="txt-partida"> partida</span></button>
+  </div>
+
+  <div class="gb-bezel">
+   <div class="gb-screen" id="gb-screen">
+
+<div id="game-container">
+  <div id="start-overlay">
+    <h2 class="game-title" style="color:var(--gold)">Marcianitos<br>Cierzo</h2>
+    <div class="game-card glass">
+      <p class="rank-title" style="margin-bottom:4px">Jugador</p>
+      <div class="mc-jugador" id="mc-jugador"></div>
+      <p class="mc-info">Tu récord: <b id="mc-record-personal">0</b> pts</p>
+      <p class="mc-info" id="mc-guardada" style="display:none"></p>
+    </div>
+    <div class="game-card glass">
+      <p class="rank-title">🌍 Top 5 mundial</p>
+      <div id="ranking-inicio" class="lista-ranking"><div class="rank-empty">Cargando…</div></div>
+    </div>
+    <button id="btn-continuar-partida" class="btn-game" style="display:none" onclick="continuarPartidaGuardada()">CONTINUAR PARTIDA</button>
+    <button id="btn-start-game" class="btn-game" onclick="validarYComenzarJuego()">START</button>
+    <p class="mc-hint">Arrastra el dedo por la pantalla para mover la nave · pausa con el botón de arriba</p>
+  </div>
+
+  <div id="pausa-overlay">
+    <h2 class="game-title" style="color:var(--gold)">Pausa</h2>
+    <button class="btn-game" onclick="alternarPausa()">CONTINUAR</button>
+    <button class="btn-game sec" onclick="guardarPartidaActual()">💾 Guardar partida</button>
+  </div>
+
+  <div id="game-over-overlay">
+    <h2 class="game-title">Game over</h2>
+    <div id="new-record-msg">🔥 ¡Nuevo récord Barber! 🔥</div>
+    <div class="game-card glass">
+      <p class="rank-title">🌍 Top 5 mundial</p>
+      <div id="ranking-list"></div>
+    </div>
+    <button class="btn-game" onclick="reiniciarPartida()">RESTART</button>
+    <button class="btn-game sec" onclick="salirJuego()">EXIT</button>
+  </div>
+
+  <div id="header-game">
+    <div class="ui-top-row">
+      <div class="hud">Barber points<span id="game-score">0</span><div id="boss-ui">BOSS HP: <span id="boss-hp-count">0</span>/2000</div></div>
+      <div class="timer-container">
+        <div id="timer-display">00:00</div>
+        <div id="ui-lives">Vidas <span id="game-lives">0/3</span></div>
+      </div>
+      <div class="hud">Récord mundial<span id="best-score">0</span></div>
+    </div>
+  </div>
+
+  <div id="player"></div>
+  <div id="support-l" class="support-ship" style="display:none;"></div>
+  <div id="support-r" class="support-ship" style="display:none;"></div>
+</div>
+
+    <div id="pokemon-screen">
+      <div id="ejs-game"></div>
+      <div id="poke-cargando">Cargando juego…</div>
+      <div id="rom-picker">
+        <b>No se encontró el juego en el servidor.</b>
+        <span>Selecciona el archivo <b>.gba</b> desde tu dispositivo para jugar:</span>
+        <input type="file" id="rom-input" accept=".gba,.zip,application/octet-stream">
+      </div>
+    </div>
+
+   </div>
+   <div class="gb-brand"><i class="led"></i>EL CIERZO <span>ARCADE</span></div>
+  </div>
+
+  <div class="gb-controls">
+    <div class="lr">
+      <button type="button" class="btn-lr" data-btn="l" aria-label="L">L</button>
+      <button type="button" class="btn-lr" data-btn="r" aria-label="R">R</button>
+    </div>
+    <div class="dpad" id="dpad" aria-label="Cruceta">
+      <div class="eje h"></div><div class="eje v"></div><div class="centro"></div>
+      <i class="fl f-up"></i><i class="fl f-down"></i><i class="fl f-left"></i><i class="fl f-right"></i>
+    </div>
+    <div class="ab">
+      <button type="button" class="btn-ab" data-btn="b" aria-label="B"><span>B</span></button>
+      <button type="button" class="btn-ab" data-btn="a" aria-label="A"><span>A</span></button>
+    </div>
+    <div class="ss">
+      <button type="button" class="btn-ss" data-btn="select" aria-label="Select"><i></i>SELECT</button>
+      <button type="button" class="btn-ss" data-btn="start" aria-label="Start"><i></i>START</button>
+    </div>
+    <div class="tema-wrap" id="tema-wrap">
+      <div class="abanico" id="abanico" role="listbox" aria-label="Ediciones de color"><span class="abanico-nombre" id="abanico-nombre"></span></div>
+      <button type="button" class="btn-tema" id="btn-tema" onclick="alternarAbanico()" aria-label="Cambiar color de la consola"><i></i>COLOR</button>
+    </div>
+  </div>
+ </div>
+</div>
+
+<div id="modal-salir-juego" class="overlay">
+  <div class="sheet">
+    <h3>¿Salir del juego?</h3>
+    <p>Guarda tu partida para continuar justo aquí la próxima vez que entres con tu apodo.</p>
+    <button type="button" class="btn-final" onclick="guardarYSalir()">💾 Guardar y salir</button>
+    <button type="button" class="btn-link" onclick="salirJuego()">Salir sin guardar</button>
+    <button type="button" class="btn-ghost" onclick="seguirJugando()">Seguir jugando</button>
+  </div>
+</div>
+<div id="modal-admin" class="overlay">
+  <div class="sheet sheet-admin">
+    <button class="cerrar" onclick="cerrarAdmin()" aria-label="Cerrar">&times;</button>
+    <div id="admin-login">
+      <h3>Acceso privado</h3>
+      <input type="password" id="admin-pin" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="Contraseña">
+      <button type="button" class="btn-final" style="margin-top:10px" onclick="entrarAdmin()">Entrar</button>
+      <p id="admin-error" style="color:var(--danger);margin-top:10px;display:none"></p>
+    </div>
+    <div id="admin-panel" style="display:none"></div>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+        let audioCtx = null;
+        function playShootSound() {
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         }
-        service.events().insert(calendarId=id_calendario, body=evento).execute()
-        print("✅ Evento añadido a Google Calendar")
-        return True
-    except Exception as e:
-        print(f"❌ Error en calendar: {e}")
-        return False
+function mostrarRedes() {
+    document.getElementById('menu-servicios').style.display = 'none';
+    document.getElementById('menu-redes').style.display = 'flex';
+    document.getElementById('main-logo').classList.add('logo-pequeno');
+}
 
-def init_db():
-    conn = sqlite3.connect(ruta_db)
-    cursor = conn.cursor()
-    cursor.execute('''create table if not exists citas 
-                   (id integer primary key, nombre text, telefono text, 
-                   categoria text, servicio text, fecha text, hora text)''')
-    conn.commit()
-    conn.close()
+function volverAlMenu() {
+    document.getElementById('menu-redes').style.display = 'none';
+    document.getElementById('menu-servicios').style.display = 'flex';
+    document.getElementById('main-logo').classList.remove('logo-pequeno');
+}
 
-init_db()
+function abrirInstagram(usuario) {
+    const uri = `instagram://user?username=${usuario}`;
+    const webUrl = `https://www.instagram.com/${usuario}`;
+    
+    // Guardamos el tiempo de inicio
+    const start = Date.now();
+    
+    // Intentamos abrir la App
+    window.location.href = uri;
 
-@app.route('/')
-def index():
-    barberia_servicios = [
-        {'nombre': 'corte de pelo'}, 
-        {'nombre': 'corte de pelo + barba maquina'},
-        {'nombre': 'corte de pelo + barba navaja'},
-        {'nombre': 'arreglo de barba maquina'},
-        {'nombre': 'arreglo de barba navaja'},
-        {'nombre': 'corte de pelo + barba maquina + peinado'},
-        {'nombre': 'corte de pelo + barba navaja + peinado'}
-    ]
-    
-    dias_es = {"Mon": "lun", "Tue": "mar", "Wed": "mié", "Thu": "jue", "Fri": "vie", "Sat": "sáb", "Sun": "dom"}
-    dias = []
-    
-    zona_madrid = ZoneInfo("Europe/Madrid")
-    hoy = datetime.now(zona_madrid)
-    
-    for i in range(7):
-        dia = hoy + timedelta(days=i)
-        if dia.weekday() < 6:
-            nombre_dia_en = dia.strftime('%a')
-            nombre_dia_es = dias_es.get(nombre_dia_en, nombre_dia_en)
-            texto_dia = f"{dia.strftime('%d/%m')} ({nombre_dia_es})"
-            dias.append({'valor': dia.strftime('%Y-%m-%d'), 'texto': texto_dia})
+    // Ponemos un temporizador para la web
+    setTimeout(() => {
+        // Si el usuario sigue en nuestra página y han pasado menos de 2 segundos,
+        // intentamos abrir la web como plan B.
+        if (!document.hidden && (Date.now() - start) < 2000) {
+            window.location.href = webUrl;
+        }
+    }, 1000);
+}
+        function mostrarForm(tipo) {
+            document.getElementById('menu-servicios').style.display = 'none';
+            document.getElementById('formulario-cita').style.display = 'block';
+            document.getElementById('input-categoria').value = tipo;
+            document.getElementById('titulo-dinamico').innerText = tipo === 'barberia' ? 'Reservar barbería' : 'Reservar tatuaje';
             
-    return render_template('index.html', barberia=barberia_servicios, dias=dias)
+            const btnSubmit = document.getElementById('btn-submit');
+            const inputTel = document.getElementById('input-telefono');
 
-@app.route('/obtener_estado_horas/<fecha>')
-def obtener_estado_horas(fecha):
-    try:
-        dia_semana = datetime.strptime(fecha, '%Y-%m-%d').weekday()
-    except ValueError:
-        return jsonify([])
-    
-    if dia_semana in [0, 1, 2, 3, 4, 5]:
-        horas_posibles = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30"]
-    else:
-        return jsonify([])
+            if (tipo === 'tatuaje') {
+                btnSubmit.innerHTML = 'Enviar idea al tatuador';
+                document.getElementById('campos-tatuaje').style.display = 'block';
+                document.getElementById('campos-barberia').style.display = 'none';
+                document.getElementById('input-hora').value = "a convenir";
+                inputTel.style.display = 'none';
+                inputTel.removeAttribute('required');
+            } else {
+                btnSubmit.innerText = 'Confirmar reserva';
+                document.getElementById('campos-tatuaje').style.display = 'none';
+                document.getElementById('campos-barberia').style.display = 'block';
+                inputTel.style.display = 'block';
+                inputTel.setAttribute('required', 'required');
+                cargarHoras();
+            }
 
-    try:
-        scopes = ['https://www.googleapis.com/auth/calendar.readonly']
-        creds_json = os.environ.get('google_credentials')
-        if creds_json:
-            creds = service_account.Credentials.from_service_account_info(json.loads(creds_json), scopes=scopes)
-        else:
-            creds = service_account.Credentials.from_service_account_file(ruta_credenciales, scopes=scopes)
-        
-        service = build('calendar', 'v3', credentials=creds)
-        
-        time_min = f"{fecha}T00:00:00Z"
-        time_max = f"{fecha}T23:59:59Z"
-        events_result = service.events().list(calendarId=id_calendario, timeMin=time_min, timeMax=time_max, singleEvents=True, timeZone='Europe/Madrid').execute()
-        
-        ocupadas = []
-        for e in events_result.get('items', []):
-            start_str = e['start'].get('dateTime', e['start'].get('date'))
-            end_str = e['end'].get('dateTime', e['end'].get('date'))
+            document.getElementById('main-logo').classList.add('logo-pequeno');
+        }
+
+        async function cargarHoras(fechaForzada = null) {
+            const fecha = fechaForzada || document.getElementById('select-fecha').value;
             
-            if 'T' in start_str and 'T' in end_str:
-                start_time = datetime.strptime(start_str.split('T')[1][:5], '%H:%M')
-                end_time = datetime.strptime(end_str.split('T')[1][:5], '%H:%M')
+            if (fechaForzada) {
+                const selectFecha = document.getElementById('select-fecha');
+                if (selectFecha) selectFecha.value = fechaForzada;
+            }
+
+            const res = await fetch(`/obtener_estado_horas/${fecha}`);
+            const horas = await res.json();
+            
+            // Contamos cuántas horas libres hay y ponemos el texto exacto que pediste
+            const libresCount = horas.filter(h => h.libre).length;
+            const contadorEl = document.getElementById('contador-libres');
+            if (contadorEl) {
+                contadorEl.innerText = `(${libresCount} servicios libres)`;
+            }
+            const grid = document.getElementById('grid-horas');
+            grid.innerHTML = '';
+            
+            horas.forEach(h => {
+                const btn = document.createElement('button');
+                btn.type = 'button'; 
+                btn.className = 'hora-btn'; 
+                btn.innerText = h.hora;
+
+                if (h.libre) {
+                    btn.onclick = () => {
+                        document.querySelectorAll('.hora-btn').forEach(b => b.classList.remove('hora-seleccionada'));
+                        btn.classList.add('hora-seleccionada');
+                        document.getElementById('input-hora').value = h.hora;
+                    };
+                } else {
+                    btn.classList.add('hora-ocupada');
+                    btn.onclick = () => {
+                        abrirModalCancelar(fecha, h.hora);
+                    };
+                }
+                grid.appendChild(btn);
+            });
+        }
+
+        document.getElementById('reserva-form').onsubmit = async function(e) {
+            e.preventDefault();
+            
+            const categoria = document.getElementById('input-categoria').value;
+            const horaSeleccionada = document.getElementById('input-hora').value;
+
+            // Validación obligatoria de hora para barbería con pop-up
+            if (categoria === 'barberia' && !horaSeleccionada) {
+                document.getElementById('popup-aviso-cita').style.display = 'flex';
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit');
+            btn.innerText = 'Procesando…'; 
+            btn.disabled = true;
+            
+            const formData = new FormData(this);
+            try {
+                const response = await fetch('/reservar', { method: 'POST', body: formData });
+                const data = await response.json();
                 
-                for h in horas_posibles:
-                    hora_check = datetime.strptime(h, '%H:%M')
-                    if start_time <= hora_check < end_time:
-                        ocupadas.append(h)
+                if (data.status === 'success') {
+                    const TU_NUMERO_WHATSAPP = "34686544572"; 
+                    
+                    const nombre = document.querySelector('input[name="Nombre"]') ? document.querySelector('input[name="Nombre"]').value : '';
+                    const apellidos = document.querySelector('input[name="Apellidos"]') ? document.querySelector('input[name="Apellidos"]').value : '';
+                    const descripcion = document.querySelector('textarea[name="descripcion"]') ? document.querySelector('textarea[name="descripcion"]').value : '';
+                    const fechaTattoo = document.querySelector('input[name="fecha_tatuaje"]') ? document.querySelector('input[name="fecha_tatuaje"]').value : '';
+
+                    // SI ES TATUAJE: Redirige directamente al WhatsApp de Edgar con la idea redactada y el enlace de la imagen
+                    // SI ES TATUAJE: Redirige directamente al WhatsApp de Edgar con la idea redactada y el enlace de la imagen
+if (categoria === 'tatuaje') {
+            const zona = document.querySelector('input[name="zona_tatuaje"]') ? document.querySelector('input[name="zona_tatuaje"]').value : '';
+            const tamano = document.querySelector('input[name="tamano_tatuaje"]') ? document.querySelector('input[name="tamano_tatuaje"]').value : '';
+            const fechaTattoo = document.querySelector('select[name="fecha_tatuaje"]') ? document.querySelector('select[name="fecha_tatuaje"]').value : '';
+            const descripcion = document.querySelector('textarea[name="descripcion"]') ? document.querySelector('textarea[name="descripcion"]').value : '';
+
+            let mensajeWhatsApp = `¡Hola Edgar! Soy ${nombre} ${apellidos}. Te envío los detalles para mi tatuaje:\n\n📍 Zona: ${zona}\n📏 Tamaño: ${tamano}\n📅 Preferencia: ${fechaTattoo}\n📝 Idea: ${descripcion}`;
+            
+            if (data.imagen_url) {
+                mensajeWhatsApp += `\n\n🖼️ Imagen de referencia:\n${data.imagen_url}`;
+            }
+
+            // Usamos wa.me con app_absent para forzar la apertura directa en la app
+            const urlWhatsApp = `https://wa.me/34686544572?text=${encodeURIComponent(mensajeWhatsApp)}&app_absent=0`;
+            
+            window.location.href = urlWhatsApp;
+            return;
+        }
+                    // SI ES BARBERÍA: Mantiene exactamente su flujo habitual de Google Calendar y éxito
+                    const fecha = document.getElementById('select-fecha') ? document.getElementById('select-fecha').value : '';
+                    const hora = document.getElementById('input-hora') ? document.getElementById('input-hora').value : '';
+
+                    const partesFecha = fecha.split('-');
+                    const fechaBonita = partesFecha.length === 3 ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}` : fecha;
+
+                    const mensajeWhatsApp = `¡Hola Edgar! Confirmo mi reserva para el día ${fechaBonita} a las ${hora} a nombre de ${nombre}. (Si necesito cancelarla o cambiarla, te aviso por aquí).`;
+                    const urlWhatsApp = `https://wa.me/${TU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensajeWhatsApp)}`;
+
+                    let gCalUrl = "#";
+                    if (fecha && hora) {
+                        const fechaClean = fecha.replace(/-/g, '');
+                        const horaClean = hora.replace(/:/g, '') + '00';
                         
-    except Exception as e:
-        print(f"Error consultando Calendar: {e}")
-        ocupadas = []
+                        let [h, m] = hora.split(':').map(Number);
+                        m += 30;
+                        if (m >= 60) { h += 1; m -= 60; }
+                        const horaFinClean = String(h).padStart(2, '0') + String(m).padStart(2, '0') + '00';
+                        
+                        const startDateTime = `${fechaClean}T${horaClean}`;
+                        const endDateTime = `${fechaClean}T${horaFinClean}`;
+                        
+                        gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Cita Barbería - El Cierzo')}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent('Cita reservada en El Cierzo Studio & Barber')}&location=${encodeURIComponent('Talayuelas')}&remindermins=30`;
+                    }
 
-    return jsonify([{"hora": h, "libre": h not in ocupadas} for h in horas_posibles])
+                    document.getElementById('contenido-exito').innerHTML = `
+                        <div class="ok-ico"><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg></div>
+                        <p style="color:var(--text);font-size:.95rem;margin-bottom:18px">${data.message}</p>
+                        <a href="${urlWhatsApp}" target="_blank" rel="noopener" class="btn-link btn-wa">Enviar aviso por WhatsApp</a>
+                        ${fecha && hora ? `<a href="${gCalUrl}" target="_blank" rel="noopener" class="btn-link">Guardar en Google Calendar</a>` : ''}
+                        <button onclick="location.reload()" class="btn-final">Finalizar</button>
+                        <button type="button" onclick="instalarApp()" class="btn-link btn-install js-install"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/></svg>Instalar App El Cierzo</button>
+                    `;
+                    document.getElementById('pantalla-exito').style.display = 'flex';
+                }
+            } catch (error) { 
+                alert('error en el servidor'); 
+                btn.innerText = categoria === 'tatuaje' ? 'Enviar idea al tatuador' : 'Confirmar reserva';
+                btn.disabled = false;
+            }
+        };
 
-@app.route('/reservar', methods=['POST'])
-def recuperar():
-    try:
-        nombre_cliente = request.form.get('Nombre') or 'Cliente'
-        apellidos_cliente = request.form.get('Apellidos') or ''
-        nombre_completo = f"{nombre_cliente} {apellidos_cliente}".strip()
-        categoria = request.form.get('categoria')
-        telefono = request.form.get('Telefono', 'No indicado')
-        descripcion = request.form.get('descripcion', 'sin descripción')
+        let gameActive = false;
+        let score = 0;
+        let lives = 0;
+        let seconds = 0;
+        let timerInterval;
+        let gameIntervals = [];
         
-        # --- GESTIÓN DE SUBIDA DE IMAGEN DE REFERENCIA ---
-        imagen_url = ""
-        if 'imagen_referencia' in request.files:
-            file = request.files['imagen_referencia']
-            if file and file.filename != '':
-                # Limpiamos el nombre y creamos uno único con fecha y hora para que no se repita
-                ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
-                if ext not in EXT_IMAGEN:
-                    return jsonify({"status": "error", "message": "La referencia debe ser una imagen (jpg, png, webp, heic o gif)."}), 400
-                unique_filename = f"tattoo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
+        let tripleShotActive = false;
+        let bombPowerActive = false;
+        let shieldActive = false;
+        let supportActive = false;
+        let bulletCounter = 0;
+        let lastCoinType = 2;
+
+        let bossActive = false;
+        let bossDamage = 0;
+        const bossMaxHP = 2000;
+
+        let playerX = 0;
+        let playerY = 0;
+        const imagenesMarcianos = [
+            "{{ url_for('static', filename='marcianito_1.png') }}",
+            "{{ url_for('static', filename='marcianito_2.png') }}",
+            "{{ url_for('static', filename='marcianito_3.png') }}",
+            "{{ url_for('static', filename='marcianito_4.png') }}"
+        ];
+
+        // --- Soporte de pausa y pantalla de consola ---
+        const ICONO_PAUSA = '<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;stroke:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+        const ICONO_PLAY = '<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;stroke:none"><path d="M7 5v14l12-7z"/></svg>';
+        let gamePaused = false;
+        let bossDerrotado = false;
+        let controlesJuegoListos = false;
+        function gameInterval(fn, ms) { return setInterval(() => { if (!gamePaused) fn(); }, ms); }
+        function altoPantalla() { return document.getElementById('game-container').offsetHeight || window.innerHeight; }
+
+        function moverJugador(x, y) {
+            const container = document.getElementById('game-container');
+            const player = document.getElementById('player');
+            playerX = Math.max(0, Math.min(x, container.offsetWidth - 85));
+            playerY = Math.max(0, Math.min(y, container.offsetHeight - 85));
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+            if (supportActive) {
+                const sL = document.getElementById('support-l');
+                const sR = document.getElementById('support-r');
+                sL.style.left = (playerX - 60) + 'px';
+                sL.style.top = (playerY + 40) + 'px';
+                sR.style.left = (playerX + 100) + 'px';
+                sR.style.top = (playerY + 40) + 'px';
+            }
+        }
+
+        function colocarJugadorInicio() {
+            const container = document.getElementById('game-container');
+            moverJugador((container.offsetWidth / 2) - 42, container.offsetHeight - 85 - 24);
+        }
+
+        function limpiarEntidadesJuego() {
+            document.querySelectorAll('.enemy, .bullet, .bomb-bullet, .coin, .coin-2, .vida-item, .boss-ship, .boss-fireball, .exp-part').forEach(el => el.remove());
+        }
+
+        function alternarPausa() {
+            if (!gameActive) return;
+            gamePaused = !gamePaused;
+            document.getElementById('pausa-overlay').style.display = gamePaused ? 'flex' : 'none';
+            const bp = document.getElementById('btn-pausa-top'); if (bp) bp.innerHTML = gamePaused ? ICONO_PLAY : ICONO_PAUSA;
+        }
+
+        function prepararJuego() {
+            clearInterval(timerInterval);
+            gameIntervals.forEach(clearInterval);
+            gameIntervals = [];
+            gameActive = false;
+            gamePaused = false;
+            bossDerrotado = false;
+            limpiarEntidadesJuego();
+            document.getElementById('game-container').style.display = 'block';
+            document.getElementById('start-overlay').style.display = 'flex';
+            document.getElementById('game-over-overlay').style.display = 'none';
+            document.getElementById('pausa-overlay').style.display = 'none'; document.getElementById('btn-pausa-top').innerHTML = ICONO_PAUSA;
+            document.getElementById('boss-ui').style.display = 'none';
+            score = 0;
+            lives = 0; // Empieza en 0/3
+            seconds = 0;
+            tripleShotActive = false;
+            bombPowerActive = false;
+            shieldActive = false;
+            supportActive = false;
+            bossActive = false;
+            bossDamage = 0;
+            lastCoinType = 2;
+            document.getElementById('player').classList.remove('bubble-active');
+            document.getElementById('support-l').style.display = 'none';
+            document.getElementById('support-r').style.display = 'none';
+            
+            document.getElementById('game-score').innerText = "0";
+            document.getElementById('game-lives').innerText = "0/3";
+            document.getElementById('timer-display').innerText = "00:00";
+            document.getElementById('best-score').innerText = recordMundial;
+            cargarRankingMundial();
+            
+            const container = document.getElementById('game-container');
+            colocarJugadorInicio();
+
+            if (!controlesJuegoListos) {
+                controlesJuegoListos = true;
+                const moveHandler = (e) => {
+                    if (!gameActive || gamePaused) return;
+                    const rect = container.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const relativeX = clientX - rect.left;
+                    const relativeY = clientY - rect.top;
+                    if (relativeY > rect.height / 2.5) {
+                        // DESPLAZAMIENTO TÁCTIL: la nave se sitúa 80 píxeles por encima del dedo para no taparla
+                        moverJugador(relativeX - 42, (relativeY - 80) - 42);
+                    }
+                };
+                container.addEventListener('touchmove', (e) => { if(gameActive) e.preventDefault(); moveHandler(e); }, {passive: false});
+                container.addEventListener('touchstart', (e) => { if(gameActive && !e.target.closest('button')) { e.preventDefault(); moveHandler(e); } }, {passive: false});
+                container.addEventListener('mousemove', (e) => { if(gameActive) moveHandler(e); });
+            }
+            if (typeof refrescarStartMarcianitos === 'function') refrescarStartMarcianitos();
+        }
+
+        function comenzarCiclos() {
+            document.getElementById('start-overlay').style.display = 'none';
+            gameActive = true;
+
+            timerInterval = gameInterval(() => {
+                if(gameActive) {
+                    seconds++;
+                    let mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+                    let secs = (seconds % 60).toString().padStart(2, '0');
+                    document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+                    
+                    if (seconds === 40) {
+                        crearBoss();
+                    }
+
+                    // Las vidas aparecen exactamente cada 30 segundos
+                    if (seconds > 0 && seconds % 30 === 0) {
+                        crearVidaItem();
+                    }
+
+                    if (seconds > 0 && seconds % 20 === 0) {
+                        if (lastCoinType === 2) {
+                            crearMoneda();
+                            lastCoinType = 1;
+                        } else {
+                            crearMoneda2();
+                            lastCoinType = 2;
+                        }
+                    }
+                }
+            }, 1000);
+
+            // ... (resto de bucles de disparo y enemigos se mantienen igual)
+
+            gameIntervals.push(gameInterval(() => {
+                if(gameActive) {
+                    const spawnY = playerY;
+                    const spawnX = playerX;
+                    bulletCounter++;
+
+                    if(bombPowerActive) {
+                        if(bulletCounter % 2 === 0) {
+                            crearBala(spawnX + 38, spawnY, 0, -8, true);
+                        }
+                    } else {
+                        crearBala(spawnX + 38, spawnY, 0, -10); 
+                        crearBala(spawnX + 44, spawnY, 0, -10); 
+                        if(tripleShotActive) {
+                            crearBala(spawnX + 15, spawnY, -3, -10); 
+                            crearBala(spawnX + 65, spawnY, 3, -10);
+                        }
+                        if(supportActive) {
+                            crearBala(spawnX - 40, spawnY + 40, 0, -12);
+                            crearBala(spawnX + 120, spawnY + 40, 0, -12);
+                        }
+                    }
+                    playShootSound();
+                }
+            }, 250));
+
+            gameIntervals.push(gameInterval(() => { if(gameActive && !bossActive) crearEnemigo(); }, 200));
+        }
+
+        function crearBoss() {
+            bossActive = true;
+            bossDamage = 0;
+            document.getElementById('boss-ui').style.display = 'block';
+            document.getElementById('boss-hp-count').innerText = "0";
+            
+            const boss = document.createElement('div');
+            boss.className = 'boss-ship';
+            const containerW = document.getElementById('game-container').offsetWidth;
+            
+            boss.style.left = (containerW / 2 - 106) + 'px';
+            boss.style.top = '-250px';
+            document.getElementById('game-container').appendChild(boss);
+
+            let entry = gameInterval(() => {
+                if (!gameActive) { clearInterval(entry); return; }
+                let y = parseInt(boss.style.top);
+                if (y < 85) {
+                    boss.style.top = (y + 3) + 'px';
+                } else {
+                    clearInterval(entry);
+                    iniciarMovimientoBoss(boss, containerW);
+                }
+            }, 20);
+        }
+
+        function iniciarMovimientoBoss(boss, containerW) {
+            let bossDir = Math.random() < 0.5 ? 1 : -1;
+            let currentSpeed = 4;
+            
+            let moveBoss = gameInterval(() => {
+                if (!gameActive || !bossActive) { clearInterval(moveBoss); return; }
                 
-                upload_folder = os.path.join(BASE_DIR, 'static', 'uploads')
-                os.makedirs(upload_folder, exist_ok=True)
+                let x = parseInt(boss.style.left);
                 
-                file.save(os.path.join(upload_folder, unique_filename))
-                # Generamos la URL absoluta del archivo en tu servidor
-                imagen_url = f"{request.host_url}static/uploads/{unique_filename}"
+                // probabilidad de cambio de dirección o pausa aleatoria
+                if (Math.random() < 0.02) { 
+                    bossDir *= -1; 
+                }
+                if (Math.random() < 0.01) {
+                    currentSpeed = 0; // se frena un momento
+                    setTimeout(() => { if(gameActive) currentSpeed = 4; }, 800);
+                }
 
-        nombre_dorado = f"<span style='color:#d4af37; font-weight:bold;'>{nombre_cliente}</span>"
-        titulo_cita_dorado = f"<span style='color:#d4af37; font-weight:bold; text-transform:uppercase; font-size:1.4rem;'>¡cita confirmada!</span>"
-        titulo_solicitud_dorado = f"<span style='color:#d4af37; font-weight:bold; text-transform:uppercase; font-size:1.4rem;'>¡solicitud de cita enviada!</span>"
+                if (x < -20 || x > containerW - 190) {
+                    bossDir *= -1;
+                }
+                
+                boss.style.left = (x + (currentSpeed * bossDir)) + 'px';
+            }, 30);
 
-        if categoria == 'barberia':
-            servicio = request.form.get('servicio_barberia') or 'Corte de pelo'
-            fecha_raw = request.form.get('fecha_barberia')
-            hora = request.form.get('hora') or "10:00"
-            encabezado_tele = "💈 cita barbería"
-            mensaje_web = f"{titulo_cita_dorado}<br><br>Gracias {nombre_dorado}. Le esperamos en la barbería. Para cualquier cambio, al WhatsApp o llame al teléfono."
-        else:
-            servicio = "tatuaje"
-            fecha_raw = request.form.get('fecha_tatuaje') or datetime.now().strftime('%Y-%m-%d')
-            hora = "a convenir"
-            encabezado_tele = "💉 nueva solicitud tatuaje"
-            mensaje_web = f"{titulo_solicitud_dorado}<br><br>¡Mensaje recibido! Gracias {nombre_dorado}, en 24h tendrá respuesta. Para cualquier duda contacte por WhatsApp o llame al teléfono."
+            let fireInterval = gameInterval(() => {
+                if (!gameActive || !bossActive) { clearInterval(fireInterval); return; }
+                crearBolaFuego(parseInt(boss.style.left) + 106, parseInt(boss.style.top) + 190);
+            }, 3000);
+        }
+
+        function crearBolaFuego(x, y) {
+            const f = document.createElement('div');
+            f.className = 'boss-fireball';
+            f.style.left = (x - 35) + 'px';
+            f.style.top = y + 'px';
+            document.getElementById('game-container').appendChild(f);
             
-        fecha_mostrar = fecha_raw
-        try:
-            if "-" in fecha_raw and len(fecha_raw) == 10:
-                fecha_dt = datetime.strptime(fecha_raw, "%Y-%m-%d")
-                fecha_mostrar = fecha_dt.strftime("%d/%m/%Y")
-        except:
-            pass
+            let moveF = gameInterval(() => {
+                if (!gameActive) { f.remove(); clearInterval(moveF); return; }
+                let currY = parseInt(f.style.top);
+                
+                if (currY > altoPantalla()) { 
+                    f.remove(); 
+                    clearInterval(moveF); 
+                } else {
+                    f.style.top = (currY + 8) + 'px';
+                    if (checkCollision(f, document.getElementById('player'))) {
+                        if (!shieldActive) {
+                            lives -= 2; 
+                            document.getElementById('game-lives').innerText = Math.max(0, lives) + "/3";
+                            if (lives < 0) gameOver();
+                        }
+                        f.remove(); 
+                        clearInterval(moveF);
+                    }
+                }
+            }, 20);
+        }
 
-        datos = {'nombre': nombre_completo, 'telefono': telefono, 'categoria': categoria, 'servicio': servicio, 'fecha': fecha_raw, 'hora': hora}
-        
-        conn = sqlite3.connect(ruta_db)
-        cursor = conn.cursor()
-        cursor.execute("insert into citas (nombre, telefono, categoria, servicio, fecha, hora) values (?,?,?,?,?,?)", 
-                       (datos['nombre'], datos['telefono'], datos['categoria'], datos['servicio'], datos['fecha'], datos['hora']))
-        conn.commit()
-        conn.close()
-        
-        msg_tele = f"{encabezado_tele}:\n👤 {datos['nombre']}\n📞 {datos['telefono']}\n📅 {fecha_mostrar}\n⏰ {datos['hora']}\n✂️ {datos['servicio']}"
-        if categoria == 'tatuaje':
-            msg_tele += f"\n📝 idea: {descripcion}"
-            if imagen_url:
-                msg_tele += f"\n🖼️ Referencia: {imagen_url}"
+        function crearBala(x, y, speedX, speedY, esBomba = false) {
+            const b = document.createElement('div');
+            b.className = esBomba ? 'bomb-bullet' : 'bullet';
+            b.style.left = x + 'px';
+            b.style.top = y + 'px';
+            document.getElementById('game-container').appendChild(b);
+
+            let moveB = gameInterval(() => {
+                let currY = parseInt(b.style.top);
+                let currX = parseInt(b.style.left);
+                if(currY < -20 || !gameActive) {
+                    clearInterval(moveB); b.remove();
+                } else {
+                    b.style.top = (currY + speedY) + 'px';
+                    b.style.left = (currX + speedX) + 'px';
+                    
+                    if (bossActive) {
+                        const boss = document.querySelector('.boss-ship');
+                        if (boss && checkCollision(b, boss)) {
+                            // cada bala suma daño (bombas hacen más)
+                            const damagePoints = esBomba ? 100 : 10;
+                            bossDamage += damagePoints;
+                            document.getElementById('boss-hp-count').innerText = Math.min(bossDamage, bossMaxHP);
+                            
+                            explosion(currX, currY, "#ffcc00", 5);
+                            if (bossDamage >= bossMaxHP) {
+                                bossActive = false;
+                                bossDerrotado = true;
+                                score += 5000;
+                                actualizarScore();
+                                explosion(parseInt(boss.style.left)+106, parseInt(boss.style.top)+106, "#ff0000", 60);
+                                boss.remove();
+                                document.getElementById('boss-ui').style.display = 'none';
+                            }
+                            b.remove(); 
+                            clearInterval(moveB); 
+                            return;
+                        }
+                    }
+
+                    document.querySelectorAll('.enemy').forEach(en => {
+                        if(checkCollision(b, en)) {
+                            if(esBomba) ejecutarExplosionBomba(currX, currY);
+                            else eliminarEnemigo(en);
+                            b.remove(); clearInterval(moveB);
+                        }
+                    });
+                }
+            }, 20);
+        }
+
+        function ejecutarExplosionBomba(x, y) {
+            explosion(x, y, "#ff0000", 25);
+            document.querySelectorAll('.enemy').forEach(en => {
+                const rect = en.getBoundingClientRect();
+                const containerRect = document.getElementById('game-container').getBoundingClientRect();
+                const enX = rect.left - containerRect.left + (rect.width/2);
+                const enY = rect.top - containerRect.top + (rect.height/2);
+                const dist = Math.sqrt(Math.pow(x - enX, 2) + Math.pow(y - enY, 2));
+                if(dist < 100) eliminarEnemigo(en);
+            });
+        }
+
+        function eliminarEnemigo(en) {
+            score += 10;
+            actualizarScore();
+            explosion(en.offsetLeft + (en.offsetWidth/2), en.offsetTop + (en.offsetHeight/2), "#d4af37");
+            en.remove();
+        }
+
+        function crearEnemigo() {
+            const en = document.createElement('div');
+            en.className = 'enemy';
+            en.style.backgroundImage = `url(${imagenesMarcianos[Math.floor(Math.random() * imagenesMarcianos.length)]})`;
+            const containerW = document.getElementById('game-container').offsetWidth;
+            const size = Math.floor(Math.random() * 30) + 40;
+            en.style.width = size + 'px'; en.style.height = size + 'px';
+            en.style.left = Math.random() * (containerW - size) + 'px';
+            en.style.top = '-50px';
+            document.getElementById('game-container').appendChild(en);
             
-        try:
-            requests.post(f"https://api.telegram.org/bot{token_telegram}/sendmessage", data={'chat_id': chat_id, 'text': msg_tele}, timeout=10)
-        except Exception as telegram_err:
-            print(f"Error enviando Telegram: {telegram_err}")
-        
-        if categoria == 'barberia' and "-" in str(datos['fecha']) and ":" in str(datos['hora']):
-            agregar_a_calendar(datos)
-            
-        return jsonify({"status": "success", "message": mensaje_web, "imagen_url": imagen_url})
-    except Exception as e:
-        print(f"error reserva: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+            let speedY = 4 + (score / 800); 
+            let speedX = (Math.random() - 0.5) * 3;
+            let moveEn = gameInterval(() => {
+                if(!gameActive) { clearInterval(moveEn); en.remove(); return; }
+                let y = parseInt(en.style.top);
+                let x = parseInt(en.style.left);
+                if(x <= 0 || x >= containerW - size) speedX *= -1;
+                
+                if(y > altoPantalla()) { clearInterval(moveEn); en.remove(); } 
+                else { 
+                    en.style.top = (y + speedY) + 'px'; 
+                    en.style.left = (x + speedX) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), en)) {
+                        if(!shieldActive) {
+                            lives--;
+                            document.getElementById('game-lives').innerText = Math.max(0, lives) + "/3";
+                            explosion(en.offsetLeft + size/2, en.offsetTop + size/2, "#ff4444");
+                            if(lives < 0) gameOver();
+                        } else explosion(en.offsetLeft + size/2, en.offsetTop + size/2, "#0096ff");
+                        en.remove(); clearInterval(moveEn);
+                    }
+                }
+            }, 30);
+        }
 
-@app.route('/cancelar', methods=['POST'])
-def cancelar_cita():
-    try:
-        datos = request.get_json()
-        fecha = datos.get('fecha')
-        hora = datos.get('hora')
-        pin_ingresado = datos.get('pin')
+        function crearVidaItem() {
+            const v = document.createElement('div');
+            v.className = 'vida-item';
+            v.style.left = Math.random() * (document.getElementById('game-container').offsetWidth - 40) + 'px';
+            v.style.top = '-50px';
+            document.getElementById('game-container').appendChild(v);
+            let moveV = gameInterval(() => {
+                if(!gameActive) { clearInterval(moveV); v.remove(); return; }
+                let y = parseInt(v.style.top);
+                if(y > altoPantalla()) { clearInterval(moveV); v.remove(); }
+                else {
+                    v.style.top = (y + 6) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), v)) {
+                        if(lives < 3) lives++; // Sube de 1 en 1 hasta un máximo de 3
+                        document.getElementById('game-lives').innerText = lives + "/3";
+                        v.remove(); clearInterval(moveV);
+                    }
+                }
+            }, 20);
+        }
 
-        if pin_ingresado != pin_seguridad:
-            return jsonify({'status': 'error', 'message': 'PIN incorrecto'}), 400
+        function actualizarScore() {
+            document.getElementById('game-score').innerText = score;
+            const recordActual = localStorage.getItem('barber_game_record') || 0;
+            if(score > recordActual) {
+                localStorage.setItem('barber_game_record', score);
+                document.getElementById('best-score').innerText = score;
+            }
+        }
 
-        conn = sqlite3.connect(ruta_db)
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM citas WHERE fecha = ? AND hora = ?", (fecha, hora))
-        conn.commit()
-        conn.close()
+        function crearMoneda() {
+            const c = document.createElement('div');
+            c.className = 'coin';
+            c.style.left = Math.random() * (document.getElementById('game-container').offsetWidth - 50) + 'px';
+            c.style.top = '-60px';
+            document.getElementById('game-container').appendChild(c);
+            let moveC = gameInterval(() => {
+                if(!gameActive) { clearInterval(moveC); c.remove(); return; }
+                let y = parseInt(c.style.top);
+                if(y > altoPantalla()) { clearInterval(moveC); c.remove(); }
+                else { 
+                    c.style.top = (y + 4) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), c)) {
+                        c.remove(); clearInterval(moveC);
+                        activarPowerUpAleatorio();
+                    }
+                }
+            }, 30);
+        }
 
-        try:
-            scopes = ['https://www.googleapis.com/auth/calendar']
-            creds_json = os.environ.get('google_credentials')
-            if creds_json:
-                creds_dict = json.loads(creds_json)
-                creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
-            else:
-                creds = service_account.Credentials.from_service_account_file(ruta_credenciales, scopes=scopes)
-            
-            service = build('calendar', 'v3', credentials=creds)
-            time_min = f"{fecha}T00:00:00Z"
-            time_max = f"{fecha}T23:59:59Z"
-            
-            events_result = service.events().list(
-                calendarId=id_calendario, timeMin=time_min, timeMax=time_max, singleEvents=True, timeZone='Europe/Madrid'
-            ).execute()
-            
-            for evento in events_result.get('items', []):
-                start = evento['start'].get('dateTime', evento['start'].get('date'))
-                if 'T' in start and start.split('T')[1][:5] == hora:
-                    service.events().delete(calendarId=id_calendario, eventId=evento['id']).execute()
-                    break
-        except Exception as e:
-            print(f"Error borrando de Calendar: {e}")
+        function crearMoneda2() {
+            const c = document.createElement('div');
+            c.className = 'coin-2';
+            c.style.left = Math.random() * (document.getElementById('game-container').offsetWidth - 50) + 'px';
+            c.style.top = '-60px';
+            document.getElementById('game-container').appendChild(c);
+            let moveC = gameInterval(() => {
+                if(!gameActive) { clearInterval(moveC); c.remove(); return; }
+                let y = parseInt(c.style.top);
+                if(y > altoPantalla()) { clearInterval(moveC); c.remove(); }
+                else { 
+                    c.style.top = (y + 5) + 'px'; 
+                    if(checkCollision(document.getElementById('player'), c)) {
+                        c.remove(); clearInterval(moveC);
+                        activarRefuerzos();
+                    }
+                }
+            }, 30);
+        }
 
-        msg_cancelacion = f"❌ CITA CANCELADA:\n📅 Fecha: {fecha}\n⏰ Hora: {hora}"
-        requests.post(f"https://api.telegram.org/bot{token_telegram}/sendmessage", data={'chat_id': chat_id, 'text': msg_cancelacion}, timeout=10)
+        function activarRefuerzos() {
+            score += 75;
+            actualizarScore();
+            supportActive = true;
+            document.getElementById('support-l').style.display = 'block';
+            document.getElementById('support-r').style.display = 'block';
+            setTimeout(() => {
+                supportActive = false;
+                document.getElementById('support-l').style.display = 'none';
+                document.getElementById('support-r').style.display = 'none';
+            }, 10000);
+        }
 
-        return jsonify({'status': 'success', 'message': 'Cita eliminada correctamente'})
+        function activarPowerUpAleatorio() {
+            const rand = Math.random();
+            score += 50;
+            actualizarScore();
+            if (rand < 0.33) {
+                tripleShotActive = true; bombPowerActive = false;
+                setTimeout(() => { tripleShotActive = false; }, 10000); 
+            } else if (rand < 0.66) {
+                bombPowerActive = true; tripleShotActive = false;
+                setTimeout(() => { bombPowerActive = false; }, 10000);
+            } else {
+                shieldActive = true;
+                document.getElementById('player').classList.add('bubble-active');
+                setTimeout(() => { shieldActive = false; document.getElementById('player').classList.remove('bubble-active'); }, 10000);
+            }
+        }
 
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': 'Error al procesar cancelación'}), 500
+        let nombreJugadorActual = "Anónimo";
 
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from flask import request, jsonify
+        function prepararAudioJuego() {
+            try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+            if (typeof activarSonido === 'function') activarSonido();
+        }
+        function validarYComenzarJuego() {
+            prepararAudioJuego();
+            // El apodo ya se pidió (obligatorio) al entrar en Secret Games
+            nombreJugadorActual = (typeof apodoActual === 'string' && apodoActual) ? apodoActual : "Anónimo";
+            comenzarCiclos();
+        }
 
-@app.route('/api/notificar-record', methods=['POST'])
-def notificar_record():
-    datos = request.json
-    nombre = datos.get('name', 'Anónimo')
-    puntuacion = datos.get('score', 0)
+        // ===== Ranking mundial (Top 5 de todo el mundo, guardado en el servidor) =====
+        let recordMundial = 0;
+        function pintarRanking(contenedorId, top, resaltarApodo) {
+            const cont = document.getElementById(contenedorId);
+            if (!cont) return;
+            cont.innerHTML = '';
+            if (!top || !top.length) { cont.innerHTML = '<div class="rank-empty">Aún no hay récords. ¡Sé el primero!</div>'; return; }
+            top.forEach((item, i) => {
+                const row = document.createElement('div');
+                const esYo = resaltarApodo && slugApodo(item.apodo) === slugApodo(resaltarApodo);
+                row.className = 'rank-row' + (i === 0 ? ' top' : '') + (esYo ? ' yo' : '');
+                const left = document.createElement('b');
+                left.textContent = (i === 0 ? '👑 ' : (i + 1) + '. ') + item.apodo;
+                const right = document.createElement('i');
+                right.textContent = item.puntos + ' pts';
+                row.append(left, right);
+                cont.appendChild(row);
+            });
+        }
+        async function cargarRankingMundial() {
+            try {
+                const r = await fetch('/api/ranking/marcianitos', { cache: 'no-store' });
+                const d = await r.json();
+                const top = d.top || [];
+                recordMundial = top.length ? top[0].puntos : 0;
+                document.getElementById('best-score').innerText = recordMundial;
+                pintarRanking('ranking-inicio', top, apodoActual);
+                return top;
+            } catch (e) {
+                const c = document.getElementById('ranking-inicio');
+                if (c) c.innerHTML = '<div class="rank-empty">Ranking no disponible sin conexión</div>';
+                return [];
+            }
+        }
+        async function enviarPuntuacionMundial(puntos) {
+            const lista = document.getElementById('ranking-list');
+            lista.innerHTML = '<div class="rank-empty">Guardando puntuación…</div>';
+            const msg = document.getElementById('new-record-msg');
+            msg.style.display = 'none';
+            let d = null;
+            try {
+                const r = await fetch('/api/ranking/marcianitos/' + encodeURIComponent(apodoSlug), {
+                    method: 'POST', cache: 'no-store', headers: cab({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ puntos: puntos })
+                });
+                d = await r.json();
+            } catch (e) {}
+            if (!d || !d.top) { await cargarRankingMundial(); pintarRanking('ranking-list', null); lista.innerHTML = '<div class="rank-empty">No se pudo guardar (sin conexión)</div>'; return; }
+            pintarRanking('ranking-list', d.top, apodoActual);
+            recordMundial = d.top.length ? d.top[0].puntos : 0;
+            if (d.posicion === 1) { msg.textContent = '👑 ¡Nuevo récord mundial! 👑'; msg.style.display = 'block'; }
+            else if (d.posicion) { msg.textContent = '🔥 ¡Entras en el Top 5 mundial! (puesto ' + d.posicion + ') 🔥'; msg.style.display = 'block'; }
+        }
 
-    remitente = "edgarfa46@gmail.com"
-    password = os.environ.get("GMAIL_APP_PASSWORD") or "dwafiymjdgglumsz"
-    destinatario = "edgarfa46@gmail.com"
+        function gameOver() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            gameIntervals.forEach(clearInterval);
+            document.getElementById('game-over-overlay').style.display = 'flex';
+            enviarPuntuacionMundial(score);
+            if (typeof alTerminarMarcianitos === 'function') alTerminarMarcianitos(score);
+        }
 
-    asunto = f"🎮 ¡Nuevo Récord en El Cierzo! {nombre} - {puntuacion} pts"
-    cuerpo = f"Hola Edgar,\n\nAlguien acaba de jugar y ha registrado un nuevo récord:\n- Jugador: {nombre}\n- Puntuación: {puntuacion} puntos"
+        function reiniciarPartida() {
+            limpiarEntidadesJuego();
+            prepararJuego();
+            validarYComenzarJuego();
+        }
 
-    mensaje = MIMEMultipart()
-    mensaje["From"] = remitente
-    mensaje["To"] = destinatario
-    mensaje["Subject"] = asunto
-    mensaje.attach(MIMEText(cuerpo, "plain"))
+        function checkCollision(a, b) {
+            const rA = a.getBoundingClientRect();
+            const rB = b.getBoundingClientRect();
+            return !(rA.right < rB.left || rA.left > rB.right || rA.bottom < rB.top || rA.top > rB.bottom);
+        }
 
-    try:
-        servidor = smtplib.SMTP("smtp.gmail.com", 587)
-        servidor.starttls()
-        servidor.login(remitente, password)
-        servidor.sendmail(remitente, destinatario, mensaje.as_string())
-        servidor.quit()
-    except Exception as e:
-        print(f"Error: {e}")
+        function actualizarScore() {
+            document.getElementById('game-score').innerText = score;
+            if (score > recordMundial) document.getElementById('best-score').innerText = score;
+        }
 
-    return jsonify({"status": "ok"})
+        function explosion(x, y, color, num = 10) {
+            for(let i=0; i<num; i++) {
+                const p = document.createElement('div');
+                p.className = 'exp-part';
+                p.style.background = color;
+                p.style.width = '5px'; p.style.height = '5px';
+                p.style.left = x + 'px'; p.style.top = y + 'px';
+                p.style.setProperty('--tx', (Math.random()-0.5)*180+'px');
+                p.style.setProperty('--ty', (Math.random()-0.5)*180+'px');
+                document.getElementById('game-container').appendChild(p);
+                setTimeout(() => p.remove(), 400);
+            }
+        }
+        let fechaCancelar = "", horaCancelar = "";
 
-from flask import send_from_directory, make_response
+function abrirModalCancelar(fecha, hora) {
+    fechaCancelar = fecha;
+    horaCancelar = hora;
+    document.getElementById('pin-cancelar').value = '';
+    document.getElementById('msg-error-modal').style.display = 'none';
+    document.getElementById('modal-cancelar').style.display = 'flex';
+}
 
-@app.route('/manifest.json')
-def manifest():
-    r = make_response(send_from_directory(app.static_folder, 'manifest.json'))
-    r.headers['Content-Type'] = 'application/manifest+json'
-    r.headers['Cache-Control'] = 'no-cache'
-    return r
+function cerrarModalCancelar() {
+    document.getElementById('modal-cancelar').style.display = 'none';
+}
 
-@app.route('/sw.js')
-def service_worker():
-    # Debe servirse desde la raíz para tener scope "/"
-    r = make_response(send_from_directory(app.static_folder, 'sw.js'))
-    r.headers['Content-Type'] = 'application/javascript'
-    r.headers['Service-Worker-Allowed'] = '/'
-    r.headers['Cache-Control'] = 'no-cache'
-    return r
-
-# --- TATTOOPRO SKETCH (acceso oculto desde index.html) ---
-import hmac
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-
-_tps_ser = URLSafeTimedSerializer(os.environ.get('SECRET_KEY') or (pin_seguridad + token_telegram), salt='tattoopro')
-TATTOOPRO_CLAVE = os.environ.get('TATTOOPRO_CLAVE', 'chanero')
-_tps_fallos = {}
-
-@app.route('/api/tattoopro/acceso', methods=['POST'])
-def tattoopro_acceso():
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
-    ahora = time.time()
-    intentos = [t for t in _tps_fallos.get(ip, []) if ahora - t < 300]
-    if len(intentos) >= 8:
-        return jsonify({'ok': False}), 429
-    clave = str((request.get_json(silent=True) or {}).get('clave', ''))
-    if hmac.compare_digest(clave.encode('utf-8'), TATTOOPRO_CLAVE.encode('utf-8')):
-        _tps_fallos.pop(ip, None)
-        return jsonify({'ok': True, 'url': '/tattoopro?t=' + _tps_ser.dumps('ok')})
-    intentos.append(ahora)
-    _tps_fallos[ip] = intentos
-    return jsonify({'ok': False})
-
-@app.route('/tattoopro')
-@app.route('/tattoopro/')
-def tattoopro():
-    try:
-        _tps_ser.loads(request.args.get('t', ''), max_age=60 * 60 * 12)
-    except (BadSignature, SignatureExpired):
-        return ('', 404)
-    carpeta = os.path.join(app.static_folder, 'tattoopro')
-    if not os.path.isfile(os.path.join(carpeta, 'tattoopro.html')):
-        carpeta = app.static_folder
-    r = make_response(send_from_directory(carpeta, 'tattoopro.html'))
-    r.headers['Cache-Control'] = 'no-store'
-    r.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    return r
-
-# --- SECRET GAMES: USUARIOS (apodo + PIN) Y PARTIDAS GUARDADAS ---
-# Dónde se guardan:
-#   * Si existe la variable de entorno DATABASE_URL (PostgreSQL, p. ej. Neon gratis),
-#     todo se guarda ahí y NO se borra aunque el hosting se reinicie o se vuelva a desplegar.
-#   * Si no existe, se usa reservas.db (SQLite local). Ojo: en hostings que se
-#     redespliegan desde GitHub ese archivo se borra en cada actualización.
-import re
-import time
-import unicodedata
-from werkzeug.security import generate_password_hash, check_password_hash
-
-DATABASE_URL = (os.environ.get('DATABASE_URL') or '').strip()
-if DATABASE_URL.startswith('postgres://'):
-    DATABASE_URL = 'postgresql://' + DATABASE_URL[len('postgres://'):]
-USA_POSTGRES = DATABASE_URL.startswith('postgresql://')
-if USA_POSTGRES:
-    import psycopg2  # requiere "psycopg2-binary" en requirements.txt
-    ErrorDuplicado = psycopg2.IntegrityError
-else:
-    ErrorDuplicado = sqlite3.IntegrityError
-
-LIMITE_PARTIDA = {'marcianitos': 256 * 1024, 'pokemon': 16 * 1024 * 1024, 'rojito': 16 * 1024 * 1024, 'crash': 16 * 1024 * 1024}
-
-def _db():
-    if USA_POSTGRES:
-        return psycopg2.connect(DATABASE_URL, connect_timeout=10)
-    return sqlite3.connect(ruta_db)
-
-def _sql(consulta):
-    """Las consultas se escriben con '?'; PostgreSQL usa '%s'."""
-    return consulta.replace('?', '%s') if USA_POSTGRES else consulta
-
-def _ejecutar(consulta, parametros=(), una=False, todas=False):
-    conn = _db()
-    try:
-        cur = conn.cursor()
-        cur.execute(_sql(consulta), parametros)
-        res = cur.fetchone() if una else (cur.fetchall() if todas else None)
-        conn.commit()
-        return res
-    finally:
-        conn.close()
-
-def init_secret_games():
-    tipo_binario = 'bytea' if USA_POSTGRES else 'blob'
-    _ejecutar("create table if not exists jugadores "
-              "(slug text primary key, apodo text, pin_hash text, creado text)")
-    _ejecutar("create table if not exists partidas "
-              f"(slug text not null, juego text not null, datos {tipo_binario} not null, "
-              "guardado bigint not null, primary key (slug, juego))")
-    _ejecutar("create table if not exists actividad "
-              "(slug text not null, juego text not null, segundos bigint not null default 0, "
-              "sesiones integer not null default 0, ultima bigint not null default 0, primary key (slug, juego))")
-    _ejecutar("create table if not exists ranking_marcianitos "
-              "(slug text primary key, apodo text, puntos bigint not null, fecha bigint not null)")
-    print(f"🎮 Secret Games: guardando en {'PostgreSQL (permanente)' if USA_POSTGRES else 'SQLite local (se borra al redesplegar)'}")
-
-try:
-    init_secret_games()
-except Exception as e:
-    print(f"❌ Error iniciando la base de datos de Secret Games: {e}")
-
-def _slug_apodo(apodo):
-    n = unicodedata.normalize('NFKD', (apodo or '').strip().lower()).encode('ascii', 'ignore').decode()
-    return re.sub(r'[^a-z0-9_-]+', '_', n).strip('_')[:24]
-
-MAX_FALLOS_PIN = 5
-BLOQUEO_PIN_SEG = 5 * 60
-_fallos_pin = {}  # slug -> [fallos, bloqueado_hasta]
-
-def _jugador(slug):
-    return _ejecutar("select apodo, pin_hash from jugadores where slug = ?", (slug,), una=True)
-
-def _comprobar_pin(slug, pin):
-    """Verifica el PIN de un apodo YA registrado. Devuelve (ok, codigo_http, mensaje)."""
-    if not re.fullmatch(r'\d{4}', pin or ''):
-        return False, 400, 'El PIN debe tener exactamente 4 cifras.'
-    fallos, hasta = _fallos_pin.get(slug, [0, 0])
-    if hasta > time.time():
-        minutos = int((hasta - time.time()) // 60) + 1
-        return False, 429, f'Demasiados intentos fallidos. Espera {minutos} min.'
-    fila = _jugador(slug)
-    if not fila:
-        return False, 404, 'Ese apodo no existe todavía. ¿Quieres crearlo como nuevo usuario?'
-    if check_password_hash(fila[1], pin):
-        _fallos_pin.pop(slug, None)
-        return True, 200, 'ok'
-    fallos += 1
-    if fallos >= MAX_FALLOS_PIN:
-        _fallos_pin[slug] = [0, time.time() + BLOQUEO_PIN_SEG]
-        return False, 429, 'Demasiados intentos fallidos. Espera 5 min.'
-    _fallos_pin[slug] = [fallos, 0]
-    return False, 401, f'PIN incorrecto. Te quedan {MAX_FALLOS_PIN - fallos} intentos.'
-
-def _leer_credenciales():
-    datos = request.get_json(silent=True) or {}
-    apodo = re.sub(r'\s+', ' ', (datos.get('apodo') or '').strip())[:32]
-    return apodo, _slug_apodo(apodo), str(datos.get('pin') or '').strip()
-
-def _error_servidor(e):
-    print(f"❌ Error de base de datos (Secret Games): {e}")
-    return jsonify({'status': 'error', 'message': 'Error del servidor guardando los datos. Inténtalo de nuevo.'}), 500
-
-@app.route('/api/registro', methods=['POST'])
-def registro_jugador():
-    """Nuevo usuario: crea el apodo con su PIN. Falla si el apodo ya existe."""
-    apodo, slug, pin = _leer_credenciales()
-    if len(slug) < 2:
-        return jsonify({'status': 'error', 'message': 'El apodo necesita al menos 2 letras o números.'}), 400
-    if not re.fullmatch(r'\d{4}', pin):
-        return jsonify({'status': 'error', 'message': 'El PIN debe tener exactamente 4 cifras.'}), 400
-    try:
-        _ejecutar("insert into jugadores (slug, apodo, pin_hash, creado) values (?,?,?,?)",
-                  (slug, apodo, generate_password_hash(pin), datetime.now().isoformat(timespec='seconds')))
-    except ErrorDuplicado:
-        return jsonify({'status': 'error', 'message': 'Ese apodo ya está registrado. Elige otro o entra como usuario existente.'}), 409
-    except Exception as e:
-        return _error_servidor(e)
-    return jsonify({'status': 'creado', 'apodo': apodo})
-
-@app.route('/api/login', methods=['POST'])
-def login_jugador():
-    """Usuario existente: comprueba apodo + PIN."""
-    apodo, slug, pin = _leer_credenciales()
-    if len(slug) < 2:
-        return jsonify({'status': 'error', 'message': 'Escribe tu apodo.'}), 400
-    try:
-        ok, codigo, msg = _comprobar_pin(slug, pin)
-        if not ok:
-            return jsonify({'status': 'error', 'message': msg}), codigo
-        return jsonify({'status': 'ok', 'apodo': _jugador(slug)[0] or apodo})
-    except Exception as e:
-        return _error_servidor(e)
-
-def _validar(juego, apodo):
-    """Comprueba juego, apodo y el PIN de la cabecera X-Pin. Devuelve (slug, respuesta_error)."""
-    slug = _slug_apodo(apodo)
-    if juego not in LIMITE_PARTIDA or len(slug) < 2:
-        return slug, (jsonify({'status': 'error', 'message': 'Datos no válidos'}), 400)
-    ok, codigo, msg = _comprobar_pin(slug, request.headers.get('X-Pin', ''))
-    if not ok:
-        return slug, (jsonify({'status': 'error', 'message': msg}), codigo)
-    return slug, None
-
-@app.route('/api/partida/<juego>/<apodo>', methods=['GET'])
-def cargar_partida(juego, apodo):
-    try:
-        slug, error = _validar(juego, apodo)
-        if error:
-            return error
-        fila = _ejecutar("select datos, guardado from partidas where slug = ? and juego = ?", (slug, juego), una=True)
-    except Exception as e:
-        return _error_servidor(e)
-    if not fila:
-        return jsonify({'status': 'vacio'}), 404
-    r = make_response(bytes(fila[0]))
-    r.headers['Content-Type'] = 'application/octet-stream'
-    r.headers['Cache-Control'] = 'no-store'
-    r.headers['X-Guardado'] = str(fila[1])
-    return r
-
-@app.route('/api/partida/<juego>/<apodo>', methods=['POST'])
-def guardar_partida(juego, apodo):
-    try:
-        slug, error = _validar(juego, apodo)
-        if error:
-            return error
-        limite = LIMITE_PARTIDA[juego]
-        if request.content_length and request.content_length > limite:
-            return jsonify({'status': 'error', 'message': 'Partida demasiado grande'}), 413
-        datos = request.get_data(cache=False)
-        if not datos or len(datos) > limite:
-            return jsonify({'status': 'error', 'message': 'Partida vacía o demasiado grande'}), 400
-        ahora = int(time.time() * 1000)
-        binario = psycopg2.Binary(datos) if USA_POSTGRES else sqlite3.Binary(datos)
-        _ejecutar("insert into partidas (slug, juego, datos, guardado) values (?,?,?,?) "
-                  "on conflict (slug, juego) do update set datos = excluded.datos, guardado = excluded.guardado",
-                  (slug, juego, binario, ahora))
-    except Exception as e:
-        return _error_servidor(e)
-    return jsonify({'status': 'success', 'guardado': ahora})
-
-@app.route('/api/partidas/<apodo>')
-def info_partidas(apodo):
-    try:
-        slug, error = _validar('marcianitos', apodo)
-        if error:
-            return error
-        filas = _ejecutar("select juego, guardado from partidas where slug = ?", (slug,), todas=True) or []
-    except Exception as e:
-        return _error_servidor(e)
-    guardadas = {j: g for j, g in filas}
-    r = jsonify({j: ({'guardado': guardadas[j]} if j in guardadas else None) for j in LIMITE_PARTIDA})
-    r.headers['Cache-Control'] = 'no-store'
-    return r
-
-
-# --- ACTIVIDAD: tiempo jugado por usuario y juego ---
-@app.route('/api/actividad/<juego>/<apodo>', methods=['POST'])
-def registrar_actividad(juego, apodo):
-    try:
-        slug, error = _validar(juego, apodo)
-        if error:
-            return error
-        datos = request.get_json(silent=True) or {}
-        segundos = max(0, min(int(datos.get('segundos') or 0), 600))   # como mucho 10 min por aviso
-        sesion = 1 if datos.get('nueva_sesion') else 0
-        if not segundos and not sesion:
-            return jsonify({'status': 'ok'})
-        _ejecutar("insert into actividad (slug, juego, segundos, sesiones, ultima) values (?,?,?,?,?) "
-                  "on conflict (slug, juego) do update set segundos = actividad.segundos + excluded.segundos, "
-                  "sesiones = actividad.sesiones + excluded.sesiones, ultima = excluded.ultima",
-                  (slug, juego, segundos, sesion, int(time.time() * 1000)))
-    except Exception as e:
-        return _error_servidor(e)
-    return jsonify({'status': 'ok'})
-
-# --- RANKING MUNDIAL DE MARCIANITOS (mejor puntuación de cada jugador) ---
-def _top_marcianitos(limite=5):
-    filas = _ejecutar("select apodo, puntos, fecha, slug from ranking_marcianitos order by puntos desc, fecha asc limit ?",
-                      (limite,), todas=True) or []
-    return [{'apodo': f[0], 'puntos': int(f[1]), 'fecha': int(f[2]), 'slug': f[3]} for f in filas]
-
-@app.route('/api/ranking/marcianitos')
-def ver_ranking():
-    try:
-        r = jsonify({'top': [{k: v for k, v in f.items() if k != 'slug'} for f in _top_marcianitos()]})
-    except Exception as e:
-        return _error_servidor(e)
-    r.headers['Cache-Control'] = 'no-store'
-    return r
-
-@app.route('/api/ranking/marcianitos/<apodo>', methods=['POST'])
-def enviar_puntuacion(apodo):
-    try:
-        slug, error = _validar('marcianitos', apodo)
-        if error:
-            return error
-        puntos = int((request.get_json(silent=True) or {}).get('puntos') or 0)
-        if puntos < 0 or puntos > 50_000_000:
-            return jsonify({'status': 'error', 'message': 'Puntuación no válida'}), 400
-        fila = _jugador(slug)
-        nombre = (fila[0] if fila else apodo)[:32]
-        if puntos > 0:
-            _ejecutar("insert into ranking_marcianitos (slug, apodo, puntos, fecha) values (?,?,?,?) "
-                      "on conflict (slug) do update set puntos = excluded.puntos, fecha = excluded.fecha, apodo = excluded.apodo "
-                      "where excluded.puntos > ranking_marcianitos.puntos",
-                      (slug, nombre, puntos, int(time.time() * 1000)))
-        top = _top_marcianitos()
-        posicion = next((i + 1 for i, f in enumerate(top) if f['slug'] == slug and f['puntos'] == puntos and puntos > 0), None)
-    except Exception as e:
-        return _error_servidor(e)
-    return jsonify({'status': 'ok', 'posicion': posicion,
-                    'top': [{k: v for k, v in f.items() if k != 'slug'} for f in top]})
-
-# --- PANEL SECRETO DE ADMINISTRACIÓN ---
-# El PIN se lee de la variable de entorno ADMIN_PIN (recomendado ponerla en Render).
-ADMIN_PIN = (os.environ.get('ADMIN_PIN') or '3698').strip()
-_fallos_admin = [0, 0]  # [fallos, bloqueado_hasta]
-
-def _admin_autorizado():
-    import hmac
-    fallos, hasta = _fallos_admin
-    if hasta > time.time():
-        return jsonify({'status': 'error', 'message': 'Demasiados intentos. Espera unos minutos.'}), 429
-    pin = str((request.get_json(silent=True) or {}).get('pin') or '')
-    if hmac.compare_digest(pin, ADMIN_PIN):
-        _fallos_admin[0], _fallos_admin[1] = 0, 0
-        return None
-    _fallos_admin[0] = fallos + 1
-    if _fallos_admin[0] >= 5:
-        _fallos_admin[0], _fallos_admin[1] = 0, time.time() + 15 * 60
-    return jsonify({'status': 'error', 'message': 'Contraseña incorrecta'}), 401
-
-@app.route('/api/admin/resumen', methods=['POST'])
-def admin_resumen():
-    error = _admin_autorizado()
-    if error:
-        return error
-    try:
-        jugadores = {}
-        for slug, apodo, creado in _ejecutar("select slug, apodo, creado from jugadores", todas=True) or []:
-            jugadores[slug] = {'apodo': apodo or slug, 'creado': creado, 'juegos': {}, 'ultima': 0, 'segundos': 0}
-        for slug, juego, segundos, sesiones, ultima in _ejecutar(
-                "select slug, juego, segundos, sesiones, ultima from actividad", todas=True) or []:
-            j = jugadores.setdefault(slug, {'apodo': slug, 'creado': None, 'juegos': {}, 'ultima': 0, 'segundos': 0})
-            j['juegos'][juego] = {'segundos': int(segundos), 'sesiones': int(sesiones), 'ultima': int(ultima)}
-            j['ultima'] = max(j['ultima'], int(ultima))
-            j['segundos'] += int(segundos)
-        lista = sorted(jugadores.items(), key=lambda kv: (kv[1]['ultima'], kv[1]['creado'] or ''), reverse=True)
-        r = jsonify({'status': 'ok',
-                     'jugadores': [dict(v, slug=k) for k, v in lista],
-                     'ranking': _top_marcianitos(20)})
-    except Exception as e:
-        return _error_servidor(e)
-    r.headers['Cache-Control'] = 'no-store'
-    return r
-
-@app.route('/api/admin/ranking/borrar', methods=['POST'])
-def admin_borrar_ranking():
-    error = _admin_autorizado()
-    if error:
-        return error
-    slug = _slug_apodo((request.get_json(silent=True) or {}).get('slug') or '')
-    try:
-        _ejecutar("delete from ranking_marcianitos where slug = ?", (slug,))
-        return jsonify({'status': 'ok', 'ranking': _top_marcianitos(20)})
-    except Exception as e:
-        return _error_servidor(e)
-
-@app.route('/api/estado-juegos')
-def estado_juegos():
-    """Para comprobar desde el navegador dónde se están guardando los usuarios."""
-    try:
-        total = _ejecutar("select count(*) from jugadores", una=True)[0]
-        conexion = 'ok'
-    except Exception as e:
-        total, conexion = None, f'error: {e.__class__.__name__}'
-    return jsonify({
-        'almacen': 'postgresql (permanente)' if USA_POSTGRES else 'sqlite local (se borra al redesplegar)',
-        'conexion': conexion,
-        'usuarios_registrados': total,
+function confirmarCancelacion() {
+    const pin = document.getElementById('pin-cancelar').value;
+    fetch('/cancelar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha: fechaCancelar, hora: horaCancelar, pin: pin })
     })
+    .then(res => res.json().then(data => ({ status: res.status, body: data })))
+    .then(res => {
+        if (res.status === 200) {
+            cerrarModalCancelar();
+            cargarHoras(fechaCancelar);
+        } else {
+            document.getElementById('msg-error-modal').innerText = res.body.message || "PIN incorrecto";
+            document.getElementById('msg-error-modal').style.display = 'block';
+        }
+    });
+}
+            function cerrarPopupAviso() {
+            document.getElementById('popup-aviso-cita').style.display = 'none';
+            const btn = document.getElementById('btn-submit');
+            btn.innerText = 'confirmar reserva';
+            btn.disabled = false;
+        }
+</script>
+<script>
+(function(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  ['mostrarForm','mostrarRedes','volverAlMenu'].forEach(function(n){
+    const f = window[n]; if (typeof f !== 'function') return;
+    window[n] = function(){
+      const a = arguments, self = this;
+      const run = function(){ f.apply(self, a); window.scrollTo(0,0); };
+      if (reduce || !document.startViewTransition) return run();
+      try { document.startViewTransition(run); } catch(e) { run(); }
+    };
+  });
+  const SEL = '.btn-servicio,.btn-final,.btn-game,.hora-btn,.btn-link,.btn-ghost,.secret,.cerrar';
+  document.addEventListener('pointerdown', function(e){
+    const b = e.target.closest(SEL); if (!b || b.disabled) return;
+    const r = b.getBoundingClientRect(), s = Math.max(r.width, r.height) * 2.4;
+    const d = document.createElement('span'); d.className = 'rp';
+    d.style.cssText = 'width:'+s+'px;height:'+s+'px;left:'+(e.clientX-r.left-s/2)+'px;top:'+(e.clientY-r.top-s/2)+'px';
+    b.appendChild(d); d.addEventListener('animationend', function(){ d.remove(); });
+    if (navigator.vibrate && e.pointerType === 'touch') navigator.vibrate(8);
+  }, {passive:true});
+})();
+</script>
+
+<script>
+function instalarApp(){
+  var n = document.getElementById('android-nota');
+  if (n) { n.style.display = 'none'; n.textContent = ''; }
+  document.getElementById('modal-instalar').style.display = 'flex';
+}
+function instalarAndroid(){
+  var p = window.__deferredInstall;
+  var n = document.getElementById('android-nota');
+  if (p) {
+    p.prompt();
+    p.userChoice.then(function(r){
+      window.__deferredInstall = null;
+      if (r && r.outcome === 'accepted') cerrarModalInstalar();
+    }).catch(function(){});
+    return;
+  }
+  if (n) {
+    n.textContent = 'Abre el menú ⋮ de Chrome y pulsa «Instalar aplicación» o «Añadir a pantalla de inicio». Si estás dentro de Instagram o WhatsApp, ábrela antes en Chrome.';
+    n.style.display = 'block';
+  }
+}
+function cerrarModalInstalar(){ document.getElementById('modal-instalar').style.display = 'none'; }
+if ('serviceWorker' in navigator) window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });
+</script>
+<div id="modal-cancelar" class="overlay">
+  <div class="sheet">
+    <button class="cerrar" onclick="cerrarModalCancelar()" aria-label="Cerrar">&times;</button>
+    <h3>¿Deseas eliminar esta cita?</h3>
+    <p>Si esta cita es tuya y quieres cancelarla, ponte en contacto con el estudio.</p>
+    <hr>
+    <p style="color:var(--gold);font-weight:600">Si eres el barbero, introduce el código PIN:</p>
+    <input type="password" id="pin-cancelar" placeholder="Código PIN" inputmode="numeric">
+    <button class="btn-final" style="margin-top:10px" onclick="confirmarCancelacion()">Eliminar cita</button>
+    <p id="msg-error-modal"></p>
+  </div>
+</div>
+
+<div id="popup-aviso-cita" class="overlay">
+  <div class="sheet">
+    <p style="color:var(--text);font-size:1rem;margin-bottom:18px">Selecciona una hora antes de confirmar</p>
+    <button type="button" class="btn-final" style="margin-top:0" onclick="cerrarPopupAviso()">OK</button>
+  </div>
+</div>
+<div id="modal-instalar" class="overlay">
+  <div class="sheet">
+    <button class="cerrar" onclick="cerrarModalInstalar()" aria-label="Cerrar">&times;</button>
+    <img class="app-ico" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="El Cierzo">
+    <h3>Instalar El Cierzo</h3>
+
+    <div class="os-block">
+      <h4>Android</h4>
+      <button type="button" class="btn-final" onclick="instalarAndroid()">Instalar</button>
+      <p class="os-note" id="android-nota" style="display:none"></p>
+    </div>
+
+    <div class="os-block">
+      <h4>iOS / iPhone</h4>
+      <div class="pasos"><ol>
+        <li><span>Abre esta web en <b>Safari</b>. Si estás en Instagram o WhatsApp: menú <b>···</b> → «Abrir en Safari».</span></li>
+        <li><span>Pulsa el botón <b>Compartir</b> <svg class="inline-ico" viewBox="0 0 24 24"><path d="M12 15V3m0 0L8 7m4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> (abajo en el centro).</span></li>
+        <li><span>Desliza hacia abajo y pulsa <b>«Añadir a pantalla de inicio»</b>.</span></li>
+        <li><span>Pulsa <b>«Añadir»</b>, arriba a la derecha.</span></li>
+        <li><span>Abre <b>El Cierzo</b> desde el nuevo icono de tu pantalla de inicio.</span></li>
+      </ol></div>
+    </div>
+
+    <button type="button" class="btn-ghost" onclick="cerrarModalInstalar()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   SECRET GAMES · apodos, menú, consola vertical, controles y guardado
+   ===================================================================== */
+// Juegos de GBA: sube cada juego a GitHub directamente en la carpeta static/ con estos nombres.
+// Vale el .gba suelto o comprimido en .zip (el emulador lo descomprime solo).
+// Si no está en static/, también se busca en static/roms/.
+/* ---------- Sonido: los navegadores bloquean el audio que no empieza con un toque ----------
+   Se registran todos los contextos de audio (emulador y Marcianitos) y se reactivan
+   en cada toque o tecla, para que el sonido funcione aunque el juego tarde en arrancar. */
+const CONTEXTOS_AUDIO = [];
+(function () {
+  const Original = window.AudioContext || window.webkitAudioContext;
+  if (!Original || Original.__registrado) return;
+  function AudioContextRegistrado(opciones) {
+    const ctx = opciones === undefined ? new Original() : new Original(opciones);
+    CONTEXTOS_AUDIO.push(ctx);
+    return ctx;
+  }
+  AudioContextRegistrado.prototype = Original.prototype;
+  AudioContextRegistrado.__registrado = true;
+  window.AudioContext = AudioContextRegistrado;
+  if (window.webkitAudioContext) window.webkitAudioContext = AudioContextRegistrado;
+})();
+// iPhone (iOS 17+): que el sonido de la web suene aunque el interruptor de silencio esté activado
+try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+function activarSonido() {
+  CONTEXTOS_AUDIO.forEach(ctx => {
+    try {
+      if (ctx.state === 'closed') return;
+      if (ctx.state !== 'running') ctx.resume();
+      // iPhone: además hay que reproducir algo (un silencio) dentro del propio toque
+      if (!ctx.__desbloqueado) {
+        const fuente = ctx.createBufferSource();
+        fuente.buffer = ctx.createBuffer(1, 1, 22050);
+        fuente.connect(ctx.destination);
+        fuente.start(0);
+        if (ctx.state === 'running') ctx.__desbloqueado = true;
+      }
+    } catch (e) {}
+  });
+  try { if (window.EJS_emulator && EJS_emulator.setVolume) EJS_emulator.setVolume(1); } catch (e) {}
+}
+['pointerdown', 'touchend', 'keydown', 'click'].forEach(ev => document.addEventListener(ev, activarSonido, { capture: true, passive: true }));
+
+const JUEGOS_GBA = {
+  pokemon: { titulo: "Let's Go Cierzo", roms: ["{{ url_for('static', filename='lets_go_cierzo.gba') }}", "{{ url_for('static', filename='lets_go_cierzo.zip') }}",
+                                              "{{ url_for('static', filename='roms/lets_go_cierzo.gba') }}", "{{ url_for('static', filename='roms/lets_go_cierzo.zip') }}"] },
+  rojito:  { titulo: "Rojito Fuego",    roms: ["{{ url_for('static', filename='rojito_fuego.gba') }}",    "{{ url_for('static', filename='rojito_fuego.zip') }}",
+                                              "{{ url_for('static', filename='roms/rojito_fuego.gba') }}",    "{{ url_for('static', filename='roms/rojito_fuego.zip') }}"] },
+  crash:   { titulo: "Crash Cierzo",    roms: ["{{ url_for('static', filename='crash_cierzo.gba') }}",    "{{ url_for('static', filename='crash_cierzo.zip') }}",
+                                              "{{ url_for('static', filename='roms/crash_cierzo.gba') }}",    "{{ url_for('static', filename='roms/crash_cierzo.zip') }}"] },
+};
+function esGBA(j) { return Object.prototype.hasOwnProperty.call(JUEGOS_GBA, j || ''); }
+const EJS_DATA_URL = "https://cdn.emulatorjs.org/stable/data/";
+
+let apodoActual = "";
+let apodoSlug = "";
+let pinActual = "";
+function cab(extra) { return Object.assign({ 'X-Pin': pinActual }, extra || {}); }
+let juegoActual = null;
+let datosMarcianitos = { record: 0, partidas: 0, enCurso: null };
+let pokemonListo = false;
+let partidaPokemonPromesa = null;
+let autoguardadoPokemon = null;
+let pausadoAntesDeModal = false;
+
+/* ---------- Utilidades ---------- */
+function slugApodo(n) {
+  return (n || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24);
+}
+let toastTimer = null;
+function toast(msg, ms) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2400);
+}
+function fechaCorta(ms) {
+  const d = new Date(ms);
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) + ' ' +
+         d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+function mmss(sec) { return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0'); }
+
+/* ---------- Copia local (IndexedDB) como respaldo del servidor ---------- */
+const idb = (() => {
+  let p = null;
+  function abrir() {
+    if (!p) p = new Promise((res, rej) => {
+      const r = indexedDB.open('elcierzo_games', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('partidas');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return p;
+  }
+  return {
+    async get(k) {
+      try { const db = await abrir(); return await new Promise((res, rej) => {
+        const q = db.transaction('partidas').objectStore('partidas').get(k);
+        q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); });
+      } catch (e) { return null; }
+    },
+    async set(k, v) {
+      try { const db = await abrir(); await new Promise((res, rej) => {
+        const t = db.transaction('partidas', 'readwrite'); t.objectStore('partidas').put(v, k);
+        t.oncomplete = res; t.onerror = () => rej(t.error); }); return true;
+      } catch (e) { return false; }
+    }
+  };
+})();
+
+/* ---------- Guardar / cargar partida (servidor + copia local) ---------- */
+async function subirPartida(juego, bytes, silencioso) {
+  const copia = new Uint8Array(bytes).buffer;           // copia independiente
+  const ahora = Date.now();
+  await idb.set(juego + ':' + apodoSlug, { t: ahora, data: copia });
+  let enServidor = false;
+  try {
+    const r = await fetch('/api/partida/' + juego + '/' + encodeURIComponent(apodoSlug), {
+      method: 'POST', headers: cab({ 'Content-Type': 'application/octet-stream' }), body: copia, cache: 'no-store'
+    });
+    enServidor = r.ok;
+  } catch (e) {}
+  if (!silencioso) toast(enServidor ? '💾 Partida guardada para «' + apodoActual + '»' : '💾 Guardada en este dispositivo (sin conexión con el servidor)');
+  return true;
+}
+
+async function cargarPartida(juego) {
+  let servidor = null;
+  try {
+    const r = await fetch('/api/partida/' + juego + '/' + encodeURIComponent(apodoSlug), { cache: 'no-store', headers: cab() });
+    if (r.ok) servidor = { t: Number(r.headers.get('X-Guardado')) || 0, data: await r.arrayBuffer() };
+  } catch (e) {}
+  const local = await idb.get(juego + ':' + apodoSlug);
+  // Se usa la más reciente de las dos
+  if (servidor && (!local || servidor.t >= local.t)) {
+    idb.set(juego + ':' + apodoSlug, servidor);
+    return servidor.data;
+  }
+  if (local) {
+    // El servidor no la tenía (o era más antigua): se vuelve a subir en segundo plano
+    fetch('/api/partida/' + juego + '/' + encodeURIComponent(apodoSlug), {
+      method: 'POST', headers: cab({ 'Content-Type': 'application/octet-stream' }), body: local.data
+    }).catch(() => {});
+    return local.data;
+  }
+  return null;
+}
+
+async function refrescarEstadosMenu() {
+  let info = {};
+  try { const r = await fetch('/api/partidas/' + encodeURIComponent(apodoSlug), { cache: 'no-store', headers: cab() }); if (r.ok) info = await r.json(); } catch (e) {}
+  for (const juego of ['marcianitos', 'pokemon', 'rojito', 'crash']) {
+    const el = document.getElementById('estado-' + juego);
+    const local = await idb.get(juego + ':' + apodoSlug);
+    const t = Math.max((info[juego] && info[juego].guardado) || 0, (local && local.t) || 0);
+    el.classList.toggle('vacio', !t);
+    el.textContent = t ? '💾 Partida guardada · ' + fechaCorta(t) : 'Sin partida guardada · empieza de cero';
+  }
+}
+
+/* ---------- Navegación Secret Games ---------- */
+let modoAcceso = 'registro';     // 'registro' (nuevo usuario) | 'login' (usuario existente)
+let accediendo = false;
+
+function mostrarPasoArcade(id) {
+  ['arcade-paso-inicio', 'arcade-paso-apodo', 'arcade-paso-menu'].forEach(p =>
+    document.getElementById(p).style.display = (p === id ? 'flex' : 'none'));
+  document.getElementById('arcade').scrollTop = 0;
+}
+function abrirArcade() {
+  document.getElementById('arcade').style.display = 'flex';
+  document.documentElement.style.overflow = 'hidden';
+  // Si ya entró en esta sesión, va directo al menú de juegos
+  if (apodoActual && pinActual) return mostrarMenuArcade();
+  mostrarInicioArcade();
+}
+function mostrarInicioArcade() { mostrarPasoArcade('arcade-paso-inicio'); }
+function cerrarArcade() {
+  document.getElementById('arcade').style.display = 'none';
+  document.documentElement.style.overflow = '';
+}
+function errorAcceso(msg, campo, cambio) {
+  const err = document.getElementById('arcade-error');
+  const btnCambio = document.getElementById('arcade-cambiar-modo');
+  err.textContent = msg || ''; err.style.display = msg ? 'block' : 'none';
+  if (cambio) {
+    btnCambio.textContent = cambio === 'login' ? '→ Entrar como usuario existente' : '→ Crear este apodo como nuevo usuario';
+    btnCambio.onclick = () => mostrarFormAcceso(cambio, true);
+    btnCambio.style.display = 'block';
+  } else btnCambio.style.display = 'none';
+  if (campo) { try { campo.focus(); } catch (e) {} }
+}
+function mostrarFormAcceso(modo, conservarApodo) {
+  modoAcceso = modo;
+  const registro = modo === 'registro';
+  const inp = document.getElementById('arcade-apodo');
+  document.getElementById('acceso-titulo').innerHTML = registro ? 'Nuevo <span>usuario</span>' : 'Usuario <span>existente</span>';
+  document.getElementById('acceso-sub').textContent = registro
+    ? 'Elige un apodo que nadie tenga y un PIN de 4 cifras que recuerdes.'
+    : 'Escribe tu apodo y tu PIN para recuperar tus partidas.';
+  document.getElementById('grupo-pin2').style.display = registro ? 'block' : 'none';
+  document.getElementById('arcade-pin').setAttribute('enterkeyhint', registro ? 'next' : 'go');
+  document.getElementById('btn-acceso').textContent = registro ? 'CREAR USUARIO' : 'ENTRAR';
+  document.getElementById('acceso-alternar').innerHTML = registro
+    ? '¿Ya tienes apodo? <a onclick="mostrarFormAcceso(\'login\', true)">Entra aquí</a>'
+    : '¿Aún no tienes apodo? <a onclick="mostrarFormAcceso(\'registro\', true)">Crea uno</a>';
+  if (!conservarApodo) inp.value = registro ? '' : (localStorage.getItem('arcade_ultimo_apodo') || '');
+  document.getElementById('arcade-pin').value = '';
+  document.getElementById('arcade-pin2').value = '';
+  errorAcceso('');
+  mostrarPasoArcade('arcade-paso-apodo');
+  setTimeout(() => { try { (inp.value ? document.getElementById('arcade-pin') : inp).focus(); } catch (e) {} }, 250);
+}
+
+async function enviarAcceso() {
+  if (accediendo) return;
+  const inp = document.getElementById('arcade-apodo');
+  const inpPin = document.getElementById('arcade-pin');
+  const inpPin2 = document.getElementById('arcade-pin2');
+  const valor = inp.value.trim().replace(/\s+/g, ' ');
+  const pin = inpPin.value.trim();
+  if (!valor) return errorAcceso('Escribe tu apodo.', inp);
+  if (slugApodo(valor).length < 2) return errorAcceso('El apodo necesita al menos 2 letras o números.', inp);
+  if (!/^\d{4}$/.test(pin)) return errorAcceso('El PIN debe tener exactamente 4 cifras.', inpPin);
+  if (modoAcceso === 'registro' && inpPin2.value.trim() !== pin) {
+    inpPin2.value = '';
+    return errorAcceso('Los dos PIN no coinciden.', inpPin2);
+  }
+  errorAcceso('');
+  const btn = document.getElementById('btn-acceso');
+  const textoBtn = btn.textContent;
+  accediendo = true; btn.disabled = true; btn.textContent = 'COMPROBANDO…';
+  const res = await accederServidor(modoAcceso, valor, pin);
+  accediendo = false; btn.disabled = false; btn.textContent = textoBtn;
+
+  if (res.ok) {
+    inpPin.value = ''; inpPin2.value = '';
+    if (modoAcceso === 'registro') toast('✅ Usuario «' + valor + '» creado. ¡Recuerda tu PIN!', 3500);
+    else toast('👋 Hola de nuevo, ' + valor);
+    return mostrarMenuArcade();
+  }
+  if (res.codigo === 'servidor' || res.codigo === 0) return errorAcceso(res.mensaje);
+  if (res.codigo === 409 && modoAcceso === 'registro') return errorAcceso(res.mensaje, inp, 'login');   // apodo ya registrado
+  if (res.codigo === 404 && modoAcceso === 'login') return errorAcceso(res.mensaje, inp, 'registro');   // apodo no existe
+  inpPin.value = '';
+  errorAcceso(res.mensaje, inpPin);
+}
+
+// Llama al servidor. modo: 'registro' | 'login'. Si va bien, deja la sesión iniciada.
+async function accederServidor(modo, apodo, pin) {
+  let r = null, datos = {};
+  try {
+    r = await fetch('/api/' + modo, { method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
+                                      body: JSON.stringify({ apodo: apodo, pin: pin }) });
+    datos = await r.json().catch(() => ({}));
+  } catch (e) {}
+  if (!r) return { ok: false, codigo: 0, mensaje: 'Sin conexión con el servidor. Inténtalo de nuevo.' };
+  if (!r.ok && !datos.message) {
+    // Respuesta sin mensaje propio: la ruta no existe en el servidor (app.py sin actualizar) o el servidor falló
+    console.error('Secret Games: /api/' + modo + ' respondió ' + r.status + ' sin datos. ¿Está subido el app.py nuevo?');
+    return { ok: false, codigo: 'servidor', mensaje: r.status === 404 || r.status === 405
+      ? 'El servidor aún no tiene el sistema de usuarios. Sube el app.py nuevo y reinicia el servidor.'
+      : 'Error del servidor (' + r.status + '). Inténtalo de nuevo en un momento.' };
+  }
+  if (!r.ok) return { ok: false, codigo: r.status, mensaje: datos.message };
+  apodoActual = datos.apodo || apodo; apodoSlug = slugApodo(apodo); pinActual = pin;
+  localStorage.setItem('arcade_ultimo_apodo', apodoActual);
+  sessionStorage.setItem('arcade_apodo', apodoActual);
+  sessionStorage.setItem('arcade_pin', pin);
+  return { ok: true };
+}
+
+function mostrarMenuArcade() {
+  document.getElementById('arcade').style.display = 'flex';
+  document.documentElement.style.overflow = 'hidden';
+  mostrarPasoArcade('arcade-paso-menu');
+  document.getElementById('arcade-chip').textContent = apodoActual;
+  refrescarEstadosMenu();
+}
+function cambiarApodo() {
+  apodoActual = ''; apodoSlug = ''; pinActual = '';
+  sessionStorage.removeItem('arcade_apodo'); sessionStorage.removeItem('arcade_pin');
+  mostrarInicioArcade();
+}
+document.getElementById('form-acceso').addEventListener('submit', e => { e.preventDefault(); enviarAcceso(); });
+document.getElementById('arcade-apodo').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('arcade-pin').focus(); } });
+document.getElementById('arcade-pin').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return; e.preventDefault();
+  if (modoAcceso === 'registro') document.getElementById('arcade-pin2').focus(); else enviarAcceso();
+});
+document.getElementById('arcade-pin2').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); enviarAcceso(); } });
+document.querySelectorAll('#arcade .campo-pin').forEach(el =>
+  el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, '').slice(0, 4); }));
+
+/* ---------- Pantalla completa (lo máximo posible en vertical) ---------- */
+function maximizarPantalla() {
+  const el = document.documentElement;
+  try {
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (req && !document.fullscreenElement && matchMedia('(pointer:coarse)').matches) {
+      const p = req.call(el, { navigationUI: 'hide' });
+      if (p && p.then) p.then(() => { try { screen.orientation.lock('portrait').catch(() => {}); } catch (e) {} }).catch(() => {});
+    }
+  } catch (e) {}
+}
+function salirPantallaCompleta() {
+  try { if (document.fullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {}
+}
+
+/* ---------- Abrir un juego en la consola ---------- */
+async function abrirJuego(juego) {
+  maximizarPantalla();                       // debe ir antes de cualquier await (gesto del usuario)
+  juegoActual = juego;
+  actividadEmpezar(juego);
+  const c = document.getElementById('consola');
+  c.classList.toggle('modo-pokemon', esGBA(juego));
+  c.classList.toggle('modo-marcianitos', juego === 'marcianitos');
+  document.getElementById('gb-titulo-juego').textContent = esGBA(juego) ? JUEGOS_GBA[juego].titulo : 'Marcianitos Cierzo';
+  document.getElementById('gb-apodo').textContent = '👤 ' + apodoActual;
+  document.getElementById('arcade').style.display = 'none';
+  document.documentElement.style.overflow = 'hidden';
+  c.style.display = 'flex';
+  document.getElementById('game-container').style.display = juego === 'marcianitos' ? 'block' : 'none';
+  document.getElementById('pokemon-screen').style.display = esGBA(juego) ? 'block' : 'none';
+
+  if (juego === 'marcianitos') {
+    await cargarDatosMarcianitos();
+    prepararJuego();
+  } else {
+    iniciarPokemon();
+  }
+}
+
+/* ---------- Marcianitos: guardado ---------- */
+async function cargarDatosMarcianitos() {
+  datosMarcianitos = { record: 0, partidas: 0, enCurso: null };
+  const buf = await cargarPartida('marcianitos');
+  if (buf) { try { Object.assign(datosMarcianitos, JSON.parse(new TextDecoder().decode(buf))); } catch (e) {} }
+}
+function refrescarStartMarcianitos() {
+  document.getElementById('mc-jugador').textContent = apodoActual || 'Anónimo';
+  document.getElementById('mc-record-personal').textContent = datosMarcianitos.record || 0;
+  const s = datosMarcianitos.enCurso;
+  const btnC = document.getElementById('btn-continuar-partida');
+  const info = document.getElementById('mc-guardada');
+  if (s) {
+    btnC.style.display = 'block';
+    btnC.textContent = 'CONTINUAR · ' + s.score + ' pts · ' + mmss(s.seconds);
+    info.style.display = 'block';
+    info.innerHTML = 'Partida guardada: <b>' + s.score + ' pts</b>, ' + Math.max(0, s.lives) + '/3 vidas';
+    document.getElementById('btn-start-game').textContent = 'NUEVA PARTIDA';
+    document.getElementById('btn-start-game').classList.add('sec');
+  } else {
+    btnC.style.display = 'none'; info.style.display = 'none';
+    document.getElementById('btn-start-game').textContent = 'START';
+    document.getElementById('btn-start-game').classList.remove('sec');
+  }
+}
+function estadoMarcianitos() {
+  return { score: score, lives: lives, seconds: seconds, bossDamage: bossDamage,
+           boss: bossActive ? 'active' : (bossDerrotado ? 'defeated' : 'none'), fecha: Date.now() };
+}
+function continuarPartidaGuardada() {
+  prepararAudioJuego();
+  const s = datosMarcianitos.enCurso;
+  if (!s) return validarYComenzarJuego();
+  nombreJugadorActual = apodoActual || 'Anónimo';
+  score = s.score || 0; lives = (typeof s.lives === 'number') ? s.lives : 0; seconds = s.seconds || 0;
+  document.getElementById('game-score').innerText = score;
+  document.getElementById('game-lives').innerText = Math.max(0, lives) + '/3';
+  document.getElementById('timer-display').innerText = mmss(seconds);
+  comenzarCiclos();
+  if (s.boss === 'active') {
+    crearBoss();
+    bossDamage = s.bossDamage || 0;
+    document.getElementById('boss-hp-count').innerText = Math.min(bossDamage, bossMaxHP);
+  } else if (s.boss === 'defeated') {
+    bossDerrotado = true;
+  }
+  toast('▶️ Partida recuperada');
+}
+function alTerminarMarcianitos(puntos) {
+  datosMarcianitos.record = Math.max(datosMarcianitos.record || 0, puntos);
+  datosMarcianitos.partidas = (datosMarcianitos.partidas || 0) + 1;
+  datosMarcianitos.enCurso = null;
+  datosMarcianitos.actualizado = Date.now();
+  subirPartida('marcianitos', new TextEncoder().encode(JSON.stringify(datosMarcianitos)), true);
+}
+function detenerMarcianitos() {
+  gameActive = false; gamePaused = false;
+  clearInterval(timerInterval); gameIntervals.forEach(clearInterval); gameIntervals = [];
+  limpiarEntidadesJuego();
+  supportActive = false; shieldActive = false;
+  document.getElementById('support-l').style.display = 'none';
+  document.getElementById('support-r').style.display = 'none';
+  document.getElementById('player').classList.remove('bubble-active');
+  document.getElementById('pausa-overlay').style.display = 'none'; document.getElementById('btn-pausa-top').innerHTML = ICONO_PAUSA;
+}
+
+/* ---------- Pokémon (emulador GBA) ---------- */
+async function iniciarPokemon() {
+  pokemonListo = false;
+  partidaPokemonPromesa = cargarPartida(juegoActual);          // se descarga mientras carga el juego
+  document.getElementById('poke-cargando').style.display = 'flex';
+  let hayRom = false;
+  for (const romUrl of JUEGOS_GBA[juegoActual].roms) {
+    try { hayRom = (await fetch(romUrl, { method: 'HEAD', cache: 'no-store' })).ok; } catch (e) {}
+    if (hayRom) return arrancarEmulador(romUrl);
+  }
+  document.getElementById('poke-cargando').style.display = 'none';
+  const picker = document.getElementById('rom-picker');
+  picker.style.display = 'flex';
+  document.getElementById('rom-input').onchange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    picker.style.display = 'none';
+    document.getElementById('poke-cargando').style.display = 'flex';
+    arrancarEmulador(URL.createObjectURL(f));
+  };
+}
+function arrancarEmulador(url) {
+  if (window.EJS_emulator) return;
+  window.EJS_player = '#ejs-game';
+  window.EJS_core = 'gba';
+  window.EJS_gameUrl = url;
+  window.EJS_gameName = juegoActual + '_' + apodoSlug;    // separa los guardados internos por apodo
+  window.EJS_pathtodata = EJS_DATA_URL;
+  window.EJS_startOnLoaded = true;
+  window.EJS_volume = 1;
+  window.EJS_color = '#d9b65f';
+  window.EJS_backgroundColor = '#000000';
+  window.EJS_onGameStart = alArrancarPokemon;
+  const s = document.createElement('script');
+  s.src = EJS_DATA_URL + 'loader.js';
+  s.onerror = () => toast('No se pudo cargar el emulador. Revisa tu conexión.', 4000);
+  document.body.appendChild(s);
+}
+async function alArrancarPokemon() {
+  document.getElementById('poke-cargando').style.display = 'none';
+  activarSonido();
+  setTimeout(() => {
+    if (CONTEXTOS_AUDIO.some(c => c.state === 'suspended')) toast('🔊 Toca cualquier botón para activar el sonido', 3500);
+  }, 1200);
+  const buf = await (partidaPokemonPromesa || Promise.resolve(null));
+  setTimeout(() => {
+    if (buf && buf.byteLength) {
+      try { EJS_emulator.gameManager.loadState(new Uint8Array(buf)); toast('▶️ Partida de «' + apodoActual + '» cargada'); }
+      catch (e) { toast('No se pudo cargar la partida guardada', 3500); }
+    }
+    pokemonListo = true;
+  }, 700);
+  clearInterval(autoguardadoPokemon);
+  autoguardadoPokemon = setInterval(() => { if (esGBA(juegoActual) && pokemonListo) guardarPartidaActual(true); }, 180000);
+}
+function estadoPokemon() {
+  try { return EJS_emulator.gameManager.getState(); } catch (e) { return null; }
+}
+// Copia local rápida al salir de la app o cambiar de pestaña
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'hidden' || !esGBA(juegoActual) || !pokemonListo) return;
+  const st = estadoPokemon();
+  if (st) idb.set(juegoActual + ':' + apodoSlug, { t: Date.now(), data: new Uint8Array(st).buffer });
+});
+
+/* ---------- Guardar / salir ---------- */
+async function guardarPartidaActual(silencioso) {
+  const btn = document.getElementById('btn-guardar-partida');
+  if (juegoActual === 'marcianitos') {
+    if (gameActive) datosMarcianitos.enCurso = estadoMarcianitos();
+    datosMarcianitos.actualizado = Date.now();
+    return subirPartida('marcianitos', new TextEncoder().encode(JSON.stringify(datosMarcianitos)), silencioso);
+  }
+  if (esGBA(juegoActual)) {
+    if (!pokemonListo) { if (!silencioso) toast('El juego aún se está cargando…'); return false; }
+    const st = estadoPokemon();
+    if (!st) { if (!silencioso) toast('No se pudo leer la partida', 3000); return false; }
+    btn.disabled = true;
+    try { return await subirPartida(juegoActual, st, silencioso); } finally { btn.disabled = false; }
+  }
+  return false;
+}
+function pedirSalirJuego() {
+  const hayAlgoQueGuardar = (juegoActual === 'marcianitos' && gameActive) || (esGBA(juegoActual) && pokemonListo);
+  if (!hayAlgoQueGuardar) return salirJuego();
+  if (juegoActual === 'marcianitos') { pausadoAntesDeModal = gamePaused; gamePaused = true; }
+  document.getElementById('modal-salir-juego').style.display = 'flex';
+}
+function seguirJugando() {
+  document.getElementById('modal-salir-juego').style.display = 'none';
+  if (juegoActual === 'marcianitos') gamePaused = pausadoAntesDeModal;
+}
+async function guardarYSalir() {
+  await guardarPartidaActual();
+  salirJuego();
+}
+function salirJuego() {
+  actividadTerminar();
+  document.getElementById('modal-salir-juego').style.display = 'none';
+  soltarTodo();
+  if (esGBA(juegoActual) && window.EJS_emulator) {
+    // El emulador no se puede descargar en caliente: se recarga y se vuelve al menú con el mismo apodo
+    sessionStorage.setItem('arcade_volver', '1');
+    salirPantallaCompleta();
+    location.reload();
+    return;
+  }
+  if (juegoActual === 'marcianitos') detenerMarcianitos();
+  juegoActual = null;
+  document.getElementById('consola').style.display = 'none';
+  salirPantallaCompleta();
+  mostrarMenuArcade();
+}
+
+/* ---------- Controles táctiles tipo Game Boy ---------- */
+const EJS_BOTON = { b: 0, select: 2, start: 3, up: 4, down: 5, left: 6, right: 7, a: 8, l: 10, r: 11 };
+const dirs = { up: false, down: false, left: false, right: false };
+
+function pulsar(boton, pulsado) {
+  if (esGBA(juegoActual)) {
+    const gm = window.EJS_emulator && EJS_emulator.gameManager;
+    if (gm && EJS_BOTON[boton] !== undefined) { try { gm.simulateInput(0, EJS_BOTON[boton], pulsado ? 1 : 0); } catch (e) {} }
+    return;
+  }
+  if (juegoActual !== 'marcianitos') return;
+  if (boton in dirs) { dirs[boton] = pulsado; return; }
+  if (pulsado) accionMarcianitos(boton);
+}
+function visible(id) { return document.getElementById(id).style.display === 'flex'; }
+function accionMarcianitos(boton) {
+  if (document.getElementById('modal-salir-juego').style.display === 'flex') return;
+  if (visible('start-overlay')) {
+    if (boton === 'a' || boton === 'start') {
+      if (datosMarcianitos.enCurso) continuarPartidaGuardada(); else validarYComenzarJuego();
+    } else if (boton === 'b' && datosMarcianitos.enCurso) validarYComenzarJuego();
+    return;
+  }
+  if (visible('game-over-overlay')) {
+    if (boton === 'a' || boton === 'start') reiniciarPartida();
+    else if (boton === 'b') salirJuego();
+    return;
+  }
+  if (gameActive && (boton === 'start' || (gamePaused && boton === 'a'))) alternarPausa();
+}
+// Movimiento continuo de la nave con la cruceta
+(function bucleCruceta() {
+  if (juegoActual === 'marcianitos' && gameActive && !gamePaused) {
+    const v = Math.max(5, document.getElementById('game-container').offsetWidth / 65);
+    const dx = (dirs.right - dirs.left) * v, dy = (dirs.down - dirs.up) * v;
+    if (dx || dy) moverJugador(playerX + dx, playerY + dy);
+  }
+  requestAnimationFrame(bucleCruceta);
+})();
+
+function vibrar() { if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } }
+
+document.querySelectorAll('#consola [data-btn]').forEach(el => {
+  const b = el.dataset.btn;
+  const abajo = (e) => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (_) {} if (el.classList.contains('pressed')) return; el.classList.add('pressed'); vibrar(); pulsar(b, true); };
+  const arriba = () => { if (!el.classList.contains('pressed')) return; el.classList.remove('pressed'); pulsar(b, false); };
+  el.addEventListener('pointerdown', abajo);
+  el.addEventListener('pointerup', arriba);
+  el.addEventListener('pointercancel', arriba);
+  el.addEventListener('lostpointercapture', arriba);
+  el.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+const dpad = document.getElementById('dpad');
+let dpadPuntero = null;
+const dpadEstado = { up: false, down: false, left: false, right: false };
+function aplicarDirs(n) {
+  ['up', 'down', 'left', 'right'].forEach(d => {
+    if (dpadEstado[d] !== n[d]) { dpadEstado[d] = n[d]; if (n[d]) vibrar(); pulsar(d, n[d]); }
+    dpad.classList.toggle('d-' + d, n[d]);
+  });
+}
+function dpadDesde(e) {
+  const r = dpad.getBoundingClientRect();
+  const x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2);
+  const muerta = r.width * 0.1;
+  const n = { up: false, down: false, left: false, right: false };
+  if (Math.hypot(x, y) < muerta) return aplicarDirs(n);
+  if (esGBA(juegoActual)) {                   // una sola dirección (evita diagonales)
+    if (Math.abs(x) > Math.abs(y)) n[x < 0 ? 'left' : 'right'] = true; else n[y < 0 ? 'up' : 'down'] = true;
+  } else {                                           // diagonales permitidas para la nave
+    const ax = Math.abs(x), ay = Math.abs(y);
+    if (ay > ax * 0.45) n[y < 0 ? 'up' : 'down'] = true;
+    if (ax > ay * 0.45) n[x < 0 ? 'left' : 'right'] = true;
+  }
+  aplicarDirs(n);
+}
+dpad.addEventListener('pointerdown', e => { e.preventDefault(); dpadPuntero = e.pointerId; try { dpad.setPointerCapture(e.pointerId); } catch (_) {} dpadDesde(e); });
+dpad.addEventListener('pointermove', e => { if (e.pointerId === dpadPuntero) dpadDesde(e); });
+const soltarDpad = e => { if (e.pointerId !== dpadPuntero) return; dpadPuntero = null; aplicarDirs({ up: false, down: false, left: false, right: false }); };
+dpad.addEventListener('pointerup', soltarDpad);
+dpad.addEventListener('pointercancel', soltarDpad);
+dpad.addEventListener('lostpointercapture', soltarDpad);
+dpad.addEventListener('contextmenu', e => e.preventDefault());
+
+function soltarTodo() {
+  dpadPuntero = null;
+  aplicarDirs({ up: false, down: false, left: false, right: false });
+  Object.keys(dirs).forEach(k => dirs[k] = false);
+  document.querySelectorAll('#consola .pressed').forEach(el => { el.classList.remove('pressed'); pulsar(el.dataset.btn, false); });
+}
+
+// Teclado (ordenador) para Marcianitos. En Pokémon el propio emulador usa el teclado.
+const TECLAS = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+                 Enter: 'start', Space: 'a', KeyX: 'a', KeyZ: 'b', Escape: 'start' };
+document.addEventListener('keydown', e => {
+  if (juegoActual !== 'marcianitos' || e.repeat) return;
+  const b = TECLAS[e.code]; if (!b) return;
+  e.preventDefault(); pulsar(b, true);
+});
+document.addEventListener('keyup', e => {
+  if (juegoActual !== 'marcianitos') return;
+  const b = TECLAS[e.code]; if (b) pulsar(b, false);
+});
+
+// Si cambia el tamaño (pantalla completa, giro), la nave se recoloca dentro de la pantalla
+window.addEventListener('resize', () => {
+  if (juegoActual !== 'marcianitos') return;
+  if (gameActive) moverJugador(playerX, playerY); else colocarJugadorInicio();
+});
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=os.environ.get('FLASK_DEBUG') == '1')
+/* ---------- Ediciones de color de la consola ---------- */
+const TEMAS_CONSOLA = [
+  { id: 'cierzo',       nombre: 'Edición Cierzo',       muestra: 'linear-gradient(135deg,#1f1f23 50%,#d9b65f 50%)' },
+  { id: 'pikachu',      nombre: 'Edición Pikachu',      muestra: 'linear-gradient(135deg,#f5c400 55%,#e3350d 55%)' },
+  { id: 'rojo',         nombre: 'Edición Rojo',         muestra: 'linear-gradient(135deg,#c8102e 55%,#2e2e34 55%)' },
+  { id: 'transparente', nombre: 'Edición Transparente', muestra: 'linear-gradient(135deg,rgba(170,140,255,.55),rgba(90,60,190,.55)),#1a1428' },
+  { id: 'azul',         nombre: 'Edición Azul',         muestra: 'linear-gradient(135deg,#1f4fbf 55%,#f2d14b 55%)' },
+  { id: 'gengar',       nombre: 'Edición Gengar',       muestra: 'linear-gradient(135deg,#5b2a86 55%,#e0457b 55%)' },
+  { id: 'verde',        nombre: 'Edición Verde Hoja',   muestra: 'linear-gradient(135deg,#2f9a57 55%,#f0652f 55%)' },
+  { id: 'clasica',      nombre: 'Edición Clásica',      muestra: 'linear-gradient(135deg,#c9c6bd 55%,#9b2257 55%)' },
+  { id: 'hielo',        nombre: 'Edición Hielo',        muestra: 'linear-gradient(135deg,#bfe3f7 55%,#2f9be0 55%)' },
+];
+function aplicarTemaConsola(id, avisar) {
+  const tema = TEMAS_CONSOLA.find(t => t.id === id) || TEMAS_CONSOLA[0];
+  const gb = document.querySelector('#consola .gb');
+  TEMAS_CONSOLA.forEach(t => gb.classList.remove('tema-' + t.id));
+  gb.classList.toggle('tematizada', tema.id !== 'cierzo');
+  if (tema.id !== 'cierzo') gb.classList.add('tema-' + tema.id);
+  document.querySelectorAll('#abanico .muestra').forEach(m => m.classList.toggle('activa', m.dataset.tema === tema.id));
+  try { localStorage.setItem('consola_tema', tema.id); } catch (e) {}
+  if (avisar) toast('🎨 ' + tema.nombre);
+}
+function alternarAbanico(forzar) {
+  const ab = document.getElementById('abanico');
+  const abrir = typeof forzar === 'boolean' ? forzar : !ab.classList.contains('abierto');
+  ab.classList.toggle('abierto', abrir);
+  if (abrir) {
+    const actual = (localStorage.getItem('consola_tema') || 'cierzo');
+    document.getElementById('abanico-nombre').textContent = (TEMAS_CONSOLA.find(t => t.id === actual) || TEMAS_CONSOLA[0]).nombre;
+  }
+}
+(function crearAbanico() {
+  const ab = document.getElementById('abanico');
+  const medio = (TEMAS_CONSOLA.length - 1) / 2;
+  TEMAS_CONSOLA.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'muestra'; b.dataset.tema = t.id;
+    b.title = t.nombre; b.setAttribute('aria-label', t.nombre);
+    b.style.background = t.muestra;
+    const d = i - medio;                                   // forma de abanico: los extremos bajan y giran
+    b.style.setProperty('--i', String(Math.abs(d)));
+    b.style.setProperty('--dy', (d * d * 2.2).toFixed(1) + 'px');
+    b.style.setProperty('--rot', (d * 6) + 'deg');
+    b.addEventListener('pointerenter', () => { document.getElementById('abanico-nombre').textContent = t.nombre; });
+    b.addEventListener('click', (e) => { e.stopPropagation(); aplicarTemaConsola(t.id, true); vibrar(); setTimeout(() => alternarAbanico(false), 180); });
+    ab.appendChild(b);
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('#tema-wrap')) alternarAbanico(false);
+  });
+  let guardado = 'cierzo';
+  try { guardado = localStorage.getItem('consola_tema') || 'cierzo'; } catch (e) {}
+  aplicarTemaConsola(guardado, false);
+})();
+
+
+/* ---------- Actividad: tiempo jugado (para el panel privado) ---------- */
+let actJuego = null, actUltimo = 0;
+function enviarActividad(juego, segundos, nuevaSesion) {
+  if (!apodoSlug || !pinActual) return;
+  try {
+    fetch('/api/actividad/' + juego + '/' + encodeURIComponent(apodoSlug), {
+      method: 'POST', keepalive: true, headers: cab({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ segundos: segundos, nueva_sesion: !!nuevaSesion })
+    }).catch(() => {});
+  } catch (e) {}
+}
+function actividadTick() {
+  if (!actJuego) return;
+  const ahora = Date.now();
+  const seg = Math.round((ahora - actUltimo) / 1000);
+  actUltimo = ahora;
+  if (seg > 0) enviarActividad(actJuego, Math.min(seg, 600), false);
+}
+function actividadEmpezar(juego) { actividadTerminar(); actJuego = juego; actUltimo = Date.now(); enviarActividad(juego, 0, true); }
+function actividadTerminar() { if (actJuego) { actividadTick(); actJuego = null; } }
+setInterval(() => { if (document.visibilityState === 'visible') actividadTick(); }, 60000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') actividadTick(); else actUltimo = Date.now();
+});
+
+/* ---------- Panel privado: 8 toques en el punto rojo + contraseña ---------- */
+let toquesAdmin = 0, temporizadorAdmin = null, pinAdmin = '';
+function tocarPuntoAdmin() {
+  toquesAdmin++;
+  clearTimeout(temporizadorAdmin);
+  temporizadorAdmin = setTimeout(() => { toquesAdmin = 0; }, 4000);
+  if (toquesAdmin >= 8) {
+    toquesAdmin = 0;
+    document.getElementById('admin-login').style.display = 'block';
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('admin-error').style.display = 'none';
+    document.getElementById('admin-pin').value = '';
+    document.getElementById('modal-admin').style.display = 'flex';
+    setTimeout(() => document.getElementById('admin-pin').focus(), 200);
+  }
+}
+function cerrarAdmin() { document.getElementById('modal-admin').style.display = 'none'; pinAdmin = ''; }
+document.getElementById('admin-pin').addEventListener('keydown', e => { if (e.key === 'Enter') entrarAdmin(); });
+function esc(t) { const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+function duracion(seg) {
+  seg = Math.round(seg || 0);
+  const h = Math.floor(seg / 3600), m = Math.floor((seg % 3600) / 60), s = seg % 60;
+  return h ? h + ' h ' + m + ' min' : (m ? m + ' min ' + s + ' s' : s + ' s');
+}
+const NOMBRES_JUEGOS = { marcianitos: 'Marcianitos Cierzo', pokemon: "Let's Go Cierzo", rojito: 'Rojito Fuego', crash: 'Crash Cierzo' };
+async function entrarAdmin() {
+  const pin = pinAdmin || document.getElementById('admin-pin').value.trim();
+  const err = document.getElementById('admin-error');
+  let r = null, d = {};
+  try {
+    r = await fetch('/api/admin/resumen', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: pin }) });
+    d = await r.json().catch(() => ({}));
+  } catch (e) {}
+  if (!r || !r.ok) { err.textContent = (d && d.message) || 'Sin conexión'; err.style.display = 'block'; return; }
+  pinAdmin = pin;
+  document.getElementById('admin-login').style.display = 'none';
+  pintarAdmin(d);
+}
+function pintarAdmin(d) {
+  const jug = d.jugadores || [];
+  const jugaron = jug.filter(j => j.segundos > 0 || Object.keys(j.juegos).length);
+  const total = jug.reduce((a, j) => a + (j.segundos || 0), 0);
+  let html = '<h3>Panel privado</h3>';
+  html += '<div class="adm-resumen">'
+    + '<div class="adm-dato"><b>' + jug.length + '</b><small>registrados</small></div>'
+    + '<div class="adm-dato"><b>' + jugaron.length + '</b><small>han jugado</small></div>'
+    + '<div class="adm-dato"><b>' + esc(duracion(total)) + '</b><small>tiempo total</small></div></div>';
+  html += '<p class="adm-sec">🌍 Ranking Marcianitos</p>';
+  if (!(d.ranking || []).length) html += '<p class="adm-nada">Sin puntuaciones todavía</p>';
+  (d.ranking || []).forEach((f, i) => {
+    html += '<div class="adm-rank"><span>' + (i + 1) + '. <b>' + esc(f.apodo) + '</b> · ' + f.puntos + ' pts</span>'
+      + '<button type="button" data-borrar="' + esc(f.slug) + '">Borrar</button></div>';
+  });
+  html += '<p class="adm-sec">👥 Jugadores</p>';
+  if (!jug.length) html += '<p class="adm-nada">Nadie registrado todavía</p>';
+  jug.forEach(j => {
+    const reg = j.creado ? new Date(j.creado).toLocaleDateString('es-ES') : '—';
+    html += '<div class="adm-jug"><div class="adm-jug-cab"><b>' + esc(j.apodo) + '</b><small>Registro: ' + esc(reg)
+      + (j.ultima ? '<br>Última vez: ' + esc(fechaCorta(j.ultima)) : '') + '</small></div>';
+    const juegos = Object.entries(j.juegos || {});
+    if (!juegos.length) html += '<p class="adm-nada">Todavía no ha jugado</p>';
+    juegos.sort((a, b) => b[1].segundos - a[1].segundos).forEach(([id, g]) => {
+      html += '<div class="adm-juego"><span>' + esc(NOMBRES_JUEGOS[id] || id) + '</span><span>'
+        + esc(duracion(g.segundos)) + ' · ' + g.sesiones + (g.sesiones === 1 ? ' vez' : ' veces')
+        + (g.ultima ? ' · ' + esc(fechaCorta(g.ultima)) : '') + '</span></div>';
+    });
+    html += '</div>';
+  });
+  html += '<button type="button" class="btn-ghost" onclick="entrarAdmin()">↻ Actualizar</button>';
+  const panel = document.getElementById('admin-panel');
+  panel.innerHTML = html;
+  panel.style.display = 'block';
+  panel.querySelectorAll('[data-borrar]').forEach(b => b.onclick = async () => {
+    if (!confirm('¿Borrar esta puntuación del ranking?')) return;
+    try {
+      await fetch('/api/admin/ranking/borrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: pinAdmin, slug: b.dataset.borrar }) });
+    } catch (e) {}
+    entrarAdmin();
+  });
+}
+
+// Al volver de Pokémon (recarga), se reabre el menú con el mismo apodo
+(function () {
+  if (!sessionStorage.getItem('arcade_volver')) return;
+  sessionStorage.removeItem('arcade_volver');
+  const ap = sessionStorage.getItem('arcade_apodo');
+  const pn = sessionStorage.getItem('arcade_pin');
+  document.getElementById('arcade').style.display = 'flex';
+  document.documentElement.style.overflow = 'hidden';
+  if (!(ap && pn)) return mostrarInicioArcade();
+  accederServidor('login', ap, pn).then(res => res.ok ? mostrarMenuArcade() : mostrarFormAcceso('login'));
+})();
+</script>
+<div id="tps-modal"><form id="tps-form" autocomplete="off"><input id="tps-key" type="password" placeholder="Clave" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="submit">Entrar</button></form></div>
+<div id="tps-app"><iframe id="tps-frame" title="app" allow="fullscreen; clipboard-read; clipboard-write; downloads"></iframe><button id="tps-x" type="button" aria-label="Cerrar">&#10005;</button></div>
+<script>
+(function(){
+  // Gota negra = versión iPad · gota roja grana = versión móvil (las dos: 5 toques + clave)
+  var $=function(i){return document.getElementById(i)},WIN=5000,destino=null,actual=null;
+  var ACCESOS={tps:{ico:'tps-ico',toques:5,api:'/api/tattoopro/acceso'},tpm:{ico:'tpm-ico',toques:5,api:'/api/tattoopro-movil/acceso'}};
+  Object.keys(ACCESOS).forEach(function(k){var A=ACCESOS[k],taps=[];
+    $(A.ico).addEventListener('click',function(){
+      var n=Date.now();taps.push(n);
+      while(taps.length&&n-taps[0]>WIN)taps.shift();
+      if(taps.length>=A.toques){taps=[];destino=k;$('tps-modal').classList.add('on');$('tps-key').value='';setTimeout(function(){$('tps-key').focus()},60)}
+    });
+  });
+  $('tps-modal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('on')});
+  function fail(){var f=$('tps-form');f.classList.remove('err');void f.offsetWidth;f.classList.add('err');$('tps-key').value=''}
+  $('tps-form').addEventListener('submit',function(e){
+    e.preventDefault();
+    if(!destino)return;fetch(ACCESOS[destino].api,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clave:$('tps-key').value})})
+      .then(function(r){return r.json()}).then(function(j){
+        if(!j.ok)return fail();
+        $('tps-modal').classList.remove('on');
+        var fr=$('tps-frame');if(!fr.getAttribute('src')||actual!==destino){fr.src=j.url;actual=destino;$('tps-x').style.display=''}
+        var a=$('tps-app');a.classList.add('on');document.documentElement.style.overflow='hidden';
+        try{(a.requestFullscreen||a.webkitRequestFullscreen||function(){}).call(a)}catch(x){}
+      }).catch(fail);
+  });
+  function cerrarTps(){
+    $('tps-app').classList.remove('on');document.documentElement.style.overflow='';
+    try{if(document.fullscreenElement)document.exitFullscreen()}catch(x){}
+  }
+  $('tps-x').addEventListener('click',cerrarTps);
+  // TattooPro avisa cuando ha cargado (su botón ⌂ sustituye a la ✕) y cuando se pulsa ⌂
+  window.addEventListener('message',function(e){
+    if(e.origin!==location.origin||e.source!==$('tps-frame').contentWindow)return;
+    if(e.data==='tps-listo')$('tps-x').style.display='none';
+    if(e.data==='tps-cerrar')cerrarTps();
+  });
+})();
+</script>
+</body>
+</html>
