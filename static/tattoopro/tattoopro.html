@@ -70,6 +70,15 @@ details summary{cursor:pointer;padding:6px 0;font-weight:500}
 .fb:hover{background:rgba(255,255,255,.12)}
 #app .ck{display:flex;gap:6px;margin:0;color:var(--tx);align-items:center}
 .mu{color:var(--mu)}
+.ctl[hidden]{display:none}
+#app .big{padding:10px 14px;font-weight:600}
+.seg{display:inline-flex;gap:6px}
+.stit{margin:12px 0 2px;font-weight:600;color:var(--tx)}
+.stit small{font-weight:400;color:var(--mu)}
+#app .sl2{grid-template-columns:150px 1fr}
+.sl2 b{color:var(--tx);font-weight:500;float:right}
+.hint{font-size:11px;color:var(--mu);margin:-2px 0 6px}
+#tbusy,#qbusy{color:#c084fc}
 #mpanel{position:absolute;left:8px;bottom:8px;width:250px;padding:12px;z-index:20;display:flex;flex-direction:column;gap:8px}
 #tbar{position:absolute;left:8px;right:74px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:22;padding:8px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 #tbar textarea{width:200px;flex:1 1 180px;min-height:34px}
@@ -140,13 +149,25 @@ details summary{cursor:pointer;padding:6px 0;font-weight:500}
 
 <section class="mod glass" id="m-transfer" hidden>
  <div class="row"><b>Transfer Tattoo</b><label class="fb">Subir foto<input type="file" id="tfile" accept="image/*" hidden></label><button id="tcan">Desde el lienzo</button>
-  <span class="mu">Línea sólida = contornos y zonas oscuras · discontinua = sombras medias</span></div>
+  <span class="seg"><button id="tm-black" class="big on">🖋 Blackwork · solo líneas</button><button id="tm-real" class="big">🌗 Realismo · sombras y tonos</button></span><span id="tbusy"></span></div>
  <div class="row" id="tbt"></div>
  <div class="view" id="tview"></div>
+ <div class="ctl" id="tc-black">
+  <label>Detalle de línea<input id="b1" type="range" min="0" max="100" value="55"></label>
+  <label>Simplificar<input id="b2" type="range" min="0" max="8" value="2"></label>
+  <label>Grosor de línea<input id="b3" type="range" min="0" max="8" value="1"></label>
+  <label>Quitar motas<input id="b4" type="range" min="0" max="300" value="30"></label>
+  <label class="ck"><input id="bsh" type="checkbox">Guía de sombras (línea discontinua)</label>
+ </div>
+ <div class="ctl" id="tc-real" hidden>
+  <label>Contraste<input id="r1" type="range" min="0" max="100" value="40"></label>
+  <label>Volumen<input id="r2" type="range" min="0" max="100" value="45"></label>
+  <label>Niveles tonales<input id="r3" type="range" min="0" max="8" value="5"></label>
+  <label>Trazo de lápiz<input id="r4" type="range" min="0" max="100" value="35"></label>
+  <label>Brillo<input id="r5" type="range" min="-50" max="50" value="0"></label>
+  <label>Nitidez<input id="r6" type="range" min="0" max="100" value="40"></label>
+ </div>
  <div class="ctl">
-  <label>Detalle de línea<input id="t1" type="range" min="1" max="100" value="50"></label>
-  <label>Sens. de sombra<input id="t2" type="range" min="0" max="100" value="50"></label>
-  <label>Grosor<input id="t3" type="range" min="0" max="3" value="1"></label>
   <label>Ver original<input id="tua" type="range" min="0" max="80" value="0"></label>
   <label>Hoja<select id="tart"><option value="a4">A4 (calco)</option><option value="a5">A5</option><option value="carta">Carta</option><option value="fit">Ajustada a la imagen</option></select></label>
   <div class="row"><label class="ck"><input id="tmir" type="checkbox">Espejo</label><button id="tsend">Enviar al lienzo</button><button id="tdl">⬇ PNG</button></div>
@@ -156,12 +177,18 @@ details summary{cursor:pointer;padding:6px 0;font-weight:500}
 <section class="mod glass" id="m-quit" hidden>
  <div class="row"><b>Quitafondos</b><label class="fb">Subir imagen<input type="file" id="qfile" accept="image/*" hidden></label><button id="qcan">Desde el lienzo</button>
   <button id="qm-pick" class="on">🎯 Borrar tono (clics)</button><button id="qm-move">⤧ Mover / escalar</button>
-  <label class="ck"><input id="qcon" type="checkbox">Solo zona conectada</label><button id="qauto">Autodetectar fondo</button><button id="qundo">↶ Tono</button><button id="qclr">Limpiar</button></div>
+  <label class="ck"><input id="qcon" type="checkbox">Solo zona conectada</label><button id="qauto">Autodetectar fondo</button><button id="qundo">↶ Tono</button><button id="qclr">Limpiar</button><span id="qbusy"></span></div>
  <div class="row"><span class="mu">Tonos borrados:</span><div class="chips" id="qtones"><span class="mu">ninguno</span></div><span class="sp"></span><span id="qbt" class="row" style="margin:0"></span></div>
  <div class="view" id="qview"></div>
  <div class="ctl">
   <label>Tolerancia<input id="q1" type="range" min="0" max="100" value="20"></label>
-  <label>Suavizado bordes<input id="q2" type="range" min="0" max="100" value="15"></label>
+  <label>Suavizar silueta<input id="qs" type="range" min="0" max="10" value="3"></label>
+  <label>Calado (difuminar)<input id="qf" type="range" min="0" max="10" value="1"></label>
+  <label>Desplazar borde<input id="qe" type="range" min="-10" max="10" value="0"></label>
+  <label class="ck"><input id="qhalo" type="checkbox" checked>Limpiar halo de color del fondo</label>
+  <label class="ck"><input id="qol" type="checkbox" checked>Perfilar contorno</label>
+  <label>Grosor del perfil<input id="qow" type="range" min="1" max="30" value="3"></label>
+  <label>Color del perfil<input id="qoc" type="color" value="#000000"></label>
   <label>Hoja<select id="qart"><option value="fit">Ajustada a la imagen</option><option value="a4">A4</option><option value="sq">Cuadrada 2000 px</option></select></label>
   <div class="row"><button id="qins">Insertar como capa</button><button id="qdl">⬇ PNG transparente</button></div>
  </div>
@@ -241,7 +268,10 @@ const doc=$('#doc'),stage=$('#stage'),tmp=$('#tmp'),tx=tmp.getContext('2d'),sbox
 
 /* ===== pinceles ===== */
 const B=[];const F=['1 · Líneas (Liners)','2 · Sombreado (Shaders y Magnum)','3 · Efectos y multilínea'];
-const add=(f,n,o)=>B.push(Object.assign({f,n,k:'round',s:4,mn:1,fl:1,sp:.12,pr:1,st:.25},o));
+// Cada pincel guarda su estabilización como en Procreate:
+// sl = StreamLine (cantidad), slp = StreamLine (presión), stb = Estabilización, mf = Filtro de movimiento, mfe = Expresión
+const add=(f,n,o)=>{const b=Object.assign({f,n,k:'round',s:4,mn:1,fl:1,sp:.12,pr:1,st:.25},o);
+ if(b.sl==null)b.sl=f==1?.2:Math.min(.85,b.st+.25);if(b.slp==null)b.slp=f==1?.05:.15;if(b.stb==null)b.stb=f==1?0:.12;if(b.mf==null)b.mf=f==1?.05:.15;if(b.mfe==null)b.mfe=0;B.push(b)};
 [['1RL',1.5],['3RL',2.5],['5RL',3.5],['7RL',4.5],['9RL',6],['14RL',8]].forEach(([n,s])=>add(0,'Aguja '+n,{s,mn:.65}));
 [['Fino a grueso 1',6,.08],['Fino a grueso 2',9,.05],['Taper tinta',12,.04],['Pluma dip',10,.15],['Brush pen',16,.1],['Entintado',7,.2],['Contorno pro',5,.3]].forEach(([n,s,mn])=>add(0,n,{s,mn,st:.3}));
 [1,2,3,4,6,8,10,12].forEach(s=>add(0,'Constante '+s+'px',{s,pr:0}));
@@ -326,26 +356,68 @@ const prs=e=>e.pointerType=='pen'?(e.pressure||.5):.6;
 const tilt=e=>e.pointerType=='pen'?Math.min(1,Math.hypot(e.tiltX||0,e.tiltY||0)/80):0;
 const curB=()=>tool=='erase'?Object.assign(ER,{s:size}):B[bi];
 const isD=()=>mod=='ipad'||mod=='mandala';
-const MD={n:6,mir:false,g:true,cx:null,cy:null};let qsOn=true,assistOn=true;
+const MD={n:6,mir:false,g:true,cx:null,cy:null};let qsOn=true,assistOn=false;
 const mc=()=>[MD.cx??W/2,MD.cy??H/2];
 function reps(){if(mod!='mandala')return[null];const a=[];for(let k=0;k<MD.n;k++){a.push([k,0]);if(MD.mir)a.push([k,1])}return a}
 function tr(r,x,y){if(!r)return[x,y];const[cx,cy]=mc();let dx=x-cx,dy=y-cy;if(r[1])dx=-dx;const t=r[0]*6.2832/MD.n,c=Math.cos(t),s=Math.sin(t);return[cx+dx*c-dy*s,cy+dx*s+dy*c]}
 function polar(x){if(mod!='mandala'||!MD.g)return;x.save();x.translate(v.x,v.y);x.rotate(v.r);x.scale(v.s,v.s);x.beginPath();x.rect(0,0,W,H);x.clip();const[cx,cy]=mc(),u=1/v.s,RR=Math.hypot(W,H),ring=DPI/2.54*2;x.strokeStyle='rgba(120,160,255,.4)';x.lineWidth=u;for(let i=1;i*ring<RR;i++){x.beginPath();x.arc(cx,cy,i*ring,0,6.2832);x.stroke()}for(let k=0;k<MD.n;k++){const t=k*6.2832/MD.n;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+Math.cos(t)*RR,cy+Math.sin(t)*RR);x.stroke()}x.fillStyle='#fff';x.beginPath();x.arc(cx,cy,4*u,0,6.2832);x.fill();x.restore()}
 function begin(e){const L=layers[act];if(!L.vis){toast('La capa está oculta');return}snap();if(L.obj||L.txt){bake(L);refreshPop()}
- const p=toDoc(e),pp=prs(e);st={id:e.pointerId,raw:[[p.x,p.y,pp]],sm:[[p.x,p.y,pp],[p.x,p.y,pp],[p.x,p.y,pp]],rs:reps().map(r=>{const[X,Y]=tr(r,p.x,p.y);return{r,lx:X,ly:Y,lp:pp,rem:0,first:1}}),tl:tilt(e),ax:p.x,ay:p.y};st.tm=setTimeout(quick,500);emit(p.x,p.y,pp)}
+ const[sx,sy]=loc(e),p=toDoc(e),pp=prs(e);st={id:e.pointerId,raw:[[p.x,p.y,pp]],sm:[[p.x,p.y,pp],[p.x,p.y,pp],[p.x,p.y,pp]],rs:reps().map(r=>{const[X,Y]=tr(r,p.x,p.y);return{r,lx:X,ly:Y,lp:pp,rem:0,first:1}}),tl:tilt(e),ax:sx,ay:sy};st.tm=setTimeout(quick,500);emit(p.x,p.y,pp);engStart(sx,sy,pp,TS(e))}
 function emit(x,y,p){p=Math.max(0,Math.min(1,p));const b=curB(),L=layers[act],er=tool=='erase';if(er)L.x.globalCompositeOperation='destination-out';st.rs.forEach(s=>{const[X,Y]=tr(s.r,x,y);seg(er?L.x:tx,b,s,X,Y,p,size,er?'#000':(b.c||color),er?op:1,st.tl)});if(er){L.x.globalCompositeOperation='source-over';L.x.globalAlpha=1}}
 // Catmull-Rom sobre los puntos estabilizados: curva suave en tiempo real mientras se traza
 function crDraw(q){const m=st.sm;m.push(q);const n=m.length,a=m[n-4],b=m[n-3],c=m[n-2],d=m[n-1];for(let i=1;i<=6;i++){const t=i/6,t2=t*t,t3=t2*t,f=(u,w,y,z)=>.5*(2*w+(-u+y)*t+(2*u-5*w+4*y-z)*t2+(-u+3*w-3*y+z)*t3);emit(f(a[0],b[0],c[0],d[0]),f(a[1],b[1],c[1],d[1]),f(a[2],b[2],c[2],d[2]))}}
 // StreamLine adaptativo: más suavizado en trazos lentos, menos en trazos rápidos
-function feed(e,x,y){if(st.shaped)return;const p=prs(e);st.tl=tilt(e);st.raw.push([x,y,p]);const rl=st.raw,sv=rl.length>1?Math.hypot(x-rl[rl.length-2][0],y-rl[rl.length-2][1])*v.s:0,N=1+Math.round(stab*14*(.4+.6/(1+sv/12))),a=st.raw.slice(-N);let sx=0,sy=0,sp=0,w=0;a.forEach((q,i)=>{const k=i+1;sx+=q[0]*k;sy+=q[1]*k;sp+=q[2]*k;w+=k});crDraw([sx/w,sy/w,sp/w]);if(Math.hypot(x-st.ax,y-st.ay)*v.s>4){st.ax=x;st.ay=y;clearTimeout(st.tm);st.tm=setTimeout(quick,500)}}
-// QuickShape (mantener quieto) y asistencia de curva al soltar
+/* =====================================================================
+   MOTOR DE ESTABILIZACIÓN (equivalente a Procreate · Brush Studio › Estabilización)
+   Cada muestra del Apple Pencil pasa por esta cadena, en píxeles de PANTALLA
+   (así el efecto se nota igual con cualquier zoom):
+   1) Filtro de movimiento: filtro One-Euro que elimina el temblor fino de la mano.
+      «Expresión» devuelve parte del movimiento natural.
+   2) Estabilización: media ponderada en una ventana de tiempo. Cuanto más rápido
+      se dibuja, más tramo abarca la ventana → más corrección (como Procreate).
+      Una pequeña «cuerda» inicial absorbe la sacudida al apoyar el lápiz.
+   3) StreamLine: retardador elástico (muelle). El trazo persigue al lápiz con
+      retraso suave y sigue tirando aunque el lápiz se pare; al levantar,
+      la línea alcanza el final sin picos. «Presión» suaviza también la presión.
+   4) Catmull-Rom: une los puntos con una curva continua.
+   Al soltar se elimina el «gancho» final (la sacudida típica al levantar).
+   ===================================================================== */
+class OneEuro{constructor(mc,beta){this.mc=mc;this.b=beta;this.x=null;this.dx=0;this.t=0}
+ al(c,dt){const r=2*Math.PI*c*dt;return r/(r+1)}
+ f(x,t){if(this.x===null){this.x=x;this.t=t;return x}const dt=Math.max(.001,(t-this.t)/1000);this.t=t;const d=(x-this.x)/dt;this.dx+=this.al(1,dt)*(d-this.dx);this.x+=this.al(this.mc+this.b*Math.abs(this.dx),dt)*(x-this.x);return this.x}}
+const TS=e=>{const t=e.timeStamp,n=performance.now();return t>0&&Math.abs(n-t)<3000?t:n};
+const SP=()=>B[bi];
+function engStart(x,y,p,t){st.f1=new OneEuro(1,.006);st.f2=new OneEuro(1,.006);st.f1.f(x,t);st.f2.f(y,t);st.rope=[x,y];st.buf=[[x,y,p,t]];st.Bp=[x,y];st.pp=p;st.t=t;st.H=[[x,y,p,t]];st.lA=null;st.raf=requestAnimationFrame(engTick)}
+function engIn(x,y,p,t){const P=SP();
+ if(P.mf>0){const mc=.5+Math.pow(1-P.mf,2)*24;st.f1.mc=st.f2.mc=mc;const fx=st.f1.f(x,t),fy=st.f2.f(y,t);x=fx+(x-fx)*P.mfe;y=fy+(y-fy)*P.mfe}
+ const R=P.stb*8,dx=x-st.rope[0],dy=y-st.rope[1],d=Math.hypot(dx,dy);if(d>R){st.rope[0]+=dx*(d-R)/d;st.rope[1]+=dy*(d-R)/d}
+ st.buf.push([st.rope[0],st.rope[1],p,t]);st.H.push([x,y,p,t]);engStep(t)}
+function engA(t){const Wm=SP().stb*140,b=st.buf;while(b.length>1&&t-b[0][3]>Wm)b.shift();if(Wm<1)return b[b.length-1];
+ let sx=0,sy=0,sp=0,sw=0;for(const q of b){const w=Math.max(.05,1-(t-q[3])/Wm);sx+=q[0]*w;sy+=q[1]*w;sp+=q[2]*w;sw+=w}return[sx/sw,sy/sw,sp/sw]}
+// StreamLine por DISTANCIA (como Procreate): el retraso queda acotado a unos píxeles sin importar la velocidad;
+// si paras el lápiz, la línea termina de alcanzarlo suavemente.
+function engMove(a,dt,ds){const P=SP(),lam=Math.pow(P.sl,1.6)*70,ti=60+P.sl*420,k=lam<.5?1:1-Math.exp(-(ds/lam+dt/ti)),tp=P.slp*200,kp=tp<1?1:1-Math.exp(-dt/tp);
+ st.pp+=(a[2]-st.pp)*kp;const nx=st.Bp[0]+(a[0]-st.Bp[0])*k,ny=st.Bp[1]+(a[1]-st.Bp[1])*k;if(Math.hypot(nx-st.Bp[0],ny-st.Bp[1])<.2)return false;
+ st.Bp=[nx,ny];const q=toXY(nx,ny);crDraw([q.x,q.y,st.pp]);return true}
+function engStep(t){const dt=Math.min(40,t-st.t);if(dt<=0)return;st.t=t;const a=engA(t),l=st.lA||a,ds=Math.hypot(a[0]-l[0],a[1]-l[1]);st.lA=a;engMove(a,dt,ds)}
+function engTick(){if(!st||st.shaped||!st.buf)return;engStep(performance.now());st.raf=requestAnimationFrame(engTick)}
+function trimHook(H){const n=H.length;if(n<6)return null;const e=H[n-1];let j=n-1,L=0;while(j>0&&L<10){L+=Math.hypot(H[j][0]-H[j-1][0],H[j][1]-H[j-1][1]);j--}
+ let k=j,L2=0;while(k>0&&L2<24){L2+=Math.hypot(H[k][0]-H[k-1][0],H[k][1]-H[k-1][1]);k--}if(j<1||L2<8)return null;
+ const a1=Math.atan2(H[j][1]-H[k][1],H[j][0]-H[k][0]),a2=Math.atan2(e[1]-H[j][1],e[0]-H[j][0]);let da=Math.abs(a2-a1);if(da>Math.PI)da=2*Math.PI-da;
+ return da>1.1&&e[3]-H[j][3]<70?j:null}
+// Al levantar: se descarta el gancho final y la línea alcanza el punto donde acabó el lápiz
+function engEnd(){if(!st.buf)return;cancelAnimationFrame(st.raf);const H=st.H,ei=trimHook(H)??H.length-1,e=H[ei],a=[e[0],e[1],st.pp];
+ for(let i=0;i<200;i++){engMove(a,4,2);if(Math.hypot(st.Bp[0]-a[0],st.Bp[1]-a[1])<.6)break}
+ const q=toXY(a[0],a[1]);crDraw([q.x,q.y,st.pp]);crDraw([q.x,q.y,st.pp])}
+function feed(e,x,y){if(st.shaped)return;const p=prs(e);st.tl=tilt(e);const q=toXY(x,y);st.raw.push([q.x,q.y,p]);engIn(x,y,p,TS(e));
+ if(Math.hypot(x-st.ax,y-st.ay)>4){st.ax=x;st.ay=y;clearTimeout(st.tm);st.tm=setTimeout(quick,500)}}
 function quick(sg){const sr=sg===1;if(!st||st.shaped||!(sr?assistOn:qsOn)||tool!='draw'||mod!='ipad'||st.raw.length<8)return;const P=st.raw,n=P.length,x0=P[0][0],y0=P[0][1],x1=P[n-1][0],y1=P[n-1][1],Ld=Math.hypot(x1-x0,y1-y0);let pts=null;const dev=Math.max(...P.map(q=>Math.abs((x1-x0)*(y0-q[1])-(x0-q[0])*(y1-y0))/(Ld||1)));
  if(Ld>(sr?60:20)&&dev<(sr?Math.max(3,Ld*.02):Math.max(6,Ld*.05)))pts=[[x0,y0],[x1,y1]];
  else{let mx=0,my=0;P.forEach(q=>{mx+=q[0];my+=q[1]});mx/=n;my/=n;let a=0,b=0,c=0,d=0,e2=0,f=0,g2=0;P.forEach(q=>{const u=q[0]-mx,w=q[1]-my;a+=u*u;b+=w*w;c+=u*w;d+=u*u*u;e2+=w*w*w;f+=u*w*w;g2+=w*u*u});const det=a*b-c*c;
   if(Math.abs(det)>1e-6){const r1=.5*(d+f),r2=.5*(e2+g2),uc=(r1*b-r2*c)/det,vc=(a*r2-c*r1)/det,Rc=Math.sqrt(uc*uc+vc*vc+(a+b)/n),cx=mx+uc,cy=my+vc,err=Math.sqrt(P.reduce((s,q)=>s+(Math.hypot(q[0]-cx,q[1]-cy)-Rc)**2,0)/n);
    if(Rc>15&&Rc<3000&&err<Rc*(sr?.045:.12)){let sw=0,pa=Math.atan2(y0-cy,x0-cx);const a0=pa;P.forEach(q=>{const an=Math.atan2(q[1]-cy,q[0]-cx);let dd=an-pa;while(dd>Math.PI)dd-=6.2832;while(dd<-Math.PI)dd+=6.2832;sw+=dd;pa=an});if(Math.abs(sw)>5.3)sw=sw>0?6.2832:-6.2832;if(sr&&Math.abs(sw)<1.2)return;pts=[];for(let i=0;i<=96;i++){const t=a0+sw*i/96;pts.push([cx+Rc*Math.cos(t),cy+Rc*Math.sin(t)])}}}}
  if(!pts)return;const pm=P.reduce((s,q)=>s+q[2],0)/n,s={r:null,lx:pts[0][0],ly:pts[0][1],lp:pm,rem:0,first:1},bb=curB();tx.clearRect(0,0,W,H);pts.forEach(q=>seg(tx,bb,s,q[0],q[1],pm,size,bb.c||color,1,0));st.shaped=1}
-function endStroke(){if(!st)return;clearTimeout(st.tm);if(!st.shaped&&tool=='draw')quick(1);if(!st.shaped){const q=st.raw[st.raw.length-1];crDraw(q);crDraw(q)}if(tool!='erase'){const L=layers[act];L.x.globalAlpha=op;L.x.drawImage(tmp,0,0);L.x.globalAlpha=1;tx.clearRect(0,0,W,H)}st=null}
+function endStroke(){if(!st)return;clearTimeout(st.tm);cancelAnimationFrame(st.raf);if(!st.shaped&&tool=='draw')quick(1);if(!st.shaped)engEnd();if(tool!='erase'){const L=layers[act];L.x.globalAlpha=op;L.x.drawImage(tmp,0,0);L.x.globalAlpha=1;tx.clearRect(0,0,W,H)}st=null}
 
 /* ===== mover / escalar / texto en el lienzo ===== */
 function objDown(e){const[sx,sy]=loc(e),p=toDoc(e),L=layers[act];
@@ -434,7 +506,7 @@ stage.onpointermove=e=>{if(tp.has(e.pointerId)){tp.set(e.pointerId,e);if(g){move
  if(od&&od.id==e.pointerId){objMove(e);return}
  if(ps){const[a,b]=loc(e);setView(ps.p,a,b,v.s,v.r)}
  else if(selS){const p=toDoc(e),x=Math.max(0,Math.min(selS.x,p.x)),y=Math.max(0,Math.min(selS.y,p.y));sel={x:Math.round(x),y:Math.round(y),w:Math.round(Math.min(W,Math.max(selS.x,p.x))-x),h:Math.round(Math.min(H,Math.max(selS.y,p.y))-y)};Object.assign(sbox.style,{display:'block',left:sel.x+'px',top:sel.y+'px',width:sel.w+'px',height:sel.h+'px'})}
- else if(st&&st.id==e.pointerId){(e.getCoalescedEvents?e.getCoalescedEvents():[e]).forEach(ev=>{const p=toDoc(ev);feed(ev,p.x,p.y)})}};
+ else if(st&&st.id==e.pointerId){(e.getCoalescedEvents&&e.getCoalescedEvents().length?e.getCoalescedEvents():[e]).forEach(ev=>{const[x,y]=loc(ev);feed(ev,x,y)})}};
 const up=e=>{tp.delete(e.pointerId);if(!tp.size)g=null;else if(g)startG();if(st&&st.id==e.pointerId)endStroke();if(od&&od.id==e.pointerId){od=null;refreshPop()}ps=null;if(selS){selS=null;if(sel&&(sel.w<3||sel.h<3)){sel=null;sbox.style.display='none'}}};
 stage.onpointerup=stage.onpointercancel=up;
 stage.addEventListener('wheel',e=>{e.preventDefault();const[a,b]=loc(e);setView(toXY(a,b),a,b,e.shiftKey?v.s:v.s*Math.exp(-e.deltaY*.0015),e.shiftKey?v.r+e.deltaY*.002:v.r)},{passive:false});
@@ -470,13 +542,22 @@ function pop(n){const p=$('#pop');p.onclick=p.oninput=p.onchange=null;if(cur==n)
 function refreshPop(){if(cur=='layers'&&!$('#pop').hidden)pLayers($('#pop'))}
 $$('[data-p]').forEach(b=>b.onclick=()=>{if(b.dataset.p=='brush'&&tool!='draw')setTool('draw');pop(b.dataset.p)});
 function prev(cv,b){const c=cv.getContext('2d');c.clearRect(0,0,cv.width,cv.height);const s={lx:8,ly:20,lp:.2,rem:0,first:1},z=Math.min(b.s,24);for(let i=1;i<=40;i++){const t=i/40;seg(c,b,s,8+t*(cv.width-16),20+Math.sin(t*6.28)*7,Math.sin(t*3.14)*.9+.1,z,b.c||'#e5e5e5',1,0)}c.globalAlpha=1}
-function pBrush(p){
- p.innerHTML=`<b id="bn"></b><label>Grosor mínimo<input id="s1" type="range" min="0" max="100"></label><label>Flujo<input id="s2" type="range" min="5" max="100"></label><label>Espaciado<input id="s3" type="range" min="2" max="100"></label><label>StreamLine <span id="sv"></span><input id="s4" type="range" min="0" max="100"></label><label class="ck"><input id="s5" type="checkbox">Sensible a presión</label><label class="ck"><input id="s6" type="checkbox" ${qsOn?'checked':''}>QuickShape: mantén quieto 0,5 s</label><label class="ck"><input id="s7" type="checkbox" ${assistOn?'checked':''}>Asistencia de curva al soltar</label><div class="row">${[0,25,55,85,100].map(n=>`<button data-st="${n}">${n}%</button>`).join('')}</div><hr>`+
+const EST=[['Sin ayuda',0,0,0,0,0],['Suave',30,10,8,10,0],['Procreate',69,16,18,16,0],['Entintado',85,20,30,25,0],['Máximo',100,40,60,50,0]];
+function pBrush(p){const sl=(id,t,mn,mx,h)=>`<label class="sl2"><span>${t} <b id="o-${id}"></b></span><input id="${id}" type="range" min="${mn}" max="${mx}"></label>${h?`<div class="hint">${h}</div>`:''}`;
+ p.innerHTML=`<b id="bn"></b>
+ <div class="stit">StreamLine</div>${sl('e1','Cantidad',0,100,'Retardo elástico: alisa la curva mientras dibujas aunque la mano tiemble.')}${sl('e2','Presión',0,100,'Suaviza también los cambios bruscos de presión.')}
+ <div class="stit">Estabilización</div>${sl('e3','Cantidad',0,100,'Corrige más cuanto más rápido dibujas y quita la sacudida al empezar.')}
+ <div class="stit">Filtro de movimiento</div>${sl('e4','Cantidad',0,100,'Elimina el temblor fino de la mano.')}${sl('e5','Expresión',0,100,'Devuelve parte del movimiento natural del pulso.')}
+ <div class="row">${EST.map((e,i)=>`<button data-pre="${i}">${e[0]}</button>`).join('')}</div>
+ <div class="stit">Forma del trazo</div>${sl('s1','Grosor mínimo',0,100)}${sl('s2','Flujo',5,100)}${sl('s3','Espaciado',2,100)}
+ <label class="ck"><input id="s5" type="checkbox">Sensible a la presión</label><label class="ck"><input id="s6" type="checkbox" ${qsOn?'checked':''}>QuickShape: mantén quieto 0,5 s para línea o círculo perfecto</label><label class="ck"><input id="s7" type="checkbox" ${assistOn?'checked':''}>Convertir en recta o arco al soltar</label><hr>`+
  F.map((f,fi)=>`<details ${B[bi].f==fi?'open':''}><summary>${f}</summary>${B.map((b,i)=>b.f==fi?`<div class="bi" data-i="${i}"><span>${b.n}</span><canvas width="130" height="38"></canvas></div>`:'').join('')}</details>`).join('');
  $$('#pop .bi').forEach(d=>prev(d.querySelector('canvas'),B[d.dataset.i]));
- const stud=()=>{const b=B[bi];$('#bn').textContent='Brush Studio · '+b.n+' ('+B.length+' pinceles)';$('#s1').value=b.mn*100;$('#s2').value=b.fl*100;$('#s3').value=b.sp*100;$('#s4').value=stab*100;$('#sv').textContent=Math.round(stab*100)+'%';$('#s5').checked=!!b.pr;$$('#pop .bi').forEach(d=>d.classList.toggle('sel',d.dataset.i==bi))};stud();
- p.onclick=e=>{const sp2=e.target.dataset.st;if(sp2!=null){stab=sp2/100;B[bi].st=stab;stud();return}const d=e.target.closest('.bi');if(!d)return;bi=+d.dataset.i;setTool('draw');size=B[bi].s;$('#vsz').value=size;stab=B[bi].st;stud()};
- p.oninput=e=>{const b=B[bi],i=e.target.id;if(i=='s1')b.mn=e.target.value/100;if(i=='s2')b.fl=e.target.value/100;if(i=='s3')b.sp=e.target.value/100;if(i=='s4'){stab=e.target.value/100;b.st=stab;$('#sv').textContent=e.target.value+'%'}if(i=='s5')b.pr=e.target.checked?1:0;if(i=='s6')qsOn=e.target.checked;if(i=='s7')assistOn=e.target.checked;const cv=$(`#pop .bi[data-i="${bi}"] canvas`);if(cv)prev(cv,b)}}
+ const K={e1:'sl',e2:'slp',e3:'stb',e4:'mf',e5:'mfe',s1:'mn',s2:'fl',s3:'sp'};
+ const stud=()=>{const b=B[bi];$('#bn').textContent='Brush Studio · '+b.n;for(const id in K){$('#'+id).value=Math.round(b[K[id]]*100);$('#o-'+id).textContent=Math.round(b[K[id]]*100)+'%'}$('#s5').checked=!!b.pr;$$('#pop .bi').forEach(d=>d.classList.toggle('sel',d.dataset.i==bi))};stud();
+ p.onclick=e=>{const pr=e.target.dataset.pre;if(pr!=null){const v=EST[pr],b=B[bi];['sl','slp','stb','mf','mfe'].forEach((k,i)=>b[k]=v[i+1]/100);stud();toast('Estabilización «'+v[0]+'» aplicada a '+b.n);return}
+  const d=e.target.closest('.bi');if(!d)return;bi=+d.dataset.i;setTool('draw');size=B[bi].s;$('#vsz').value=size;stud()};
+ p.oninput=e=>{const b=B[bi],i=e.target.id;if(K[i]){b[K[i]]=e.target.value/100;$('#o-'+i).textContent=e.target.value+'%'}if(i=='s5')b.pr=e.target.checked?1:0;if(i=='s6')qsOn=e.target.checked;if(i=='s7')assistOn=e.target.checked;const cv=$(`#pop .bi[data-i="${bi}"] canvas`);if(cv)prev(cv,b)}}
 function pLayers(p){const L=layers[act];const ic=l=>l.txt?'T ':l.obj?'▣ ':'';
  p.innerHTML='<div class="row"><button data-a="new">+ Capa</button><label class="fb" style="flex:1;text-align:center">Importar imagen<input type="file" id="lf" accept="image/*" hidden></label></div>'+[...layers].map((_,k)=>{const i=layers.length-1-k,l=layers[i];return`<div class="li ${i==act?'sel':''}" data-i="${i}"><button data-a="eye">${l.vis?'◉':'○'}</button><span data-a="sel">${ic(l)}${l.n.replace(/</g,'&lt;')}</span><button data-a="up">↑</button><button data-a="dn">↓</button><button data-a="del">×</button></div>`}).join('')+`<label>Opacidad<input id="lo" type="range" min="0" max="100" value="${L.op*100}"></label><label>Fusión<select id="lb">${['normal','multiply','screen','overlay','darken','lighten'].map(m=>`<option ${m==L.bl?'selected':''}>${m}</option>`).join('')}</select></label><p class="mu">▣ = imagen transformable sin pérdida · T = texto editable</p>`;
  p.onclick=e=>{const a=e.target.dataset.a,li=e.target.closest('.li');if(!a)return;if(a=='new')addLayer('Capa '+(layers.length+1));else{const i=+li.dataset.i,M=layers[i];if(a=='eye')M.vis=!M.vis;if(a=='sel')act=i;if(a=='up'&&i<layers.length-1){[layers[i],layers[i+1]]=[layers[i+1],layers[i]];if(act==i)act=i+1;else if(act==i+1)act=i}if(a=='dn'&&i>0){[layers[i],layers[i-1]]=[layers[i-1],layers[i]];if(act==i)act=i-1;else if(act==i-1)act=i}if(a=='del'&&layers.length>1){M.c.remove();layers.splice(i,1);act=Math.min(act,layers.length-1)}}
@@ -551,50 +632,113 @@ function boardTools(b,el){el.innerHTML='<button data-b="fit" title="Ajustar vist
   if(a=='r90'){b.o.r=snapAng(b.o.r+Math.PI/2);b.draw()}if(a=='c'){if(b.art.m!='fit'){b.o.cx=b.art.w/2;b.o.cy=b.art.h/2}b.fit()}if(a=='reset'){b.placeIn();b.fit()}}}
 const SHEETS={a4:[1240,1754],a5:[874,1240],carta:[1275,1650],sq:[2000,2000]};
 
-/* ===== Transfer Tattoo ===== */
-let tS=null,tG=null,tq=0;const tOut=document.createElement('canvas');
+/* ===== Utilidades de procesado de imagen ===== */
+const clamp01=x=>x<0?0:x>1?1:x;
+function boxBlur(a,w,h,r){const t=new Float32Array(a.length),o=new Float32Array(a.length),d=2*r+1;
+ for(let y=0;y<h;y++){const R=y*w;let s=0;for(let x=-r;x<=r;x++)s+=a[R+(x<0?0:x>=w?w-1:x)];for(let x=0;x<w;x++){t[R+x]=s/d;const xa=x+r+1,xr=x-r;s+=a[R+(xa>=w?w-1:xa)]-a[R+(xr<0?0:xr)]}}
+ for(let x=0;x<w;x++){let s=0;for(let y=-r;y<=r;y++)s+=t[(y<0?0:y>=h?h-1:y)*w+x];for(let y=0;y<h;y++){o[y*w+x]=s/d;const ya=y+r+1,yr=y-r;s+=t[(ya>=h?h-1:ya)*w+x]-t[(yr<0?0:yr)*w+x]}}
+ return o}
+// Desenfoque gaussiano aproximado (3 pasadas de caja)
+function gauss(a,w,h,sig){if(sig<.4)return a;const r=Math.max(1,Math.round((Math.sqrt(4*sig*sig+1)-1)/2));let o=a;for(let k=0;k<3;k++)o=boxBlur(o,w,h,r);return o}
+// Distancia (px) de cada píxel al conjunto marcado (chamfer, aproximación euclídea)
+function distTo(m,w,h){const I=1e9,d=new Float32Array(w*h),S=1.4142;for(let i=0;i<w*h;i++)d[i]=m[i]?0:I;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;let v=d[i];if(!v)continue;if(x>0&&d[i-1]+1<v)v=d[i-1]+1;if(y>0){if(d[i-w]+1<v)v=d[i-w]+1;if(x>0&&d[i-w-1]+S<v)v=d[i-w-1]+S;if(x<w-1&&d[i-w+1]+S<v)v=d[i-w+1]+S}d[i]=v}
+ for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){const i=y*w+x;let v=d[i];if(!v)continue;if(x<w-1&&d[i+1]+1<v)v=d[i+1]+1;if(y<h-1){if(d[i+w]+1<v)v=d[i+w]+1;if(x<w-1&&d[i+w+1]+S<v)v=d[i+w+1]+S;if(x>0&&d[i+w-1]+S<v)v=d[i+w-1]+S}d[i]=v}
+ return d}
+function busy(el,on){$(el).textContent=on?'Procesando…':''}
+function later(fn,el,ms=90){let t=0;return()=>{clearTimeout(t);busy(el,1);t=setTimeout(()=>{fn();busy(el,0)},ms)}}
+
+/* ===== Transfer Tattoo: Blackwork (solo líneas) y Realismo (sombras y tonos) ===== */
+let tS=null,tG=null,tMode='black';const tOut=document.createElement('canvas');
 const tb=new Board($('#tview'),{paper:true});tb.setArt('fixed',...SHEETS.a4);boardTools(tb,$('#tbt'));
-function blur(a,w,h){const o=new Float32Array(a.length);for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,n=0;for(let j=-1;j<2;j++)for(let i=-1;i<2;i++){const X=x+i,Y=y+j;if(X>=0&&Y>=0&&X<w&&Y<h){s+=a[Y*w+X];n++}}o[y*w+x]=s/n}return o}
-function tLoad(img){tS=toCanvas(img,1600);const w=tS.width,h=tS.height,d=tS.getContext('2d').getImageData(0,0,w,h).data,a=new Float32Array(w*h);
- for(let i=0;i<w*h;i++){const l=.299*d[4*i]+.587*d[4*i+1]+.114*d[4*i+2],al=d[4*i+3]/255;a[i]=255-(255-l)*al}
- tG={g:blur(a,w,h),w,h};tOut.width=w;tOut.height=h;tRun();tb.under=tS;tb.setSrc(tOut);tb.o.fx=$('#tmir').checked?1:0;tb.draw()}
-function tRun(){if(!tG)return;const{g,w,h}=tG,T=170-$('#t1').value*1.6,S=60+$('#t2').value*1.6,G=+$('#t3').value,m=new Uint8Array(w*h);
- for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(x>0&&y>0&&x<w-1&&y<h-1){const gx=g[i-w+1]+2*g[i+1]+g[i+w+1]-g[i-w-1]-2*g[i-1]-g[i+w-1],gy=g[i+w-1]+2*g[i+w]+g[i+w+1]-g[i-w-1]-2*g[i-w]-g[i-w+1];if(Math.hypot(gx,gy)/4>T)m[i]=1}
-  const l=g[i];if(l<S*.35){if(((x-y)%4+4)%4==0)m[i]=1}else if(l<S){if(((x-y)%7+7)%7==0&&Math.floor(y/6)%2==0)m[i]=1}}
- let o=m;for(let k=0;k<G;k++){const n=new Uint8Array(w*h);for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;if(o[i]||o[i-1]||o[i+1]||o[i-w]||o[i+w]||o[i-w-1]||o[i-w+1]||o[i+w-1]||o[i+w+1])n[i]=1}o=n}
- const c=tOut.getContext('2d'),im=c.createImageData(w,h);for(let i=0;i<w*h;i++)if(o[i])im.data[4*i+3]=255;c.putImageData(im,0,0);tb.refresh()}
+const tCache=(k,f)=>tG.ck[k]||(tG.ck[k]=f());
+function tLoad(img){tS=toCanvas(img,1600);const w=tS.width,h=tS.height,d=tS.getContext('2d').getImageData(0,0,w,h).data,n=w*h,R=new Float32Array(n),G=new Float32Array(n),Bc=new Float32Array(n),L=new Float32Array(n);
+ for(let i=0;i<n;i++){const al=d[4*i+3]/255,r=255-(255-d[4*i])*al,g=255-(255-d[4*i+1])*al,b=255-(255-d[4*i+2])*al;R[i]=r;G[i]=g;Bc[i]=b;L[i]=.299*r+.587*g+.114*b}
+ tG={w,h,R,G,B:Bc,L,ck:{}};tOut.width=w;tOut.height=h;tRun();tb.under=tS;tb.setSrc(tOut);tb.o.fx=$('#tmir').checked?1:0;tb.draw()}
+// Realismo: escala de grises con contraste inteligente, volumen local, mapa tonal y trazo de lápiz
+function tReal(){const{w,h,L}=tG,n=w*h,ct=$('#r1').value/100,lc=$('#r2').value/100,lv=+$('#r3').value,ln=$('#r4').value/100,br=$('#r5').value/100,sh=$('#r6').value/100;
+ let g=L;if(lc>0){const m=tCache('m',()=>gauss(L,w,h,Math.max(8,Math.max(w,h)/28)));g=new Float32Array(n);for(let i=0;i<n;i++)g[i]=L[i]+(L[i]-m[i])*lc*1.6}
+ const hist=new Uint32Array(256);for(let i=0;i<n;i++){const v=g[i];hist[v<0?0:v>255?255:v|0]++}
+ let lo=0,hi=255,acc=0;for(let i=0;i<256;i++){acc+=hist[i];if(acc>n*.01){lo=i;break}}acc=0;for(let i=255;i>=0;i--){acc+=hist[i];if(acc>n*.01){hi=i;break}}if(hi-lo<12){lo=0;hi=255}
+ const k=1+ct*9,sg=x=>1/(1+Math.exp(-k*(x-.5))),s0=sg(0),s1=sg(1),LUT=new Float32Array(1025);for(let i=0;i<=1024;i++)LUT[i]=(sg(i/1024)-s0)/(s1-s0);
+ let t=new Float32Array(n);for(let i=0;i<n;i++)t[i]=LUT[Math.round(clamp01((g[i]-lo)/(hi-lo)+br)*1024)];
+ if(sh>0){const b=gauss(t,w,h,1.6);for(let i=0;i<n;i++)t[i]+=(t[i]-b[i])*sh*2.2}
+ if(lv>=2){const b=gauss(t,w,h,1.2),N=lv-1;for(let i=0;i<n;i++){const x=clamp01(b[i])*N,q=Math.floor(x),fr=x-q;t[i]=Math.min(1,(q+(fr<.42?0:fr>.58?1:(fr-.42)/.16))/N)}}
+ if(ln>0){const inv=tCache('inv',()=>{const a=new Float32Array(n);for(let i=0;i<n;i++)a[i]=255-L[i];return gauss(a,w,h,2.5)});
+  for(let i=0;i<n;i++){const s=Math.min(1,L[i]/Math.max(1,255-inv[i]));t[i]*=1-ln+ln*Math.pow(s,1+ln*4)}}
+ const a=new Uint8ClampedArray(n);for(let i=0;i<n;i++)a[i]=255-255*clamp01(t[i]);return a}
+// Blackwork: bordes de color (Canny sobre R,G,B) → contornos limpios, sin rellenos ni tonos
+function tBlack(){const{w,h}=tG,n=w*h,det=$('#b1').value/100,simp=+$('#b2').value,gr=+$('#b3').value,mot=+$('#b4').value,shd=$('#bsh').checked,N8=[-w-1,-w,-w+1,-1,1,w-1,w,w+1];
+ const[mag,dir]=tCache('md'+simp,()=>{const sig=.5+simp*.45,ch=[gauss(tG.R,w,h,sig),gauss(tG.G,w,h,sig),gauss(tG.B,w,h,sig)],mag=new Float32Array(n),dir=new Uint8Array(n);
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;let bm=0,bx=0,by=0;for(const g of ch){const gx=g[i-w+1]+2*g[i+1]+g[i+w+1]-g[i-w-1]-2*g[i-1]-g[i+w-1],gy=g[i+w-1]+2*g[i+w]+g[i+w+1]-g[i-w-1]-2*g[i-w]-g[i-w+1],m=gx*gx+gy*gy;if(m>bm){bm=m;bx=gx;by=gy}}
+   mag[i]=Math.sqrt(bm)/4;let an=Math.atan2(by,bx);if(an<0)an+=Math.PI;dir[i]=an<.3927||an>=2.7489?0:an<1.1781?1:an<1.9635?2:3}
+  return[mag,dir]});
+ const hiT=8+(1-det)*90,loT=hiT*.45,E=new Uint8Array(n),stk=[];
+ for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x,m=mag[i];if(m<loT)continue;const d=dir[i],o=d==0?1:d==1?w+1:d==2?w:w-1;if(m>=mag[i-o]&&m>mag[i+o]){if(m>=hiT){E[i]=2;stk.push(i)}else E[i]=1}}
+ while(stk.length){const i=stk.pop();for(const o of N8){const j=i+o;if(E[j]==1){E[j]=2;stk.push(j)}}}
+ if(mot>0){const seen=new Uint8Array(n);for(let i=0;i<n;i++){if(E[i]!=2||seen[i])continue;const comp=[i];seen[i]=1;for(let c=0;c<comp.length;c++){for(const o of N8){const j=comp[c]+o;if(j>=0&&j<n&&E[j]==2&&!seen[j]){seen[j]=1;comp.push(j)}}}if(comp.length<mot)for(const j of comp)E[j]=0}}
+ const P=new Uint8Array(n);for(let i=0;i<n;i++)P[i]=E[i]==2?1:0;
+ if(shd){const g=tCache('gl',()=>gauss(tG.L,w,h,1.5));for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x,l=g[i];if(l<70){if(((x-y)%5+5)%5==0&&Math.floor(y/4)%2==0)P[i]=1}else if(l<150){if(((x-y)%8+8)%8==0&&Math.floor(y/6)%2==0)P[i]=1}}}
+ const D=distTo(P,w,h),hw=(1+gr*.75)/2+.5;let a=new Float32Array(n);for(let i=0;i<n;i++)a[i]=clamp01(hw-D[i]);if(gr>=1)a=gauss(a,w,h,.5);
+ const out=new Uint8ClampedArray(n);for(let i=0;i<n;i++)out[i]=Math.min(255,a[i]*420);return out}
+function tRun(){if(!tG)return;const a=tMode=='real'?tReal():tBlack(),{w,h}=tG,c=tOut.getContext('2d'),im=c.createImageData(w,h);for(let i=0;i<w*h;i++)im.data[4*i+3]=a[i];c.putImageData(im,0,0);tb.refresh()}
+const tSched=later(tRun,'#tbusy');
+function tSetMode(m){tMode=m;$('#tm-black').classList.toggle('on',m=='black');$('#tm-real').classList.toggle('on',m=='real');$('#tc-black').hidden=m!='black';$('#tc-real').hidden=m!='real';if(tG)tSched()}
+$('#tm-black').onclick=()=>tSetMode('black');$('#tm-real').onclick=()=>tSetMode('real');
 pick($('#tfile'),tLoad);
 $('#tcan').onclick=()=>{if(!dk)return;tLoad(flat(true))};
-['t1','t2','t3'].forEach(i=>$('#'+i).oninput=()=>{cancelAnimationFrame(tq);tq=requestAnimationFrame(tRun)});
+['b1','b2','b3','b4','bsh','r1','r2','r3','r4','r5','r6'].forEach(i=>$('#'+i)[i=='bsh'?'onchange':'oninput']=()=>{if(tG)tSched()});
 $('#tua').oninput=e=>{tb.ua=e.target.value/100;tb.draw()};
 $('#tmir').onchange=()=>{if(tb.o){tb.o.fx=$('#tmir').checked?1:0;tb.draw()}};
 $('#tart').onchange=e=>{const k=e.target.value;k=='fit'?tb.setArt('fit'):tb.setArt('fixed',...SHEETS[k])};
 $('#tsend').onclick=()=>{if(!tb.o)return toast('Sube primero una foto');putImg(tb.export(false),'Calco')};
-$('#tdl').onclick=()=>{if(!tb.o)return toast('Sube primero una foto');dl(tb.export(true),'calco-'+stamp()+'.png',true)};
+$('#tdl').onclick=()=>{if(!tb.o)return toast('Sube primero una foto');dl(tb.export(true),'calco-'+tMode+'-'+stamp()+'.png',true)};
 
-/* ===== Quitafondos (clics múltiples para borrar tonos) ===== */
-let qO=null,qT=[],qq=0;const qRes=document.createElement('canvas');
+/* ===== Quitafondos: clics múltiples + suavizado, calado, desplazar borde, limpieza de halo y perfilado ===== */
+let qO=null,qT=[],qPad=0;const qRes=document.createElement('canvas');
 const qb=new Board($('#qview'));boardTools(qb,$('#qbt'));
-function qPick(x,y){if(!qO)return;const j=4*(y*qO.width+x),s=qO.data;qT.push({c:[s[j],s[j+1],s[j+2]],seeds:$('#qcon').checked?[[x,y]]:null});qRun()}
+function qPick(x,y){if(!qO)return;x-=qPad;y-=qPad;if(x<0||y<0||x>=qO.width||y>=qO.height)return;const j=4*(y*qO.width+x),s=qO.data;qT.push({c:[s[j],s[j+1],s[j+2]],seeds:$('#qcon').checked?[[x,y]]:null});qSched()}
 function qMode(m){qb.pick=m=='pick'?qPick:null;$('#qm-pick').classList.toggle('on',m=='pick');$('#qm-move').classList.toggle('on',m!='pick');qb.c.style.cursor=m=='pick'?'crosshair':'default';qb.draw()}
-function qLoad(img){const c=toCanvas(img,2400);qO=c.getContext('2d').getImageData(0,0,c.width,c.height);qRes.width=c.width;qRes.height=c.height;qT=[];qAuto();qb.setSrc(qRes);qMode('pick')}
-function qAuto(){if(!qO)return;const{width:w,height:h,data:d}=qO,C=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]],px=C.map(([x,y])=>[d[4*(y*w+x)],d[4*(y*w+x)+1],d[4*(y*w+x)+2]]);
- qT=qT.filter(t=>!t.auto);qT.unshift({auto:1,c:[0,1,2].map(k=>px.map(p=>p[k]).sort((a,b)=>a-b)[1]),seeds:$('#qcon').checked?C:null});qRun()}
-function qRun(){if(!qO)return;const{width:w,height:h,data:s}=qO,n=w*h,tol=$('#q1').value*1.2,sf=$('#q2').value*1.2+.01,f=new Float32Array(n).fill(1),lim=tol+sf;
- const fac=d=>d<=tol?0:(d-tol)/sf;
+function qLoad(img){const c=toCanvas(img,2000);qO=c.getContext('2d').getImageData(0,0,c.width,c.height);qT=[];qAuto(true);qb.setSrc(qRes);qMode('pick')}
+function qAuto(now){if(!qO)return;const{width:w,height:h,data:d}=qO,C=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]],px=C.map(([x,y])=>[d[4*(y*w+x)],d[4*(y*w+x)+1],d[4*(y*w+x)+2]]);
+ qT=qT.filter(t=>!t.auto);qT.unshift({auto:1,c:[0,1,2].map(k=>px.map(p=>p[k]).sort((a,b)=>a-b)[1]),seeds:$('#qcon').checked?C:null});now===true?qRun():qSched()}
+// Máscara bruta: 1 = conservar, 0 = borrar (por distancia de color a cada tono elegido)
+function qMask(){const{width:w,height:h,data:s}=qO,n=w*h,tol=$('#q1').value*1.2,sf=tol*.25+6,lim=tol+sf,f=new Float32Array(n).fill(1),fac=d=>d<=tol?0:(d-tol)/sf;
  for(const T of qT){const[r,g,b]=T.c;
   if(!T.seeds){for(let i=0,j=0;i<n;i++,j+=4){const d=Math.hypot(s[j]-r,s[j+1]-g,s[j+2]-b)/1.732;if(d<lim){const k=fac(d);if(k<f[i])f[i]=k}}}
   else{const vis=new Uint8Array(n),stk=[];T.seeds.forEach(([x,y])=>{const i=y*w+x;if(!vis[i]){vis[i]=1;stk.push(i)}});
    while(stk.length){const i=stk.pop(),j=i*4,d=Math.hypot(s[j]-r,s[j+1]-g,s[j+2]-b)/1.732;if(d>=lim)continue;const k=fac(d);if(k<f[i])f[i]=k;const x=i%w;
     if(x>0&&!vis[i-1]){vis[i-1]=1;stk.push(i-1)}if(x<w-1&&!vis[i+1]){vis[i+1]=1;stk.push(i+1)}if(i>=w&&!vis[i-w]){vis[i-w]=1;stk.push(i-w)}if(i<n-w&&!vis[i+w]){vis[i+w]=1;stk.push(i+w)}}}}
- const out=new ImageData(new Uint8ClampedArray(s),w,h);for(let i=0;i<n;i++)out.data[i*4+3]=s[i*4+3]*f[i];qRes.getContext('2d').putImageData(out,0,0);qb.refresh();qChips()}
+ return f}
+function qRun(){if(!qO)return;const{width:w,height:h,data:s}=qO,n=w*h,f=qMask(),sm=+$('#qs').value,fe=+$('#qf').value,sh=+$('#qe').value,ol=$('#qol').checked,ow=+$('#qow').value,halo=$('#qhalo').checked&&qT.length;
+ let M=f;
+ // 1) Desplazar borde: expandir (+) o contraer (−) la silueta en píxeles
+ if(sh>0){const D=distTo(M.map(m=>m>=.5?1:0),w,h);M=M.map((m,i)=>Math.max(m,clamp01(sh-D[i]+.5)))}
+ else if(sh<0){const D=distTo(M.map(m=>m<.5?1:0),w,h);M=M.map((m,i)=>Math.min(m,clamp01(D[i]+sh+.5)))}
+ // 2) Suavizar silueta: quita dientes de sierra y deja un borde limpio con antialias
+ if(sm>0){M=gauss(M,w,h,sm*.7);for(let i=0;i<n;i++){const x=clamp01((M[i]-.32)/.36);M[i]=x*x*(3-2*x)}}
+ // 3) Calado: borde difuminado
+ if(fe>0)M=gauss(M,w,h,fe*.8);
+ // 4) Perfilado: contorno exterior redondeado, con el grosor y color elegidos
+ const pad=ol?Math.ceil(ow)+2:0,W2=w+pad*2,H2=h+pad*2,N2=W2*H2;let O=null;
+ if(ol){const ins=new Uint8Array(N2);for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(M[y*w+x]>=.5)ins[(y+pad)*W2+x+pad]=1;const D=distTo(ins,W2,H2);O=new Float32Array(N2);for(let i=0;i<N2;i++)O[i]=clamp01(ow-D[i]+.5)}
+ const oc=$('#qoc').value,OC=[1,3,5].map(k=>parseInt(oc.slice(k,k+2),16)),bg=halo?qT[0].c:null,out=new ImageData(W2,H2),d=out.data;
+ for(let y=0;y<H2;y++)for(let x=0;x<W2;x++){const I=y*W2+x,sx=x-pad,sy=y-pad;let r=0,g=0,b=0,aI=0;
+  if(sx>=0&&sy>=0&&sx<w&&sy<h){const i=sy*w+sx,j=i*4;r=s[j];g=s[j+1];b=s[j+2];aI=s[j+3]/255*M[i];
+   // 5) Limpiar halo: quita el color del fondo mezclado en los píxeles del borde
+   if(bg&&f[i]<1&&aI>0){const a=Math.max(.25,f[i]);r=(r-(1-a)*bg[0])/a;g=(g-(1-a)*bg[1])/a;b=(b-(1-a)*bg[2])/a}}
+  const aO=O?O[I]*(1-aI):0,A=aI+aO;if(A<=0)continue;d[I*4]=(r*aI+OC[0]*aO)/A;d[I*4+1]=(g*aI+OC[1]*aO)/A;d[I*4+2]=(b*aI+OC[2]*aO)/A;d[I*4+3]=A*255}
+ const o=qb.o&&qb.o.src===qRes?qb.o:null,w0=qRes.width,h0=qRes.height;
+ if(w0!=W2||h0!=H2){qRes.width=W2;qRes.height=H2;if(o&&w0&&h0){o.w*=W2/w0;o.h*=H2/h0}}
+ qPad=pad;qRes.getContext('2d').putImageData(out,0,0);qb.refresh();qChips()}
+const qSched=later(qRun,'#qbusy');
 function qChips(){$('#qtones').innerHTML=qT.length?qT.map((t,i)=>`<span class="chip"><i style="background:rgb(${t.c})"></i>${t.auto?'<span class="mu">fondo</span>':''}${t.seeds?'<span class="mu">◎</span>':''}<button data-k="${i}">×</button></span>`).join(''):'<span class="mu">ninguno · toca la imagen para borrar un tono</span>'}
-$('#qtones').onclick=e=>{const k=e.target.dataset.k;if(k==null)return;qT.splice(+k,1);qRun()};
+$('#qtones').onclick=e=>{const k=e.target.dataset.k;if(k==null)return;qT.splice(+k,1);qSched()};
 pick($('#qfile'),qLoad);
 $('#qcan').onclick=()=>{if(!dk)return;qLoad(flat(false))};
-$('#qauto').onclick=qAuto;$('#qundo').onclick=()=>{qT.pop();qRun()};$('#qclr').onclick=()=>{qT=[];qRun()};
+$('#qauto').onclick=qAuto;$('#qundo').onclick=()=>{qT.pop();qSched()};$('#qclr').onclick=()=>{qT=[];qSched()};
 $('#qm-pick').onclick=()=>qMode('pick');$('#qm-move').onclick=()=>qMode('move');
-['q1','q2'].forEach(i=>$('#'+i).oninput=()=>{cancelAnimationFrame(qq);qq=requestAnimationFrame(qRun)});
+['q1','qs','qf','qe','qow','qoc'].forEach(i=>$('#'+i).oninput=()=>{if(qO)qSched()});['qhalo','qol','qcon'].forEach(i=>$('#'+i).onchange=()=>{if(qO)qSched()});
 $('#qart').onchange=e=>{const k=e.target.value;k=='fit'?qb.setArt('fit'):qb.setArt('fixed',...SHEETS[k])};
 $('#qdl').onclick=()=>{if(!qb.o)return toast('Sube primero una imagen');dl(qb.export(false),'sin-fondo-'+stamp()+'.png',false)};
 $('#qins').onclick=()=>{if(!qb.o)return toast('Sube primero una imagen');putImg(qb.export(false),'Sin fondo')};
