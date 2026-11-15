@@ -592,6 +592,120 @@ def info_partidas(apodo):
     return r
 
 
+# --- TATTOOPRO: PROYECTOS GUARDADOS ONLINE (por usuario: mismo apodo + PIN que Secret Games) ---
+TPS_MAX_PROYECTO = 60 * 1024 * 1024   # 60 MB por proyecto (ya llega comprimido)
+TPS_MAX_POR_USUARIO = 200
+TPS_TIPOS = ('ipadart', 'mandala', 'geo')
+
+def init_tps_proyectos():
+    if USA_POSTGRES:
+        _ejecutar("create table if not exists tps_proyectos (id bigserial primary key, slug text not null, "
+                  "nombre text not null, tipo text not null, datos bytea not null, gz integer not null default 0, "
+                  "mini text, tam bigint not null default 0, guardado bigint not null)")
+    else:
+        _ejecutar("create table if not exists tps_proyectos (id integer primary key autoincrement, slug text not null, "
+                  "nombre text not null, tipo text not null, datos blob not null, gz integer not null default 0, "
+                  "mini text, tam integer not null default 0, guardado integer not null)")
+    _ejecutar("create index if not exists tps_proyectos_slug on tps_proyectos (slug)")
+
+try:
+    init_tps_proyectos()
+except Exception as e:
+    print(f"❌ Error iniciando la tabla de proyectos de TattooPro: {e}")
+
+def _tps_usuario(apodo):
+    """Comprueba apodo + PIN (cabecera X-Pin). Devuelve (slug, respuesta_error)."""
+    slug = _slug_apodo(apodo)
+    if len(slug) < 2:
+        return slug, (jsonify({'status': 'error', 'message': 'Usuario no válido'}), 400)
+    ok, codigo, msg = _comprobar_pin(slug, request.headers.get('X-Pin', ''))
+    if not ok:
+        return slug, (jsonify({'status': 'error', 'message': msg}), codigo)
+    return slug, None
+
+@app.route('/api/tps/proyectos/<apodo>', methods=['GET'])
+def tps_listar(apodo):
+    try:
+        slug, error = _tps_usuario(apodo)
+        if error:
+            return error
+        filas = _ejecutar("select id, nombre, tipo, mini, tam, guardado from tps_proyectos where slug = ? "
+                          "order by guardado desc", (slug,), todas=True) or []
+    except Exception as e:
+        return _error_servidor(e)
+    r = jsonify({'status': 'ok', 'proyectos': [{'id': f[0], 'nombre': f[1], 'tipo': f[2], 'mini': f[3] or '',
+                                                 'tam': f[4], 'guardado': f[5]} for f in filas]})
+    r.headers['Cache-Control'] = 'no-store'
+    return r
+
+@app.route('/api/tps/proyectos/<apodo>', methods=['POST'])
+def tps_guardar(apodo):
+    try:
+        slug, error = _tps_usuario(apodo)
+        if error:
+            return error
+        if request.content_length and request.content_length > TPS_MAX_PROYECTO + 1024 * 1024:
+            return jsonify({'status': 'error', 'message': 'El proyecto es demasiado grande para guardarlo online.'}), 413
+        nombre = re.sub(r'\s+', ' ', (request.form.get('nombre') or '').strip())[:60]
+        tipo = (request.form.get('tipo') or '').strip()
+        mini = (request.form.get('mini') or '')[:400000]
+        gz = 1 if request.form.get('gz') == '1' else 0
+        f = request.files.get('datos')
+        if not nombre or tipo not in TPS_TIPOS or not f:
+            return jsonify({'status': 'error', 'message': 'Faltan datos del proyecto.'}), 400
+        if mini and not mini.startswith('data:image/'):
+            mini = ''
+        datos = f.read(TPS_MAX_PROYECTO + 1)
+        if not datos or len(datos) > TPS_MAX_PROYECTO:
+            return jsonify({'status': 'error', 'message': 'El proyecto está vacío o es demasiado grande.'}), 413
+        ahora = int(time.time() * 1000)
+        binario = psycopg2.Binary(datos) if USA_POSTGRES else sqlite3.Binary(datos)
+        fila = _ejecutar("select id from tps_proyectos where slug = ? and nombre = ?", (slug, nombre), una=True)
+        if fila:
+            _ejecutar("update tps_proyectos set tipo = ?, datos = ?, gz = ?, mini = ?, tam = ?, guardado = ? where id = ?",
+                      (tipo, binario, gz, mini, len(datos), ahora, fila[0]))
+            pid, nuevo = fila[0], False
+        else:
+            total = _ejecutar("select count(*) from tps_proyectos where slug = ?", (slug,), una=True)[0]
+            if total >= TPS_MAX_POR_USUARIO:
+                return jsonify({'status': 'error', 'message': f'Has llegado al máximo de {TPS_MAX_POR_USUARIO} proyectos. Borra alguno.'}), 409
+            _ejecutar("insert into tps_proyectos (slug, nombre, tipo, datos, gz, mini, tam, guardado) values (?,?,?,?,?,?,?,?)",
+                      (slug, nombre, tipo, binario, gz, mini, len(datos), ahora))
+            pid = _ejecutar("select id from tps_proyectos where slug = ? and nombre = ?", (slug, nombre), una=True)[0]
+            nuevo = True
+    except Exception as e:
+        return _error_servidor(e)
+    return jsonify({'status': 'ok', 'id': pid, 'nuevo': nuevo, 'guardado': ahora})
+
+@app.route('/api/tps/proyecto/<apodo>/<int:pid>', methods=['GET'])
+def tps_abrir(apodo, pid):
+    try:
+        slug, error = _tps_usuario(apodo)
+        if error:
+            return error
+        fila = _ejecutar("select datos, gz from tps_proyectos where slug = ? and id = ?", (slug, pid), una=True)
+    except Exception as e:
+        return _error_servidor(e)
+    if not fila:
+        return jsonify({'status': 'error', 'message': 'Ese proyecto ya no existe.'}), 404
+    r = make_response(bytes(fila[0]))
+    r.headers['Content-Type'] = 'application/octet-stream'
+    r.headers['Cache-Control'] = 'no-store'
+    r.headers['X-Gz'] = str(fila[1])
+    return r
+
+@app.route('/api/tps/proyecto/<apodo>/<int:pid>', methods=['DELETE'])
+def tps_borrar(apodo, pid):
+    try:
+        slug, error = _tps_usuario(apodo)
+        if error:
+            return error
+        _ejecutar("delete from tps_proyectos where slug = ? and id = ?", (slug, pid))
+    except Exception as e:
+        return _error_servidor(e)
+    return jsonify({'status': 'ok'})
+
+
 # --- ACTIVIDAD: tiempo jugado por usuario y juego ---
 @app.route('/api/actividad/<juego>/<apodo>', methods=['POST'])
 def registrar_actividad(juego, apodo):
