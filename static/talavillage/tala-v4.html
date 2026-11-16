@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#101418">
+<title>TheTalaVillage</title>
+<style>
+html,body{margin:0;height:100%;background:#0d1016;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:"Trebuchet MS",system-ui,sans-serif}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#scr{display:block;background:#000;image-rendering:auto;touch-action:none;border-radius:6px;box-shadow:0 0 0 1px #222,0 10px 40px rgba(0,0,0,.6)}
+#ctl{display:none}
+body.touch #ctl{display:block}
+.btn{position:fixed;display:grid;place-items:center;border-radius:50%;color:#fff;font-weight:900;font-size:22px;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent;box-shadow:0 4px 0 rgba(0,0,0,.35),inset 0 2px 0 rgba(255,255,255,.25)}
+.btn.on{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
+#ba{width:74px;height:74px;background:#d4343f;right:calc(26px + env(safe-area-inset-right));bottom:calc(70px + env(safe-area-inset-bottom))}
+#bb{width:64px;height:64px;background:#3a6ac8;right:calc(110px + env(safe-area-inset-right));bottom:calc(30px + env(safe-area-inset-bottom))}
+#bm{width:auto;height:34px;padding:0 14px;border-radius:17px;font-size:14px;background:#454c5e;right:calc(16px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top))}
+#dpad{position:fixed;left:calc(22px + env(safe-area-inset-left));bottom:calc(26px + env(safe-area-inset-bottom));width:150px;height:150px;touch-action:none}
+#dpad i{position:absolute;background:#2b303c;box-shadow:0 4px 0 rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.12)}
+#dpad .h{left:0;top:50px;width:150px;height:50px;border-radius:10px}#dpad .v{left:50px;top:0;width:50px;height:150px;border-radius:10px}
+#dpad b{position:absolute;width:0;height:0;border:9px solid transparent;opacity:.75}
+#dpad .u{left:66px;top:10px;border-bottom-color:#cfd6e4}#dpad .d{left:66px;bottom:10px;border-top-color:#cfd6e4}#dpad .l{left:10px;top:66px;border-right-color:#cfd6e4}#dpad .r{right:10px;top:66px;border-left-color:#cfd6e4}
+#dpad[data-d=up] .u,#dpad[data-d=down] .d,#dpad[data-d=left] .l,#dpad[data-d=right] .r{opacity:1;border-width:11px}
+body.touch:not(.portrait) #dpad,body.touch:not(.portrait) .btn{opacity:.82}
+/* vertical: pantalla arriba y mandos abajo, como una consola */
+body.portrait #wrap{bottom:auto;height:58%;padding-top:env(safe-area-inset-top);box-sizing:border-box}
+body.portrait #ctl::before{content:"";position:fixed;left:0;right:0;bottom:0;height:42%;background:linear-gradient(#171b24,#0d1016)}
+body.portrait #dpad{bottom:calc(60px + env(safe-area-inset-bottom));width:160px;height:160px}
+body.portrait #dpad .h{top:55px;width:160px;height:50px}body.portrait #dpad .v{left:55px;height:160px}
+body.portrait #dpad .u,body.portrait #dpad .d{left:71px}body.portrait #dpad .l,body.portrait #dpad .r{top:71px}
+body.portrait #ba{bottom:calc(110px + env(safe-area-inset-bottom));width:82px;height:82px}
+body.portrait #bb{bottom:calc(56px + env(safe-area-inset-bottom));right:calc(118px + env(safe-area-inset-right))}
+body.portrait #bm{top:auto;bottom:calc(14px + env(safe-area-inset-bottom));right:50%;transform:translateX(50%)}
+.lbl{position:fixed;color:#8a93a8;font-size:12px;font-weight:700}
+/* dentro de la consola de la web: los mandos son los de la Game Boy */
+body.extctl #ctl{display:none!important}
+body.extctl #scr{border-radius:0;box-shadow:none}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="scr" width="800" height="480"></canvas></div>
+<div id="ctl">
+  <div id="dpad"><i class="h"></i><i class="v"></i><b class="u"></b><b class="d"></b><b class="l"></b><b class="r"></b></div>
+  <div class="btn" id="ba" data-k="a">A</div>
+  <div class="btn" id="bb" data-k="b">B</div>
+  <div class="btn" id="bm" data-k="menu">MENÚ</div>
+</div>
+<script src="tala-v4.js"></script>
+</body>
+</html>
