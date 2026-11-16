@@ -380,6 +380,15 @@ img{max-width:100%}
 .modo-pokemon .dpad{width:clamp(130px,40vw,176px)}
 .modo-pokemon .btn-ab{width:clamp(64px,19vw,82px)}
 
+#modal-tala-codigo{z-index:10009}
+#tala-codigo{text-align:center;height:52px;font-size:1.4rem;letter-spacing:.5em;width:100%;box-sizing:border-box}
+#tala-girar{position:absolute;left:50%;bottom:10px;z-index:5;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 18px;border-radius:16px;
+  background:rgba(14,14,17,.88);border:1px solid rgba(217,182,95,.55);color:#fff;text-align:center;box-shadow:0 10px 26px rgba(0,0,0,.5);
+  opacity:0;pointer-events:none;transform:translate(-50%,10px);transition:opacity .35s,transform .45s var(--spring)}
+#tala-girar.on{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+#tala-girar b{font-size:.9rem;color:var(--gold)}#tala-girar small{font-size:.72rem;color:#d8d8de}
+#tala-girar .tala-movil{font-size:1.5rem;display:inline-block;animation:tala-gira 1.6s ease-in-out infinite}
+@keyframes tala-gira{0%,25%{transform:rotate(0)}55%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
 /* TheTalaVillage dentro de la consola: pantalla de lado a lado arriba y mandos abajo; en horizontal, pantalla completa */
 #tala-screen{display:none;position:absolute;inset:0;background:#000}
 #tala-screen iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
@@ -732,7 +741,7 @@ img{max-width:100%}
       <span class="txt"><b>Marcianitos Cierzo</b><small>El clásico de naves con estilo barbería</small><span class="juego-estado vacio" id="estado-marcianitos">Comprobando…</span></span>
       <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
     </button>
-    <button class="btn-servicio juego-card juego-tala" onclick="abrirTalaVillage()">
+    <button class="btn-servicio juego-card juego-tala" onclick="pedirCodigoTala()">
       <span class="juego-ico"><img src="{{ url_for('static', filename='talavillage/logo.png') }}" alt="" onerror="this.replaceWith(document.createTextNode('🌲'))"></span>
       <span class="txt"><b>TheTalaVillage</b><small>Aventura de Talamones en Talayuelas · creada para El Cierzo</small><span class="juego-estado vacio" id="estado-talavillage">Comprobando…</span></span>
       <svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
@@ -828,6 +837,7 @@ img{max-width:100%}
 </div>
 
     <div id="tala-screen"></div>
+    <div id="tala-girar" onclick="this.classList.remove('on')"><span class="tala-movil">📱</span><b>Gira el móvil</b><small>para jugar a pantalla completa</small></div>
     <div id="pokemon-screen">
       <div id="ejs-game"></div>
       <div id="poke-cargando">Cargando juego…</div>
@@ -867,6 +877,17 @@ img{max-width:100%}
  </div>
 </div>
 
+<div id="modal-tala-codigo" class="overlay">
+  <div class="sheet">
+    <img src="{{ url_for('static', filename='talavillage/logo.png') }}" alt="" style="width:64px;height:auto;display:block;margin:0 auto 6px">
+    <h3>TheTalaVillage</h3>
+    <p>Escribe el código de acceso para entrar al juego.</p>
+    <input type="password" id="tala-codigo" class="campo-pin" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="····" onkeydown="if(event.key==='Enter')comprobarCodigoTala()" oninput="this.value=this.value.replace(/\D/g,'').slice(0,4);if(this.value.length===4)comprobarCodigoTala()">
+    <p id="tala-codigo-error" style="display:none;color:var(--danger);font-size:.84rem;margin:8px 0 0">Código incorrecto</p>
+    <button type="button" class="btn-final" style="margin-top:12px" onclick="comprobarCodigoTala()">Entrar</button>
+    <button type="button" class="btn-ghost" onclick="cerrarCodigoTala()">Cancelar</button>
+  </div>
+</div>
 <div id="modal-salir-juego" class="overlay">
   <div class="sheet">
     <h3>¿Salir del juego?</h3>
@@ -1999,9 +2020,15 @@ function abrirArcade() {
 function mostrarInicioArcade() { mostrarPasoArcade('arcade-paso-inicio'); }
 /* ---------- TheTalaVillage: dentro de la consola Game Boy (vertical) o a pantalla completa con botones táctiles (horizontal) ---------- */
 const tvFrame = () => document.getElementById('tv-frame');
-function tvPost(m) { const f = tvFrame(); if (f && f.contentWindow) try { f.contentWindow.postMessage(Object.assign({ tv: 1 }, m), location.origin); } catch (e) {} }
+function tvPost(m) { const f = tvFrame(); if (!f || !f.contentWindow) return;
+  if (m.type === 'key') { try { const I = f.contentWindow.Input; if (I) { m.down ? I.press(m.k) : I.release(m.k); return; } } catch (e) {} }
+  try { f.contentWindow.postMessage(Object.assign({ tv: 1 }, m), location.origin); } catch (e) {} }
 function tvHorizontal() { return matchMedia('(orientation: landscape) and (pointer: coarse)').matches; }
-function tvLayout() { if (juegoActual !== 'talavillage') return; const h = tvHorizontal(); document.getElementById('consola').classList.toggle('tala-land', h); if (h) { try { alternarAbanico(false); } catch (e) {} } tvPost({ type: 'mode', ext: !h }); }
+function tvLayout() { if (juegoActual !== 'talavillage') return; const h = tvHorizontal(); document.getElementById('consola').classList.toggle('tala-land', h); if (h) { try { alternarAbanico(false); } catch (e) {} document.getElementById('tala-girar').classList.remove('on'); } tvPost({ type: 'mode', ext: !h }); }
+/* Código de acceso al juego */
+function pedirCodigoTala() { if (sessionStorage.getItem('tala_ok') === '1') return abrirTalaVillage(); const m = document.getElementById('modal-tala-codigo'), i = document.getElementById('tala-codigo'); i.value = ''; document.getElementById('tala-codigo-error').style.display = 'none'; m.style.display = 'flex'; setTimeout(() => i.focus(), 150); }
+function cerrarCodigoTala() { document.getElementById('modal-tala-codigo').style.display = 'none'; }
+function comprobarCodigoTala() { const i = document.getElementById('tala-codigo'); if (i.value === '3333') { sessionStorage.setItem('tala_ok', '1'); cerrarCodigoTala(); abrirTalaVillage(); } else { const e = document.getElementById('tala-codigo-error'); e.style.display = 'block'; i.value = ''; i.focus(); } }
 addEventListener('resize', () => setTimeout(tvLayout, 60)); addEventListener('orientationchange', () => setTimeout(tvLayout, 250));
 function abrirTalaVillage() {
   try { const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen; if (req && !document.fullscreenElement && matchMedia('(pointer:coarse)').matches) { const p = req.call(el, { navigationUI: 'hide' }); if (p && p.then) p.then(() => { try { screen.orientation.unlock(); } catch (e) {} }).catch(() => {}); } } catch (e) {}
@@ -2013,8 +2040,9 @@ function abrirTalaVillage() {
   document.getElementById('game-container').style.display = 'none'; document.getElementById('pokemon-screen').style.display = 'none';
   const scr = document.getElementById('tala-screen'); scr.innerHTML = ''; scr.style.display = 'block';
   const f = document.createElement('iframe'); f.id = 'tv-frame'; f.allow = 'autoplay; fullscreen'; f.title = 'TheTalaVillage';
-  f.src = "{{ url_for('static', filename='talavillage/index.html') }}?v=2&gb=1&apodo=" + encodeURIComponent(apodoActual || '');
+  f.src = "{{ url_for('static', filename='talavillage/tala-v3.html') }}?gb=1&apodo=" + encodeURIComponent(apodoActual || '');
   scr.appendChild(f); tvLayout(); setTimeout(() => { try { f.focus(); } catch (e) {} }, 400);
+  const aviso = document.getElementById('tala-girar'); if (matchMedia('(pointer: coarse)').matches && !tvHorizontal()) { aviso.classList.add('on'); clearTimeout(aviso._t); aviso._t = setTimeout(() => aviso.classList.remove('on'), 6000); }
 }
 function cerrarTalaVillage() {
   const scr = document.getElementById('tala-screen'); scr.innerHTML = ''; scr.style.display = 'none';
