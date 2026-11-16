@@ -382,12 +382,12 @@ img{max-width:100%}
 
 #modal-tala-codigo{z-index:10009}
 #tala-codigo{text-align:center;height:52px;font-size:1.4rem;letter-spacing:.5em;width:100%;box-sizing:border-box}
-#tala-girar{position:absolute;left:50%;bottom:10px;z-index:5;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 18px;border-radius:16px;
-  background:rgba(14,14,17,.88);border:1px solid rgba(217,182,95,.55);color:#fff;text-align:center;box-shadow:0 10px 26px rgba(0,0,0,.5);
-  opacity:0;pointer-events:none;transform:translate(-50%,10px);transition:opacity .35s,transform .45s var(--spring)}
-#tala-girar.on{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
-#tala-girar b{font-size:.9rem;color:var(--gold)}#tala-girar small{font-size:.72rem;color:#d8d8de}
-#tala-girar .tala-movil{font-size:1.5rem;display:inline-block;animation:tala-gira 1.6s ease-in-out infinite}
+.gb-brand{position:relative}
+#tala-girar{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;letter-spacing:0;
+  background:#141417;color:#fff;font-weight:700;opacity:0;pointer-events:none;transition:opacity .35s}
+#tala-girar.on{opacity:1;pointer-events:auto}
+#tala-girar b{font-size:.78rem;color:var(--gold)}#tala-girar small{font-size:.72rem;color:#d8d8de;font-weight:600}
+#tala-girar .tala-movil{font-size:1rem;display:inline-block;animation:tala-gira 1.6s ease-in-out infinite}
 @keyframes tala-gira{0%,25%{transform:rotate(0)}55%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
 /* TheTalaVillage dentro de la consola: pantalla de lado a lado arriba y mandos abajo; en horizontal, pantalla completa */
 #tala-screen{display:none;position:absolute;inset:0;background:#000}
@@ -837,7 +837,6 @@ img{max-width:100%}
 </div>
 
     <div id="tala-screen"></div>
-    <div id="tala-girar" onclick="this.classList.remove('on')"><span class="tala-movil">📱</span><b>Gira el móvil</b><small>para jugar a pantalla completa</small></div>
     <div id="pokemon-screen">
       <div id="ejs-game"></div>
       <div id="poke-cargando">Cargando juego…</div>
@@ -849,7 +848,7 @@ img{max-width:100%}
     </div>
 
    </div>
-   <div class="gb-brand"><i class="led"></i>EL CIERZO <span>ARCADE</span></div>
+   <div class="gb-brand"><i class="led"></i>EL CIERZO <span>ARCADE</span><div id="tala-girar" onclick="this.classList.remove('on')"><span class="tala-movil">📱</span><b>Gira el móvil</b><small>para jugar a pantalla completa</small></div></div>
   </div>
 
   <div class="gb-controls">
@@ -2040,9 +2039,9 @@ function abrirTalaVillage() {
   document.getElementById('game-container').style.display = 'none'; document.getElementById('pokemon-screen').style.display = 'none';
   const scr = document.getElementById('tala-screen'); scr.innerHTML = ''; scr.style.display = 'block';
   const f = document.createElement('iframe'); f.id = 'tv-frame'; f.allow = 'autoplay; fullscreen'; f.title = 'TheTalaVillage';
-  f.src = "{{ url_for('static', filename='talavillage/tala-v3.html') }}?gb=1&apodo=" + encodeURIComponent(apodoActual || '');
+  f.src = "{{ url_for('static', filename='talavillage/tala-v4.html') }}?gb=1&apodo=" + encodeURIComponent(apodoActual || '');
   scr.appendChild(f); tvLayout(); setTimeout(() => { try { f.focus(); } catch (e) {} }, 400);
-  const aviso = document.getElementById('tala-girar'); if (matchMedia('(pointer: coarse)').matches && !tvHorizontal()) { aviso.classList.add('on'); clearTimeout(aviso._t); aviso._t = setTimeout(() => aviso.classList.remove('on'), 6000); }
+  const aviso = document.getElementById('tala-girar'); if (matchMedia('(pointer: coarse)').matches && !tvHorizontal()) { aviso.classList.add('on'); clearTimeout(aviso._t); aviso._t = setTimeout(() => aviso.classList.remove("on"), 10000); }
 }
 function cerrarTalaVillage() {
   const scr = document.getElementById('tala-screen'); scr.innerHTML = ''; scr.style.display = 'none';
