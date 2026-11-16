@@ -323,9 +323,6 @@ img{max-width:100%}
 .juego-ico img.pixel{image-rendering:pixelated}
 .juego-tala .juego-ico{background:rgba(228,189,85,.14);box-shadow:inset 0 0 0 1px rgba(228,189,85,.45)}
 .juego-tala .juego-ico img{width:70%;height:94%}
-#tv-capa{display:none;position:fixed;inset:0;z-index:10060;background:#0d1016}
-#tv-capa.on{display:block}
-#tv-capa iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
 .juego-pokemmo .juego-ico{background:rgba(59,91,255,.12);box-shadow:inset 0 0 0 1px rgba(255,212,0,.35)}
 .juego-pokemmo .juego-ico img{width:96%;height:96%}
 .pmmo-logo{width:132px;height:132px;margin:0 auto 2px;object-fit:contain;filter:drop-shadow(0 8px 22px rgba(0,0,0,.6))}
@@ -383,6 +380,20 @@ img{max-width:100%}
 .modo-pokemon .dpad{width:clamp(130px,40vw,176px)}
 .modo-pokemon .btn-ab{width:clamp(64px,19vw,82px)}
 
+/* TheTalaVillage dentro de la consola: pantalla de lado a lado arriba y mandos abajo; en horizontal, pantalla completa */
+#tala-screen{display:none;position:absolute;inset:0;background:#000}
+#tala-screen iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.modo-tala .gb-bezel{flex:none;margin:0;padding:0;border-radius:0;background:#000;box-shadow:0 1px 0 rgba(255,255,255,.06)}
+.modo-tala .gb-screen{flex:none;width:100%;aspect-ratio:5/3;border-radius:0;box-shadow:none}
+.modo-tala .gb-brand{padding:8px 0 4px;background:linear-gradient(180deg,#1f1f23,#1a1a1d)}
+.modo-tala .gb-controls{flex:1 1 auto;height:auto;min-height:230px;max-height:400px;margin:auto 0;padding:10px 18px 16px}
+.modo-tala .lr{visibility:hidden}
+.modo-tala .dpad{width:clamp(130px,40vw,176px)}
+.modo-tala .btn-ab{width:clamp(64px,19vw,82px)}
+#consola.tala-land .gb{max-width:none;padding:0;background:#000!important}
+#consola.tala-land .gb-top,#consola.tala-land .gb-controls,#consola.tala-land .gb-brand{display:none}
+#consola.tala-land .gb-bezel{flex:1 1 auto;height:100%}
+#consola.tala-land .gb-screen{flex:1 1 auto;width:100%;height:100%;aspect-ratio:auto}
 /* Marcianitos Cierzo: pantalla completa táctil con marco, sin mandos */
 .modo-marcianitos .gb{max-width:none}
 .modo-marcianitos .gb-controls,.modo-marcianitos .gb-brand{display:none}
@@ -699,7 +710,6 @@ img{max-width:100%}
     <button type="button" class="btn-ghost" onclick="mostrarInicioArcade()">← Atrás</button>
   </div>
 
-<div id="tv-capa" aria-hidden="true"></div>
   <div class="arcade-panel" id="arcade-paso-pokemmo" style="display:none">
     <img class="pmmo-logo" src="{{ url_for('static', filename='pokemmo.png') }}" alt="PokeMMO">
     <h2 class="arcade-title">Poke <span>MMO</span></h2>
@@ -817,6 +827,7 @@ img{max-width:100%}
   <div id="support-r" class="support-ship" style="display:none;"></div>
 </div>
 
+    <div id="tala-screen"></div>
     <div id="pokemon-screen">
       <div id="ejs-game"></div>
       <div id="poke-cargando">Cargando juego…</div>
@@ -1986,26 +1997,40 @@ function abrirArcade() {
   mostrarInicioArcade();
 }
 function mostrarInicioArcade() { mostrarPasoArcade('arcade-paso-inicio'); }
-/* ---------- TheTalaVillage: juego propio en un iframe, con guardado por usuario en el servidor ---------- */
+/* ---------- TheTalaVillage: dentro de la consola Game Boy (vertical) o a pantalla completa con botones táctiles (horizontal) ---------- */
+const tvFrame = () => document.getElementById('tv-frame');
+function tvPost(m) { const f = tvFrame(); if (f && f.contentWindow) try { f.contentWindow.postMessage(Object.assign({ tv: 1 }, m), location.origin); } catch (e) {} }
+function tvHorizontal() { return matchMedia('(orientation: landscape) and (pointer: coarse)').matches; }
+function tvLayout() { if (juegoActual !== 'talavillage') return; const h = tvHorizontal(); document.getElementById('consola').classList.toggle('tala-land', h); if (h) { try { alternarAbanico(false); } catch (e) {} } tvPost({ type: 'mode', ext: !h }); }
+addEventListener('resize', () => setTimeout(tvLayout, 60)); addEventListener('orientationchange', () => setTimeout(tvLayout, 250));
 function abrirTalaVillage() {
-  try { const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen; if (req && !document.fullscreenElement && matchMedia('(pointer:coarse)').matches) { const p = req.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } } catch (e) {}
+  try { const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen; if (req && !document.fullscreenElement && matchMedia('(pointer:coarse)').matches) { const p = req.call(el, { navigationUI: 'hide' }); if (p && p.then) p.then(() => { try { screen.orientation.unlock(); } catch (e) {} }).catch(() => {}); } } catch (e) {}
+  try { screen.orientation.unlock(); } catch (e) {}
   juegoActual = 'talavillage'; actividadEmpezar('talavillage');
-  const capa = document.getElementById('tv-capa'); capa.innerHTML = '';
+  const c = document.getElementById('consola'); c.classList.remove('modo-pokemon', 'modo-marcianitos'); c.classList.add('modo-tala');
+  document.getElementById('gb-titulo-juego').textContent = 'TheTalaVillage'; document.getElementById('gb-apodo').textContent = '👤 ' + apodoActual;
+  document.getElementById('arcade').style.display = 'none'; document.documentElement.style.overflow = 'hidden'; c.style.display = 'flex';
+  document.getElementById('game-container').style.display = 'none'; document.getElementById('pokemon-screen').style.display = 'none';
+  const scr = document.getElementById('tala-screen'); scr.innerHTML = ''; scr.style.display = 'block';
   const f = document.createElement('iframe'); f.id = 'tv-frame'; f.allow = 'autoplay; fullscreen'; f.title = 'TheTalaVillage';
-  f.src = "{{ url_for('static', filename='talavillage/index.html') }}?v=1&apodo=" + encodeURIComponent(apodoActual || '');
-  capa.appendChild(f); capa.classList.add('on'); capa.setAttribute('aria-hidden', 'false'); setTimeout(() => { try { f.focus(); } catch (e) {} }, 300);
+  f.src = "{{ url_for('static', filename='talavillage/index.html') }}?v=2&gb=1&apodo=" + encodeURIComponent(apodoActual || '');
+  scr.appendChild(f); tvLayout(); setTimeout(() => { try { f.focus(); } catch (e) {} }, 400);
 }
 function cerrarTalaVillage() {
-  const capa = document.getElementById('tv-capa'); capa.classList.remove('on'); capa.setAttribute('aria-hidden', 'true'); capa.innerHTML = '';
-  actividadTerminar(); juegoActual = null; salirPantallaCompleta(); mostrarMenuArcade();
+  const scr = document.getElementById('tala-screen'); scr.innerHTML = ''; scr.style.display = 'none';
+  const c = document.getElementById('consola'); c.classList.remove('modo-tala', 'tala-land'); c.style.display = 'none';
 }
+let tvGuardando = null;
+function tvGuardar(silencioso) { return new Promise(res => { tvGuardando = { res, silencioso }; tvPost({ type: 'cmd', cmd: 'save' }); setTimeout(() => { if (tvGuardando) { tvGuardando = null; res(false); } }, 6000); }); }
+const TV_TECLAS = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', KeyZ: 'a', Space: 'a', Enter: 'a', KeyX: 'b', Backspace: 'b', Escape: 'menu', KeyM: 'menu' };
+['keydown', 'keyup'].forEach(t => document.addEventListener(t, e => { if (juegoActual !== 'talavillage' || e.repeat) return; const k = TV_TECLAS[e.code]; if (!k) return; e.preventDefault(); tvPost({ type: 'key', k, down: t === 'keydown' }); }));
 window.addEventListener('message', async e => {
-  const f = document.getElementById('tv-frame'); if (!f || e.source !== f.contentWindow || e.origin !== location.origin) return;
+  const f = tvFrame(); if (!f || e.source !== f.contentWindow || e.origin !== location.origin) return;
   const d = e.data || {}; if (!d.tv) return;
-  const responder = m => { try { f.contentWindow.postMessage(Object.assign({ tv: 1 }, m), location.origin); } catch (err) {} };
-  if (d.type === 'hello') { let txt = null; try { const buf = await cargarPartida('talavillage'); if (buf) txt = new TextDecoder().decode(buf); } catch (err) {} responder({ type: 'init', apodo: apodoActual, data: txt }); }
-  else if (d.type === 'save' && typeof d.data === 'string') { let ok = false; try { ok = await subirPartida('talavillage', new TextEncoder().encode(d.data), true); } catch (err) {} responder({ type: 'saved', ok: !!ok }); }
-  else if (d.type === 'exit') cerrarTalaVillage();
+  if (d.type === 'hello') { let txt = null; try { const buf = await cargarPartida('talavillage'); if (buf) txt = new TextDecoder().decode(buf); } catch (err) {} tvPost({ type: 'init', apodo: apodoActual, data: txt }); tvLayout(); }
+  else if (d.type === 'save' && typeof d.data === 'string') { const g = tvGuardando; tvGuardando = null; const silencioso = g ? !!g.silencioso : true; let ok = false; try { ok = await subirPartida('talavillage', new TextEncoder().encode(d.data), silencioso); } catch (err) {} tvPost({ type: 'saved', ok: !!ok }); if (g) g.res(!!ok); }
+  else if (d.type === 'nosave') { const g = tvGuardando; tvGuardando = null; if (g) { if (!g.silencioso) toast('Empieza o continúa una partida para poder guardar'); g.res(false); } }
+  else if (d.type === 'exit') salirJuego();
 });
 /* ---------- Poke MMO: juego online de terceros (app oficial multiplataforma) ---------- */
 function abrirPokeMMO() { mostrarPasoArcade('arcade-paso-pokemmo'); }
@@ -2300,6 +2325,7 @@ document.addEventListener('visibilitychange', () => {
 /* ---------- Guardar / salir ---------- */
 async function guardarPartidaActual(silencioso) {
   const btn = document.getElementById('btn-guardar-partida');
+  if (juegoActual === 'talavillage') { btn.disabled = true; try { return await tvGuardar(silencioso); } finally { btn.disabled = false; } }
   if (juegoActual === 'marcianitos') {
     if (gameActive) datosMarcianitos.enCurso = estadoMarcianitos();
     datosMarcianitos.actualizado = Date.now();
@@ -2315,7 +2341,7 @@ async function guardarPartidaActual(silencioso) {
   return false;
 }
 function pedirSalirJuego() {
-  const hayAlgoQueGuardar = (juegoActual === 'marcianitos' && gameActive) || (esGBA(juegoActual) && pokemonListo);
+  const hayAlgoQueGuardar = (juegoActual === 'marcianitos' && gameActive) || (esGBA(juegoActual) && pokemonListo) || juegoActual === 'talavillage';
   if (!hayAlgoQueGuardar) return salirJuego();
   if (juegoActual === 'marcianitos') { pausadoAntesDeModal = gamePaused; gamePaused = true; }
   document.getElementById('modal-salir-juego').style.display = 'flex';
@@ -2332,6 +2358,7 @@ function salirJuego() {
   actividadTerminar();
   document.getElementById('modal-salir-juego').style.display = 'none';
   soltarTodo();
+  if (juegoActual === 'talavillage') { cerrarTalaVillage(); juegoActual = null; salirPantallaCompleta(); mostrarMenuArcade(); return; }
   if (esGBA(juegoActual) && window.EJS_emulator) {
     // El emulador no se puede descargar en caliente: se recarga y se vuelve al menú con el mismo apodo
     sessionStorage.setItem('arcade_volver', '1');
@@ -2351,6 +2378,7 @@ const EJS_BOTON = { b: 0, select: 2, start: 3, up: 4, down: 5, left: 6, right: 7
 const dirs = { up: false, down: false, left: false, right: false };
 
 function pulsar(boton, pulsado) {
+  if (juegoActual === 'talavillage') { const k = { start: 'menu', select: 'menu' }[boton] || boton; if (['up', 'down', 'left', 'right', 'a', 'b', 'menu'].includes(k)) tvPost({ type: 'key', k, down: !!pulsado }); return; }
   if (esGBA(juegoActual)) {
     const gm = window.EJS_emulator && EJS_emulator.gameManager;
     if (gm && EJS_BOTON[boton] !== undefined) { try { gm.simulateInput(0, EJS_BOTON[boton], pulsado ? 1 : 0); } catch (e) {} }
